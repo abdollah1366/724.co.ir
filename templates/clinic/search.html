@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}جست‌وجو | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <form class="search-box" action="{% url 'clinic:search' %}" method="get" role="search">
+    <input type="search" name="q" value="{{ q }}" placeholder="جست‌وجوی پزشک، تخصص یا خدمت..." aria-label="جست‌وجو" required>
+    <button class="btn" type="submit">جست‌وجو</button>
+  </form>
+  {% if q %}
+    {% if not doctors and not services and not floors %}<p class="muted">نتیجه‌ای برای «{{ q }}» یافت نشد.</p>{% endif %}
+    {% if doctors %}<h2>پزشکان</h2><div class="grid">{% for doctor in doctors %}{% include "includes/doctor_card.html" %}{% endfor %}</div>{% endif %}
+    {% if services %}
+      <h2>خدمات</h2>
+      <ul class="result-list">{% for s in services %}<li><a href="{{ s.floor.get_absolute_url }}">{{ s.title }}</a> <span class="muted">({{ s.floor.title }})</span></li>{% endfor %}</ul>
+    {% endif %}
+    {% if floors %}
+      <h2>بخش‌ها</h2>
+      <ul class="result-list">{% for f in floors %}<li><a href="{{ f.get_absolute_url }}">{{ f.title }}</a></li>{% endfor %}</ul>
+    {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

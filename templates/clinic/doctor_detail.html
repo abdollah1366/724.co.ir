@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}{{ doctor.full_name }} | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <div class="doctor-header">
+    <div class="avatar large">{% if doctor.photo %}<img src="{{ doctor.photo.url }}" alt="{{ doctor.full_name }}">{% else %}🩺{% endif %}</div>
+    <div>
+      <h1>{{ doctor.full_name }}</h1>
+      <p class="lead">{{ doctor.specialty|default:"پزشک عمومی" }}</p>
+      <p class="muted">شماره نظام پزشکی: {{ doctor.medical_council_number|fa_digits }} · {{ doctor.floor.title }} ({{ doctor.floor.label|fa_digits }})</p>
+      {% if doctor.visit_fee %}<p>هزینه ویزیت: <strong>{{ doctor.visit_fee|toman }}</strong></p>{% endif %}
+      {% if doctor.accepts_online_booking %}<a class="btn" href="{% url 'appointments:book' doctor.slug %}">دریافت نوبت اینترنتی</a>{% endif %}
+    </div>
+  </div>
+  {% if doctor.bio %}<h2>رزومه</h2><div class="prose">{{ doctor.bio|linebreaks }}</div>{% endif %}
+  <h2>برنامه حضور</h2>
+  {% with hours=doctor.working_hours.all %}
+    {% if hours %}
+      <table class="table">
+        <thead><tr><th>روز</th><th>ساعت</th></tr></thead>
+        <tbody>
+          {% for wh in hours %}
+            <tr><td>{{ wh.get_weekday_display }}</td><td>{{ wh.start_time|time:"H:i"|fa_digits }} تا {{ wh.end_time|time:"H:i"|fa_digits }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">برنامه حضور هنوز ثبت نشده است.</p>
+    {% endif %}
+  {% endwith %}
+</section>
+{% endblock %}

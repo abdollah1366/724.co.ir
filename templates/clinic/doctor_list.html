@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}پزشکان | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <h1>پزشکان</h1>
+  <nav class="chips" aria-label="فیلتر تخصص">
+    <a class="chip{% if not current_specialty %} active{% endif %}" href="{% url 'clinic:doctor_list' %}">همه</a>
+    {% for s in specialties %}
+      <a class="chip{% if current_specialty == s.slug %} active{% endif %}" href="?specialty={{ s.slug|urlencode }}">{{ s.name }}</a>
+    {% endfor %}
+  </nav>
+  <div class="grid">
+    {% for doctor in doctors %}{% include "includes/doctor_card.html" %}{% empty %}<p class="muted">پزشکی یافت نشد.</p>{% endfor %}
+  </div>
+</section>
+{% endblock %}
