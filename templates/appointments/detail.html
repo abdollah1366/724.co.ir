@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}نوبت {{ appointment.tracking_code }} | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>جزئیات نوبت</h1>
+  <div class="card">
+    <p class="tracking">کد پیگیری: <strong>{{ appointment.tracking_code|fa_digits }}</strong></p>
+    <p class="muted small">این کد را نگه دارید؛ برای پیگیری یا لغو نوبت به آن و شماره موبایل نیاز دارید.</p>
+    <table class="table">
+      <tr><th>پزشک</th><td>{{ appointment.doctor.full_name }}</td></tr>
+      <tr><th>تاریخ</th><td>{{ appointment.date|jalali }}</td></tr>
+      <tr><th>ساعت</th><td>{{ appointment.time|time:"H:i"|fa_digits }}</td></tr>
+      <tr><th>بیمار</th><td>{{ appointment.patient_full_name }}</td></tr>
+      <tr><th>کد ملی</th><td dir="ltr">{{ appointment.masked_national_code|fa_digits }}</td></tr>
+      <tr><th>وضعیت</th><td><span class="badge status-{{ appointment.status }}">{{ appointment.get_status_display }}</span></td></tr>
+    </table>
+    {% if appointment.can_cancel %}
+      <form method="post" action="{% url 'appointments:cancel' appointment.pk %}" onsubmit="return confirm('از لغو نوبت مطمئن هستید؟');">
+        {% csrf_token %}
+        <button class="btn btn-danger" type="submit">لغو نوبت</button>
+      </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
