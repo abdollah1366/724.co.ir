@@ -1,0 +1,57 @@
+{% load static %}<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ SITE_NAME }} | {{ SITE_TAGLINE }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}ساختمان سلامت ۷۲۴: پزشک عمومی و متخصص، داروخانه، آزمایشگاه و نوبت‌دهی اینترنتی.{% endblock %}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+</head>
+<body>
+  <a class="skip-link" href="#main">پرش به محتوا</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="{% url 'core:home' %}">
+        <span class="brand-mark">۷۲۴</span>
+        <span class="brand-text">{{ SITE_TAGLINE }}</span>
+      </a>
+      <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="منو">
+      <label for="nav-toggle" class="nav-toggle-label" aria-hidden="true">☰</label>
+      <nav class="site-nav" aria-label="منوی اصلی">
+        <a href="{% url 'core:home' %}">خانه</a>
+        <a href="{% url 'clinic:doctor_list' %}">پزشکان</a>
+        <a href="{% url 'appointments:track' %}">پیگیری نوبت</a>
+        <a href="{% url 'core:about' %}">درباره ما</a>
+        <a href="{% url 'core:contact' %}">تماس</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    {% if messages %}
+      <div class="container">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}" role="status">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <strong>ساختمان سلامت ۷۲۴</strong>
+        {% if SITE_ADDRESS %}<p>{{ SITE_ADDRESS }}</p>{% endif %}
+        {% if SITE_PHONE %}<p>تلفن: <a href="tel:{{ SITE_PHONE }}">{{ SITE_PHONE }}</a></p>{% endif %}
+      </div>
+      <div class="footer-links">
+        <a href="{% url 'core:privacy' %}">حریم خصوصی</a>
+        <a href="{% url 'core:contact' %}">تماس با ما</a>
+      </div>
+      <p class="footer-note">اطلاعات این سایت جایگزین معاینه و مشاوره پزشک نیست. در شرایط اورژانسی با ۱۱۵ تماس بگیرید.</p>
+    </div>
+  </footer>
+</body>
+</html>
