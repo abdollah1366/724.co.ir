@@ -22,9 +22,9 @@ def jalali(value, fmt="%A %d %B %Y"):
     if isinstance(value, datetime.datetime):
         if timezone.is_aware(value):
             value = timezone.localtime(value)
-        converted = jdatetime.datetime.fromgregorian(datetime=value, locale="fa_IR")
+        converted = jdatetime.datetime.fromgregorian(datetime=value, locale=jdatetime.FA_LOCALE)
     elif isinstance(value, datetime.date):
-        converted = jdatetime.date.fromgregorian(date=value, locale="fa_IR")
+        converted = jdatetime.date.fromgregorian(date=value, locale=jdatetime.FA_LOCALE)
     else:
         return value
     return converted.strftime(fmt).translate(EN_TO_FA)
