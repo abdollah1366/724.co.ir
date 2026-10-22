@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block content %}
+<section class="hero">
+  <div class="container">
+    <h1>تمام خدمات سلامت، در یک مکان</h1>
+    <p class="lead">پزشک، داروخانه، آزمایشگاه و خدمات درمانی؛ ساده و در دسترس.</p>
+    <form class="search-box" action="{% url 'clinic:search' %}" method="get" role="search">
+      <input type="search" name="q" placeholder="جست‌وجوی پزشک، تخصص، خدمت یا آزمایش..." aria-label="جست‌وجو" required>
+      <button class="btn" type="submit">جست‌وجو</button>
+    </form>
+    <div class="quick-actions">
+      <a class="quick" href="{% url 'clinic:doctor_list' %}"><span>📅</span>نوبت‌دهی آنلاین</a>
+      <a class="quick" href="{% url 'appointments:track' %}"><span>🔎</span>پیگیری نوبت</a>
+      <span class="quick disabled" title="به‌زودی"><span>💊</span>داروخانه آنلاین<small>به‌زودی</small></span>
+      <span class="quick disabled" title="به‌زودی"><span>🧪</span>جواب آزمایش<small>به‌زودی</small></span>
+    </div>
+  </div>
+</section>
+
+<section class="container section">
+  <h2>طبقات ساختمان ۷۲۴</h2>
+  <div class="grid floors">
+    {% for floor in floors %}
+      <a class="card floor-card" href="{{ floor.get_absolute_url }}">
+        <span class="floor-icon">{{ floor.icon|default:"🏥" }}</span>
+        <span class="floor-label">{{ floor.label|fa_digits }}</span>
+        <h3>{{ floor.title }}</h3>
+        <p>{{ floor.summary }}</p>
+        {% if floor.is_coming_soon %}<span class="badge">به‌زودی</span>{% endif %}
+      </a>
+    {% empty %}
+      <p class="muted">هنوز طبقه‌ای ثبت نشده است. از پنل مدیریت اطلاعات طبقات را وارد کنید.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
