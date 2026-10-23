@@ -26,6 +26,7 @@
         <a href="{% url 'club' %}">باشگاه مشتریان</a>
         <a href="{% url 'shop:cart' %}" class="nav-cart">سبد خرید{% if cart_count %} <span class="count">{{ cart_count|fa_digits }}</span>{% endif %}</a>
         {% if user.is_authenticated %}
+          {% if user.is_staff %}<a href="{% url 'backoffice:dashboard' %}">پیشخوان</a>{% endif %}
           <a href="{% url 'accounts:dashboard' %}" class="btn btn-small">حساب من</a>
           <form method="post" action="{% url 'accounts:logout' %}" class="inline-form">{% csrf_token %}<button type="submit" class="link-button">خروج</button></form>
         {% else %}

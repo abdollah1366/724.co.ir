@@ -1,0 +1,6 @@
+{% extends "backoffice/base.html" %}
+{% block bo_title %}باز کردن صندوق{% endblock %}
+{% block bo_content %}
+<h1>باز کردن شیفت صندوق</h1>
+<form method="post" class="form card narrow">{% csrf_token %}{% include "includes/form.html" %}<button class="btn" type="submit">باز کردن شیفت</button></form>
+{% endblock %}

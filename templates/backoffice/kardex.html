@@ -1,0 +1,17 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}کاردکس {{ product.name }}{% endblock %}
+{% block bo_content %}
+<h1>کاردکس: {{ product.name }}</h1>
+<p>موجودی قابل فروش: <strong>{{ product.stock|fa_digits }}</strong> — بهای تمام‌شده میانگین: <strong>{{ product.avg_cost|floatformat:0|rial }}</strong> ریال — قیمت فروش: {{ product.price|rial }} ریال</p>
+<p class="muted">هر ردیف نشان می‌دهد بهای تمام‌شده چگونه محاسبه شده: ورود با بهای خرید، خروج با میانگین موزون لحظه خروج.</p>
+<div class="table-wrap"><table class="table data">
+<tr><th>زمان</th><th>نوع</th><th>سند</th><th>انبار</th><th>بچ</th><th class="num">تعداد</th><th class="num">بهای واحد</th><th class="num">ارزش</th><th class="num">مانده کل</th><th class="num">میانگین پس از حرکت</th><th>کاربر</th></tr>
+{% for m in moves %}
+<tr><td>{{ m.created_at|jalali:"%Y/%m/%d %H:%M" }}</td><td>{{ m.get_move_type_display }}{% if m.is_reversal %} (برگشتی){% endif %}</td><td dir="ltr">{{ m.source_number }}</td><td>{{ m.warehouse }}</td><td dir="ltr">{{ m.batch.number }}</td>
+<td class="num">{{ m.quantity|fa_digits }}</td><td class="num">{{ m.unit_cost|floatformat:0|rial }}</td><td class="num">{{ m.total_cost|rial }}</td><td class="num">{{ m.product_qty_after|fa_digits }}</td><td class="num">{{ m.avg_cost_after|floatformat:0|rial }}</td><td>{{ m.user|default:"سیستم" }}</td></tr>
+{% empty %}<tr><td colspan="11" class="muted">حرکتی ثبت نشده.</td></tr>{% endfor %}
+</table></div>
+<h2>تاریخچه قیمت فروش</h2>
+<ul>{% for h in price_history %}<li>{{ h.changed_at|jalali:"%Y/%m/%d" }}: {{ h.previous_price|default_if_none:"—"|rial }} ← {{ h.price|rial }} ({{ h.changed_by|default:"سیستم" }})</li>{% empty %}<li class="muted">—</li>{% endfor %}</ul>
+{% endblock %}
