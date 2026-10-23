@@ -389,3 +389,24 @@ def service_search(request):
     return JsonResponse({"results": [
         {"code": c.code, "title": c.title[:120], "rvu": str(c.total_rvu or ""), "cosmetic": c.is_cosmetic} for c in codes[:20]
     ]})
+
+
+@staff_perm("ehr.view_all_records")
+def management_report(request):
+    import datetime
+
+    from django import forms
+
+    from . import reports
+    from .forms import parse_jalali
+
+    today = timezone.localdate()
+    try:
+        start = parse_jalali(request.GET.get("from")) or today - datetime.timedelta(days=29)
+        end = parse_jalali(request.GET.get("to")) or today
+    except forms.ValidationError:
+        messages.error(request, "تاریخ را به شکل ۱۴۰۵/۰۸/۰۱ وارد کنید.")
+        start, end = today - datetime.timedelta(days=29), today
+    if start > end:
+        start, end = end, start
+    return render(request, "ehr/report.html", {"report": reports.build(start, end), "start": start, "end": end})

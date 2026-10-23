@@ -98,3 +98,28 @@ class ClinicTicket(models.Model):
     def wait_minutes(self):
         end = self.called_at or timezone.now()
         return max(int((end - self.checked_in_at).total_seconds() // 60), 0)
+
+
+class PortalCode(models.Model):
+    """کد یک‌بارمصرف اتصال پرونده سلامت به حساب کاربری بیمار؛ به موبایل ثبت‌شده در پذیرش فرستاده می‌شود."""
+
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="portal_codes", verbose_name="بیمار")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+", verbose_name="حساب درخواست‌کننده")
+    code_hash = models.CharField("هش کد", max_length=64)
+    attempts = models.PositiveSmallIntegerField("تلاش ناموفق", default=0)
+    created_at = models.DateTimeField("زمان ارسال", auto_now_add=True)
+    expires_at = models.DateTimeField("انقضا")
+    used_at = models.DateTimeField("زمان استفاده", null=True, blank=True)
+    ip = models.CharField("IP", max_length=45, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "کد اتصال پرونده سلامت"
+        verbose_name_plural = "کدهای اتصال پرونده سلامت"
+
+    def matches(self, code):
+        import hmac
+
+        from apps.lab.models.portal import hash_code
+
+        return hmac.compare_digest(self.code_hash, hash_code(code))

@@ -294,3 +294,4 @@ svg.spark polyline { fill: none; stroke: var(--primary); stroke-width: 2.5; }
 .display-room { color: #fbbf24; margin-top: 8px; }
 .queue-console .queue-now { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
 .queue-number { font-size: 2rem; color: var(--primary-dark); direction: ltr; unicode-bidi: isolate; }
+.ehr-filter { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }

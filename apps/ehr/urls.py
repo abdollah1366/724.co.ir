@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_docs, views_queue, views_rehab, views_rx
+from . import views, views_docs, views_portal, views_queue, views_rehab, views_rx
 
 app_name = "ehr"
 
@@ -58,4 +58,8 @@ urlpatterns = [
     path("queue/action/", views_queue.queue_action, name="queue_action"),
     path("queue/display/", views_queue.queue_display, name="queue_display"),
     path("queue/display/data/", views_queue.queue_display_data, name="queue_display_data"),
+    path("reports/", views.management_report, name="report"),
+    path("my/", views_portal.my_record, name="my_record"),
+    path("my/link/", views_portal.portal_link, name="portal_link"),
+    path("my/files/<int:pk>/", views_portal.my_document_file, name="my_document_file"),
 ]

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}پرونده سلامت من | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <h1>پرونده سلامت من</h1>
+  <p class="muted">{{ patient.full_name }} · پرونده {{ patient.file_number }}{% if patient.blood_group %} · گروه خونی {{ patient.get_blood_group_display }}{% endif %}</p>
+
+  {% if ticket %}
+  <div class="card queue-console">
+    <h2>نوبت حضوری امروز</h2>
+    <p><strong class="queue-number">{{ ticket.label|fa_digits }}</strong> · {{ ticket.doctor.full_name }}{% if ticket.doctor.room %} · {{ ticket.doctor.room }}{% endif %}
+      · {% if ticket.status == 'called' %}<span class="badge badge-warn">نوبت شماست؛ به اتاق پزشک بروید</span>{% else %}{{ ahead|fa_digits }} نفر جلوتر از شما{% endif %}</p>
+  </div>
+  {% endif %}
+
+  <div class="ehr-summary">
+    <div class="card">
+      <h2>نوبت‌ها و یادآورها</h2>
+      {% for a in appointments %}<div class="ehr-row">{{ a.date|jalali }} ساعت {{ a.time|time:"H:i"|fa_digits }} · {{ a.doctor.full_name }}</div>{% endfor %}
+      {% for r in reminders %}<div class="ehr-row">{{ r.get_kind_display }} · {{ r.due_date|jalali }}</div>{% endfor %}
+      {% if not appointments and not reminders %}<p class="muted">نوبت یا یادآوری پیش رو ندارید. <a href="{% url 'clinic:doctor_list' %}">دریافت نوبت</a></p>{% endif %}
+    </div>
+    <div class="card">
+      <h2>حساسیت‌ها و بیماری‌ها</h2>
+      {% for a in allergies %}<span class="badge badge-warn">{{ a.substance }}</span> {% empty %}<p class="muted">حساسیتی ثبت نشده.</p>{% endfor %}
+      {% for p in problems %}<div class="ehr-row">{{ p.label }}</div>{% endfor %}
+    </div>
+    <div class="card">
+      <h2>داروهای فعلی</h2>
+      {% for m in current_meds %}<div class="ehr-row">{{ m.label }}{% if m.sig %} · {{ m.sig }}{% endif %}</div>{% empty %}<p class="muted">ثبت نشده.</p>{% endfor %}
+    </div>
+  </div>
+
+  <h2>نسخه‌ها</h2>
+  {% for rx in prescriptions %}
+  <div class="card"><strong>نسخه {{ rx.number }}</strong> · {{ rx.prescriber.full_name }} · {{ rx.issued_at|jalali }} · {{ rx.dispense_status }}
+    <ul>{% for item in rx.items.all %}<li>{{ item.label }} × {{ item.quantity|fa_digits }}{% if item.sig %} — {{ item.sig }}{% endif %}</li>{% endfor %}</ul></div>
+  {% empty %}<p class="muted">نسخه‌ای ندارید.</p>{% endfor %}
+
+  <h2>ویزیت‌ها</h2>
+  {% for e in encounters %}
+  <div class="card"><strong>{{ e.get_kind_display }}</strong> · {{ e.provider.full_name }} · {{ e.started_at|jalali }}
+    {% if e.diagnoses.all %}<p>تشخیص: {% for d in e.diagnoses.all %}{{ d.label }}{% if not forloop.last %}، {% endif %}{% endfor %}</p>{% endif %}
+    {% if e.plan %}<div class="ehr-soap"><strong>توصیه و برنامه درمان</strong><pre>{{ e.plan }}</pre></div>{% endif %}
+    {% if e.next_visit %}<p>ویزیت بعدی: {{ e.next_visit|jalali }}</p>{% endif %}</div>
+  {% empty %}<p class="muted">ویزیتی ثبت نشده.</p>{% endfor %}
+
+  {% if plans %}
+  <h2>توانبخشی و مشاوره</h2>
+  {% for p in plans %}
+  <div class="card"><strong>{{ p.get_discipline_display }}</strong> · {{ p.therapist.full_name }} · {{ p.get_status_display }} · جلسه {{ p.done_sessions|fa_digits }} از {{ p.planned_sessions|fa_digits }}
+    <p>اهداف: {{ p.goals }}</p>
+    {% for s in p.sessions.all %}{% if s.signed_at and s.home_program %}<div class="ehr-row">تمرین جلسه {{ s.number|fa_digits }}: {{ s.home_program }}</div>{% endif %}{% endfor %}</div>
+  {% endfor %}
+  {% endif %}
+
+  <h2>آزمایش‌ها و مدارک</h2>
+  <p>{% if lab_patient %}<a class="btn btn-outline" href="{% url 'lab:my_results' %}">جواب آزمایش‌های من</a>{% else %}<span class="muted">آزمایشی در آزمایشگاه مجموعه ندارید.</span>{% endif %}</p>
+  {% for d in documents %}
+  <div class="ehr-row">{{ d.get_kind_display }}: {{ d.title }} · {{ d.document_date|jalali }}
+    {% for f in d.files.all %}<a href="{% url 'ehr:my_document_file' f.pk %}" target="_blank" rel="noopener">صفحه {{ f.page|fa_digits }}</a> {% endfor %}</div>
+  {% endfor %}
+  <p class="muted small">این خلاصه برای اطلاع شماست و جایگزین مشاوره با پزشک نیست. برای اصلاح اطلاعات با پذیرش درمانگاه تماس بگیرید.</p>
+</section>
+{% endblock %}
