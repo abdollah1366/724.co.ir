@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}پیگیری نوبت نمونه‌گیری | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>پیگیری نوبت نمونه‌گیری</h1>
+  <form method="post" class="form card" novalidate>{% csrf_token %}{% include "includes/form.html" %}<button class="btn" type="submit">پیگیری</button></form>
+</section>
+{% endblock %}

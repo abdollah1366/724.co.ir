@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}راهنمای آزمایش‌های دوره‌ای | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <p class="breadcrumb"><a href="{% url 'lab:home' %}">آزمایشگاه</a> / آزمایش‌های دوره‌ای</p>
+  <h1>کدام آزمایش‌ها را دوره‌ای انجام دهم؟</h1>
+  <p class="lead">سن، جنس و عوامل خطر خود را وارد کنید. این اطلاعات فقط برای همین صفحه استفاده می‌شود و ذخیره نمی‌شود.</p>
+  <form method="get" class="form card">
+    {% include "includes/form.html" %}
+    <button class="btn" type="submit">نمایش پیشنهادها</button>
+  </form>
+  {% if rules is not None %}
+    <h2>آزمایش‌های پیشنهادی</h2>
+    {% for rule in rules %}
+      <article class="card qa">
+        <h3>{{ rule.title }} <span class="badge">{{ rule.interval }}</span></h3>
+        {{ rule.rationale|linebreaks }}
+        {% if rule.tests.all %}<div class="chips">{% for t in rule.tests.all %}<a class="chip" href="{{ t.get_absolute_url }}">{{ t.name }}</a>{% endfor %}</div>{% endif %}
+        {% if rule.source %}<p class="muted small">منبع: {{ rule.source }}</p>{% endif %}
+      </article>
+    {% empty %}
+      <p>برای این مشخصات راهنمای تأییدشده‌ای ثبت نشده است. با مشاور آزمایشگاه یا پزشک خود مشورت کنید.</p>
+    {% endfor %}
+    <div class="alert alert-info">این فهرست عمومی است و جایگزین نظر پزشک نیست. پزشک بر اساس شرایط شما ممکن است آزمایش دیگری درخواست کند.</div>
+  {% endif %}
+</section>
+{% endblock %}

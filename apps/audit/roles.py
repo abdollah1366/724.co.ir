@@ -87,6 +87,72 @@ ROLES = {
     },
 }
 
+LAB_CATALOG = ["lab.labsection", "lab.specimentype", "lab.prepinstruction", "lab.labtest", "lab.referencerange",
+               "lab.labpanel", "lab.screeningrule", "lab.samplingschedule", "lab.queueservice", "lab.queuecounter"]
+LAB_QUEUE = {"lab.queueticket": ("add", "change", VIEW), "lab.queueservice": (VIEW,), "lab.queuecounter": (VIEW,)}
+LAB_RESULTS = {
+    "lab.laborder": (VIEW,), "lab.labpatient": (VIEW,), "lab.specimen": (VIEW, "change"), "lab.labresult": (VIEW, "change"),
+    "lab.criticalnotification": ("add", VIEW), "lab.qcmaterial": (VIEW,), "lab.qcresult": ("add", VIEW),
+    "lab.resultrevision": (VIEW,), "lab.labtest": (VIEW,),
+}
+LAB_RECEPTION = {
+    "lab.labpatient": ("add", "change", VIEW), "lab.laborder": ("add", "change", VIEW), "lab.laborderitem": EDIT,
+    "lab.samplingappointment": ("add", "change", VIEW), "lab.labpayment": ("add", VIEW), "lab.specimen": (VIEW, "change"),
+    "lab.labresult": (VIEW,), "lab.labtest": (VIEW,), "lab.labpanel": (VIEW,), "lab.insuranceplan": (VIEW,), **LAB_QUEUE,
+}
+LAB_INSURANCE = {
+    "lab.insuranceplan": EDIT, "lab.plantestrule": EDIT, "lab.insuranceclaim": EDIT, "lab.claimline": EDIT,
+    "lab.claimsettlement": ("add", VIEW), "lab.laborder": (VIEW,), "accounting.party": ("add", "change", VIEW),
+}
+
+ROLES.update({
+    "پذیرش آزمایشگاه": {
+        "models": LAB_RECEPTION,
+        "extra": ["lab.post_laborder", "lab.post_labpayment", "lab.deliver_lab_report"],
+    },
+    "نمونه‌گیر آزمایشگاه": {
+        "models": {"lab.laborder": (VIEW,), "lab.specimen": (VIEW, "change"), "lab.samplingappointment": (VIEW,), **LAB_QUEUE},
+        "extra": [],
+    },
+    "کارشناس آزمایشگاه": {"models": LAB_RESULTS, "extra": ["lab.enter_labresult"]},
+    "مسئول فنی آزمایشگاه": {
+        "models": {
+            **LAB_RESULTS, **{m: EDIT for m in LAB_CATALOG}, "lab.qcmaterial": EDIT, "lab.instrument": EDIT,
+            "lab.laborder": ("change", VIEW), "audit.auditlog": (VIEW,),
+        },
+        "extra": [
+            "lab.enter_labresult", "lab.approve_labresult", "lab.amend_labresult", "lab.reverse_laborder",
+            "lab.deliver_lab_report",
+        ],
+    },
+    "کارشناس بیمه آزمایشگاه": {
+        "models": LAB_INSURANCE,
+        "extra": ["lab.post_insuranceclaim", "lab.reverse_insuranceclaim", "lab.post_claimsettlement",
+                  "lab.reverse_claimsettlement"],
+    },
+    "مشاور آزمایشگاه": {
+        "models": {
+            "lab.consultrequest": ("add", "change", VIEW), "lab.interaction": ("add", VIEW), "lab.feedback": (VIEW,),
+            "lab.laborder": (VIEW,), "lab.labtest": (VIEW,), "lab.labpanel": (VIEW,), "lab.insuranceplan": (VIEW,),
+            "lab.samplingappointment": ("add", "change", VIEW),
+        },
+        "extra": [],
+    },
+    "کیوسک نوبت": {"models": {"lab.queueticket": ("add",), "lab.queueservice": (VIEW,)}, "extra": []},
+    "مدیر آزمایشگاه": {
+        "models": {
+            **LAB_RECEPTION, **LAB_INSURANCE, **{m: EDIT for m in LAB_CATALOG}, "lab.labpayment": (VIEW,),
+            "lab.qcmaterial": EDIT, "lab.qcresult": (VIEW,), "lab.instrument": EDIT, "audit.auditlog": (VIEW,),
+            "lab.consultrequest": ("add", "change", VIEW), "lab.interaction": ("add", VIEW), "lab.feedback": (VIEW,),
+        },
+        "extra": [
+            "lab.post_laborder", "lab.reverse_laborder", "lab.give_lab_discount", "lab.post_labpayment",
+            "lab.reverse_labpayment", "lab.deliver_lab_report", "lab.post_insuranceclaim", "lab.reverse_insuranceclaim",
+            "lab.post_claimsettlement", "lab.reverse_claimsettlement", "accounting.view_financial_reports",
+        ],
+    },
+})
+
 
 def role_permissions(spec):
     names = []

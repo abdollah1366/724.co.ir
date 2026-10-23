@@ -1,0 +1,52 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}پذیرش{% endblock %}
+{% block lab_content %}
+<h1>{% if order %}ویرایش پذیرش (پیش‌نویس){% else %}پذیرش جدید{% endif %}</h1>
+{% if appointment %}<div class="alert alert-info">از نوبت {{ appointment.tracking_code }} ({{ appointment.get_kind_display }}، {{ appointment.time|time:"H:i"|fa_digits }}){% if appointment.note %}: {{ appointment.note }}{% endif %}</div>{% endif %}
+{% if not order %}
+<form method="get" class="card filters">
+  {% if appointment %}<input type="hidden" name="appointment" value="{{ appointment.pk }}">{% endif %}
+  <input type="search" name="q" value="{{ query }}" placeholder="جست‌وجوی بیمار: کد ملی، گذرنامه، موبایل یا نام خانوادگی" aria-label="جست‌وجوی بیمار" autofocus>
+  <button class="btn btn-small" type="submit">جست‌وجو</button>
+</form>
+{% if matches is not None %}
+  <div class="card">
+    {% for p in matches %}<p><a href="?patient={{ p.pk }}{% if appointment %}&appointment={{ appointment.pk }}{% endif %}">{{ p.full_name }}</a> <span class="muted" dir="ltr">{{ p.identifier }}</span> · {{ p.mobile|fa_digits }}</p>
+    {% empty %}<p class="muted">بیماری پیدا نشد؛ اطلاعات بیمار جدید را وارد کنید.</p>{% endfor %}
+  </div>
+{% endif %}
+{% endif %}
+<form method="post" class="form" novalidate>
+  {% csrf_token %}
+  <div class="pos-grid">
+    <div class="card">
+      <h2>آزمایش‌ها</h2>
+      {% if order_form.non_field_errors %}<div class="alert alert-error">{{ order_form.non_field_errors|join:" " }}</div>{% endif %}
+      <input type="search" id="test-filter" placeholder="فیلتر نام یا کد آزمایش" aria-label="فیلتر آزمایش">
+      <h3>بسته‌ها</h3>
+      <div class="test-checklist">{% for cb in order_form.panels %}<label class="check" data-name="{{ cb.choice_label }}">{{ cb.tag }} {{ cb.choice_label }}</label>{% endfor %}</div>
+      <h3>آزمایش‌های تکی</h3>
+      <div class="test-checklist">{% for cb in order_form.tests %}<label class="check" data-name="{{ cb.choice_label }}">{{ cb.tag }} {{ cb.choice_label }}</label>{% endfor %}</div>
+      <h2>اطلاعات پذیرش</h2>
+      {% for field in order_form %}{% if field.name != "tests" and field.name != "panels" %}
+        <div class="field{% if field.errors %} has-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
+        {% if field.help_text %}<small class="help">{{ field.help_text }}</small>{% endif %}{% for e in field.errors %}<small class="error">{{ e }}</small>{% endfor %}</div>
+      {% endif %}{% endfor %}
+    </div>
+    <div class="card">
+      <h2>بیمار</h2>
+      {% include "includes/form.html" with form=patient_form %}
+    </div>
+  </div>
+  <button class="btn" type="submit">ذخیره و محاسبه سهم بیمه</button>
+</form>
+<script>
+document.getElementById("test-filter").addEventListener("input", function () {
+  var q = this.value.trim().toLowerCase();
+  document.querySelectorAll(".test-checklist .check").forEach(function (el) {
+    el.style.display = !q || el.dataset.name.toLowerCase().indexOf(q) >= 0 || el.querySelector("input").checked ? "" : "none";
+  });
+});
+</script>
+{% endblock %}

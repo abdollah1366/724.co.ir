@@ -1,0 +1,11 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}{{ title }}{% endblock %}
+{% block lab_content %}
+<div class="narrow">
+  <h1>{{ title }}</h1>
+  {% if note %}<div class="alert alert-info">{{ note }}</div>{% endif %}
+  <form method="post" class="form card" novalidate>{% csrf_token %}{% include "includes/form.html" %}<button class="btn" type="submit">ثبت</button></form>
+  {% if history %}<h2>سوابق</h2>{% for h in history %}<p>{{ h.notified_at|jalali:"%Y/%m/%d %H:%M" }} · {{ h.get_recipient_display }} {{ h.recipient_name }} ({{ h.phone|fa_digits }}) · {{ h.notified_by }}{% if h.read_back %} · تکرار شد{% endif %}</p>{% endfor %}{% endif %}
+</div>
+{% endblock %}

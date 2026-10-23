@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}مشاوره و ارتباط با آزمایشگاه | {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}درخواست مشاوره رایگان درباره انتخاب آزمایش، آمادگی، تعرفه و بیمه، نمونه‌گیری در منزل و چکاپ دوره‌ای.{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>مشاور آزمایشگاه</h1>
+  <p>سؤالی درباره آزمایش، آمادگی، هزینه و بیمه یا نمونه‌گیری در منزل دارید؟ درخواست بدهید تا کارشناس ما تماس بگیرد.</p>
+  <div class="card">
+    <h2 class="h3">شاید جوابتان اینجا باشد</h2>
+    <ul>
+      <li><a href="{% url 'lab:preparation' %}">شرایط آمادگی (ناشتایی، دارو، نمونه ادرار)</a></li>
+      <li><a href="{% url 'lab:test_list' %}">فهرست آزمایش‌ها، تعرفه و زمان جواب‌دهی</a></li>
+      <li><a href="{% url 'lab:screening_guide' %}">آزمایش‌های دوره‌ای پیشنهادی بر اساس سن</a></li>
+      <li><a href="{% url 'lab:book' %}">نوبت نمونه‌گیری حضوری یا در منزل</a></li>
+      <li><a href="{% url 'lab:result_lookup' %}">دریافت جواب اینترنتی</a></li>
+    </ul>
+  </div>
+  <form method="post" class="form card" novalidate>{% csrf_token %}{% include "includes/form.html" %}<button class="btn" type="submit">ثبت درخواست تماس</button></form>
+  <p class="muted small">مشاور آزمایشگاه درباره انتخاب آزمایش و روند کار راهنمایی می‌کند. پرسش درباره معنای جواب به مسئول فنی ارجاع می‌شود و تفسیر نهایی و درمان با پزشک معالج است.</p>
+</section>
+{% endblock %}

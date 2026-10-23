@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}اتصال پرونده آزمایشگاه | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>اتصال پرونده آزمایشگاه به حساب</h1>
+  {% if step == "identifier" %}
+    <p class="lead">برای امنیت، کد به موبایلی که در پذیرش آزمایشگاه ثبت شده ارسال می‌شود.</p>
+  {% endif %}
+  <form method="post" class="form card" novalidate>{% csrf_token %}{% include "includes/form.html" %}<button class="btn" type="submit">{% if step == "code" %}تأیید{% else %}ارسال کد{% endif %}</button></form>
+</section>
+{% endblock %}

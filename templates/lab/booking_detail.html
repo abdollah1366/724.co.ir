@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}نوبت نمونه‌گیری {{ appointment.tracking_code }} | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>نوبت نمونه‌گیری</h1>
+  <div class="card">
+    <p class="tracking">کد پیگیری: <strong dir="ltr">{{ appointment.tracking_code }}</strong></p>
+    <table class="table">
+      <tr><th>نوع</th><td>{{ appointment.get_kind_display }}</td></tr>
+      <tr><th>تاریخ</th><td>{{ appointment.date|jalali }}</td></tr>
+      <tr><th>ساعت</th><td>{{ appointment.time|time:"H:i"|fa_digits }}</td></tr>
+      <tr><th>نام</th><td>{{ appointment.full_name }}</td></tr>
+      <tr><th>وضعیت</th><td><span class="badge status-{{ appointment.status }}">{{ appointment.get_status_display }}</span></td></tr>
+    </table>
+    {% with tests=appointment.tests.all %}
+      {% if tests %}<p>آمادگی آزمایش‌های انتخابی: <a href="{% url 'lab:preparation' %}?{% for t in tests %}t={{ t.code }}&{% endfor %}">مشاهده</a></p>{% endif %}
+    {% endwith %}
+    <p class="muted small">کارت ملی و نسخه پزشک (یا کد رهگیری نسخه الکترونیک) و کارت بیمه را همراه داشته باشید.</p>
+    {% if appointment.is_cancellable %}
+      <form method="post" action="{% url 'lab:booking_cancel' appointment.pk %}" onsubmit="return confirm('از لغو نوبت مطمئن هستید؟');">
+        {% csrf_token %}<button class="btn btn-danger" type="submit">لغو نوبت</button>
+      </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

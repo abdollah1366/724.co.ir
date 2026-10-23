@@ -1,0 +1,7 @@
+{% load persian %}
+<div class="card">
+  <h2>آمادگی لازم</h2>
+  {% if prep.fasting_hours %}<p><strong>{{ prep.fasting_hours|fa_digits }} ساعت ناشتایی</strong> (فقط آب مجاز است).</p>{% endif %}
+  {% for p in prep.preps %}<h3>{{ p.title }}</h3>{{ p.text|linebreaks }}{% empty %}<p>آمادگی خاصی لازم نیست.</p>{% endfor %}
+  {% if prep.specimens %}<p class="muted">نمونه‌ها: {{ prep.specimens|join:"، " }}</p>{% endif %}
+</div>

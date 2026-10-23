@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}آزمایشگاه تشخیص طبی | {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}فهرست آزمایش‌ها، شرایط آمادگی، نوبت نمونه‌گیری و دریافت اینترنتی جواب آزمایشگاه ۷۲۴.{% endblock %}
+{% block content %}
+<section class="hero lab-hero">
+  <div class="container">
+    <h1>آزمایشگاه تشخیص طبی ۷۲۴</h1>
+    <p class="lead">آزمایش موردنظرتان را پیدا کنید، آمادگی لازم را ببینید و جواب را آنلاین و امن دریافت کنید.</p>
+    <form class="search-box" action="{% url 'lab:test_list' %}" method="get" role="search">
+      <input type="search" name="q" placeholder="نام یا کد آزمایش، مثلاً قند خون یا FBS" aria-label="جست‌وجوی آزمایش">
+      <button class="btn" type="submit">جست‌وجو</button>
+    </form>
+    <div class="quick-actions">
+      {% block lab_quick %}
+      <a class="quick" href="{% url 'lab:test_list' %}"><span>🧪</span>فهرست آزمایش‌ها</a>
+      <a class="quick" href="{% url 'lab:preparation' %}"><span>📋</span>آمادگی پیش از آزمایش</a>
+      <a class="quick" href="{% url 'lab:screening_guide' %}"><span>🩺</span>آزمایش‌های دوره‌ای</a>
+      {% for link in lab_links %}<a class="quick" href="{{ link.url }}"><span>{{ link.icon }}</span>{{ link.title }}</a>{% endfor %}
+      {% endblock %}
+    </div>
+  </div>
+</section>
+<section class="container section">
+  {% if panels %}
+    <h2>بسته‌های آزمایش</h2>
+    <div class="grid">
+      {% for panel in panels %}
+        <a class="card floor-card" href="{{ panel.get_absolute_url }}">
+          <h3>{{ panel.name }}</h3>
+          <p>{{ panel.tests.all|length|fa_digits }} آزمایش</p>
+          {% if panel.price %}<p class="price">{{ panel.price|toman }}</p>{% endif %}
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+  <h2>بخش‌ها</h2>
+  <div class="chips">
+    {% for section in sections %}<a class="chip" href="{% url 'lab:test_list' %}?section={{ section.code }}">{{ section.name }}</a>{% endfor %}
+  </div>
+  <p class="muted small">تفسیر جواب آزمایش باید توسط پزشک انجام شود. اطلاعات این بخش جایگزین مشاوره پزشکی نیست.</p>
+</section>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "lab/queue/screen_base.html" %}
+{% block title %}دریافت نوبت{% endblock %}
+{% block body_class %}kiosk{% endblock %}
+{% block screen %}
+<main class="kiosk-main">
+  <h1>{{ LAB_INFO.name|default:"آزمایشگاه" }} · دریافت نوبت</h1>
+  <p class="kiosk-sub">خدمت موردنظر را لمس کنید.</p>
+  <div class="kiosk-grid">
+    {% for s in services %}
+    <form method="post">{% csrf_token %}<input type="hidden" name="service" value="{{ s.pk }}">
+      <button class="kiosk-btn" type="submit"><span class="kiosk-code">{{ s.code }}</span>{{ s.name }}{% if s.description %}<small>{{ s.description }}</small>{% endif %}</button>
+    </form>
+    {% empty %}<p>خدمتی برای نوبت‌دهی تعریف نشده است.</p>{% endfor %}
+  </div>
+  {% if services %}
+  <div class="kiosk-extra">
+    <details>
+      <summary>نوبت اینترنتی دارم</summary>
+      <form method="post" class="kiosk-form">{% csrf_token %}
+        <input type="hidden" name="service" value="{{ services.0.pk }}">
+        <label for="tc">کد پیگیری نوبت</label>
+        <input id="tc" name="tracking_code" autocomplete="off" inputmode="latin" required maxlength="8">
+        <button class="btn" type="submit">دریافت نوبت</button>
+      </form>
+    </details>
+    <details>
+      <summary>سالمند، باردار، معلول، همراه کودک یا اورژانسی هستم</summary>
+      <div class="kiosk-grid small">
+        {% for s in services %}
+        <form method="post">{% csrf_token %}<input type="hidden" name="service" value="{{ s.pk }}"><input type="hidden" name="special" value="1">
+          <button class="kiosk-btn alt" type="submit">{{ s.name }} (اولویت‌دار)</button>
+        </form>{% endfor %}
+      </div>
+    </details>
+  </div>
+  {% endif %}
+</main>
+{% endblock %}

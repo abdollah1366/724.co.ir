@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}{{ test.name }} | آزمایشگاه {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}{{ test.name }}: نوع نمونه، شرایط آمادگی، زمان جواب‌دهی و تعرفه.{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <p class="breadcrumb"><a href="{% url 'lab:home' %}">آزمایشگاه</a> / <a href="{% url 'lab:test_list' %}?section={{ test.section.code }}">{{ test.section.name }}</a></p>
+  <h1>{{ test.name }}</h1>
+  {% if test.name_en %}<p class="muted" dir="ltr">{{ test.name_en }} ({{ test.code }})</p>{% endif %}
+  <table class="table">
+    <tr><th>نوع نمونه</th><td>{{ test.specimen_type.name }}{% if test.specimen_type.container %} ({{ test.specimen_type.container }}){% endif %}</td></tr>
+    <tr><th>زمان جواب‌دهی</th><td>حدود {{ test.turnaround_hours|fa_digits }} ساعت</td></tr>
+    {% if test.price %}<tr><th>تعرفه آزاد</th><td class="price">{{ test.price|toman }}</td></tr>{% endif %}
+    <tr><th>نمونه‌گیری در منزل</th><td>{% if test.home_sampling %}امکان‌پذیر{% else %}فقط در آزمایشگاه{% endif %}</td></tr>
+    {% if test.is_sensitive %}<tr><th>تحویل جواب</th><td>فقط حضوری و همراه با مشاوره</td></tr>{% endif %}
+  </table>
+  <h2>آمادگی پیش از آزمایش</h2>
+  {% for prep in test.preparations.all %}
+    <div class="card qa"><h3>{{ prep.title }}</h3>{{ prep.text|linebreaks }}</div>
+  {% empty %}
+    <p>آمادگی خاصی لازم نیست.</p>
+  {% endfor %}
+  {% if test.description %}<h2>این آزمایش چه چیزی را می‌سنجد؟</h2>{{ test.description|linebreaks }}{% endif %}
+  {% if test.indications %}<h2>چه زمانی درخواست می‌شود؟</h2>{{ test.indications|linebreaks }}{% endif %}
+  {% if panels %}
+    <h2>بسته‌هایی که این آزمایش را دارند</h2>
+    <div class="chips">{% for panel in panels %}<a class="chip" href="{{ panel.get_absolute_url }}">{{ panel.name }}</a>{% endfor %}</div>
+  {% endif %}
+  <div class="alert alert-info">قطع یا تغییر دارو فقط با نظر پزشک معالج انجام شود. تفسیر جواب با پزشک است.</div>
+  {% if related %}
+    <h2>آزمایش‌های دیگر {{ test.section.name }}</h2>
+    <div class="chips">{% for t in related %}<a class="chip" href="{{ t.get_absolute_url }}">{{ t.name }}</a>{% endfor %}</div>
+  {% endif %}
+</section>
+{% endblock %}

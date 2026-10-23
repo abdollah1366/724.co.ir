@@ -1,0 +1,108 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}پذیرش {{ order }}{% endblock %}
+{% block lab_content %}
+<div class="section-head">
+  <h1>پذیرش {{ order.number|default:"پیش‌نویس" }}</h1>
+  <span class="badge">{{ order.get_status_display }}</span>
+</div>
+<div class="pos-grid">
+  <div>
+    <div class="card">
+      <table class="table">
+        <tr><th>بیمار</th><td>{{ order.patient.full_name }} · <span dir="ltr">{{ order.patient.identifier }}</span> · {{ order.patient.get_sex_display }} · {{ order.patient.age_years|fa_digits }} سال</td></tr>
+        <tr><th>موبایل</th><td>{{ order.patient.mobile|fa_digits }}</td></tr>
+        <tr><th>تاریخ</th><td>{{ order.date|jalali }}</td></tr>
+        <tr><th>اولویت / محل</th><td>{{ order.get_priority_display }} · {{ order.get_sampling_place_display }}</td></tr>
+        {% if order.referring_doctor %}<tr><th>پزشک</th><td>{{ order.referring_doctor }} {% if order.referring_council_no %}(ن.پ {{ order.referring_council_no|fa_digits }}){% endif %}</td></tr>{% endif %}
+        {% if order.prescription_code %}<tr><th>کد نسخه</th><td dir="ltr">{{ order.prescription_code }}</td></tr>{% endif %}
+        {% if order.basic_plan %}<tr><th>بیمه پایه</th><td>{{ order.basic_plan.name }} · {{ order.basic_insurance_no }}{% if order.basic_approval_code %} · کد تأیید {{ order.basic_approval_code }}{% endif %}</td></tr>{% endif %}
+        {% if order.supplementary_plan %}<tr><th>بیمه تکمیلی</th><td>{{ order.supplementary_plan.name }} · {{ order.supplementary_insurance_no }}{% if order.supplementary_approval_code %} · کد تأیید {{ order.supplementary_approval_code }}{% endif %}</td></tr>{% endif %}
+        {% if order.clinical_note %}<tr><th>نکته بالینی</th><td>{{ order.clinical_note }}</td></tr>{% endif %}
+        {% if order.status == "posted" %}<tr><th>وضعیت کار</th><td><span class="badge status-{{ order.progress }}">{{ order.get_progress_display }}</span></td></tr>{% endif %}
+        {% if order.status == "reversed" %}<tr><th>علت ابطال</th><td>{{ order.reverse_reason }}</td></tr>{% endif %}
+      </table>
+    </div>
+    <div class="table-wrap card">
+      <table class="table data">
+        <thead><tr><th>آزمایش</th><th class="num">تعرفه</th><th class="num">بیمه پایه</th><th class="num">تکمیلی</th><th class="num">بیمار</th>{% if order.status == "posted" %}<th>جواب</th>{% endif %}</tr></thead>
+        <tbody>
+          {% for item in items %}
+            <tr>
+              <td>{{ item.test.name }} <span class="muted small" dir="ltr">{{ item.test.code }}</span>{% if item.panel %} <span class="badge">{{ item.panel.name }}</span>{% endif %}{% if item.needs_approval %} <span class="badge badge-warn">نیاز به تأییدیه</span>{% endif %}{% if order.basic_plan and not item.basic_covered %} <span class="badge badge-warn">خارج از تعهد</span>{% endif %}</td>
+              <td class="num">{{ item.price|rial }}</td><td class="num">{{ item.basic_share|rial }}</td>
+              <td class="num">{{ item.supplementary_share|rial }}</td><td class="num">{{ item.patient_share|rial }}</td>
+              {% if order.status == "posted" %}<td>{{ item.result.get_status_display }}{% if item.result.flag %} <strong>{{ item.result.flag }}</strong>{% endif %}</td>{% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          {% if order.home_fee %}<tr><td>نمونه‌گیری در منزل</td><td class="num">{{ order.home_fee|rial }}</td><td colspan="4"></td></tr>{% endif %}
+          <tr><td>جمع (ریال)</td><td class="num">{{ order.gross_amount|rial }}</td><td class="num">{{ order.basic_share|rial }}</td><td class="num">{{ order.supplementary_share|rial }}</td><td class="num">{{ order.patient_share|rial }}</td></tr>
+          {% if order.discount %}<tr><td>تخفیف ({{ order.discount_reason }})</td><td colspan="3"></td><td class="num">−{{ order.discount|rial }}</td></tr>{% endif %}
+          <tr><td>قابل پرداخت بیمار</td><td colspan="3"></td><td class="num">{{ order.net_patient|rial }}</td></tr>
+          {% if order.status == "posted" %}<tr><td>پرداخت‌شده / مانده</td><td colspan="3"></td><td class="num">{{ order.paid_amount|rial }} / {{ order.balance_due|rial }}</td></tr>{% endif %}
+        </tfoot>
+      </table>
+    </div>
+    {% if specimens %}
+      <div class="card table-wrap">
+        <h2>نمونه‌ها</h2>
+        <table class="table data">
+          <thead><tr><th>بارکد</th><th>نوع</th><th>وضعیت</th><th></th></tr></thead>
+          <tbody>{% for s in specimens %}
+            <tr>
+              <td dir="ltr">{{ s.barcode }}</td><td>{{ s.specimen_type.name }}</td>
+              <td>{{ s.get_status_display }}{% if s.rejection_reason %} ({{ s.rejection_reason }}){% endif %}</td>
+              <td>{% if order.status == "posted" and perms.lab.change_specimen %}
+                {% if s.status == "pending" %}<form method="post" action="{% url 'lab:staff_specimen' s.pk 'collect' %}" class="inline-form">{% csrf_token %}<button class="btn btn-small">نمونه گرفته شد</button></form>{% endif %}
+                {% if s.status == "collected" %}<form method="post" action="{% url 'lab:staff_specimen' s.pk 'receive' %}" class="inline-form">{% csrf_token %}<button class="btn btn-small">دریافت در بخش</button></form>{% endif %}
+                {% if s.status != "rejected" %}<form method="post" action="{% url 'lab:staff_specimen' s.pk 'reject' %}" class="inline-form" onsubmit="var r=prompt('علت مردودی نمونه (همولیز، لخته، حجم ناکافی، ...)'); if(!r) return false; this.reason.value=r;">{% csrf_token %}<input type="hidden" name="reason"><button class="link-button">مردود</button></form>{% endif %}
+              {% endif %}</td>
+            </tr>
+          {% endfor %}</tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+  <div>
+    {% if order.status == "draft" %}
+      <div class="card">
+        <p><a class="btn btn-outline" href="{% url 'lab:staff_reception_edit' order.pk %}">ویرایش</a></p>
+        <form method="post" action="{% url 'lab:staff_order_action' order.pk 'reprice' %}">{% csrf_token %}<button class="btn btn-outline">محاسبه مجدد سهم‌ها</button></form>
+        {% if perms.lab.post_laborder %}<form method="post" action="{% url 'lab:staff_order_action' order.pk 'post' %}">{% csrf_token %}<p><button class="btn">ثبت نهایی پذیرش</button></p></form>{% endif %}
+      </div>
+    {% elif order.status == "posted" %}
+      <div class="card">
+        <p>
+          <a class="btn btn-small" href="{% url 'lab:staff_receipt' order.pk %}" target="_blank">رسید</a>
+          <a class="btn btn-small" href="{% url 'lab:staff_labels' order.pk %}" target="_blank">برچسب بارکد</a>
+          {% if perms.lab.enter_labresult or perms.lab.approve_labresult %}<a class="btn btn-small" href="{% url 'lab:staff_results' order.pk %}">جواب‌ها</a>{% endif %}
+          <a class="btn btn-small" href="{% url 'lab:staff_report' order.pk %}" target="_blank">برگه جواب</a>
+        </p>
+        {% if perms.lab.post_labpayment and payment_form %}
+          <h3>دریافت / استرداد</h3>
+          <form method="post" action="{% url 'lab:staff_order_action' order.pk 'payment' %}" class="form">
+            {% csrf_token %}<input type="hidden" name="token" value="{{ token }}">
+            {% include "includes/form.html" with form=payment_form %}
+            <button class="btn">ثبت</button>
+          </form>
+        {% endif %}
+        {% if order.progress == "ready" and perms.lab.deliver_lab_report %}
+          <form method="post" action="{% url 'lab:staff_order_action' order.pk 'deliver' %}">{% csrf_token %}<button class="btn">تحویل حضوری جواب</button></form>
+        {% endif %}
+        {% if perms.lab.reverse_laborder %}
+          <details><summary>ابطال پذیرش</summary>
+            <form method="post" action="{% url 'lab:staff_order_action' order.pk 'reverse' %}" class="form">{% csrf_token %}{% include "includes/form.html" with form=reason_form %}<button class="btn btn-danger">ابطال</button></form>
+          </details>
+        {% endif %}
+      </div>
+    {% endif %}
+    {% if payments %}
+      <div class="card"><h3>پرداخت‌ها</h3>
+        {% for p in payments %}<p>{{ p.get_direction_display }} · {{ p.get_method_display }} · {{ p.amount|rial }} ریال · {{ p.get_status_display }} <span class="muted small">{{ p.number }}</span></p>{% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

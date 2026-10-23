@@ -1,0 +1,12 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}نمودار کنترل کیفی{% endblock %}
+{% block lab_content %}
+<h1>{{ material }}</h1>
+<p class="muted">نوار سبز: میانگین ± ۲SD ({{ material.mean|floatformat:-2 }} ± {{ material.sd|floatformat:-2 }})</p>
+<div class="card">{{ chart|default:"هنوز نتیجه‌ای ثبت نشده است." }}</div>
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>زمان</th><th class="num">مقدار</th><th class="num">Z</th><th>وضعیت</th><th>اقدام اصلاحی</th><th>کاربر</th></tr></thead>
+  <tbody>{% for r in runs %}<tr><td>{{ r.run_at|jalali:"%Y/%m/%d %H:%M" }}</td><td class="num">{{ r.value|floatformat:-2 }}</td><td class="num">{{ r.z_score }}</td><td>{{ r.get_status_display }} {{ r.violations }}</td><td>{{ r.corrective_action }}</td><td>{{ r.user }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

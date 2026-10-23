@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}کد یک‌بارمصرف | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>ورود کد یک‌بارمصرف</h1>
+  <form method="post" class="form card" novalidate>{% csrf_token %}{% include "includes/form.html" %}<button class="btn" type="submit">مشاهده جواب</button></form>
+  <p><a href="{% url 'lab:result_lookup' %}">کد را دریافت نکردید؟ دوباره درخواست کنید</a></p>
+</section>
+{% endblock %}
