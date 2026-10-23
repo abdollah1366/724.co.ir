@@ -28,7 +28,7 @@ class BlogTestCase(TestCase):
         self.news = Category.objects.create(name="اخبار", slug="news", requires_medical_review=False)
         self.author = staff("author", "نویسنده محتوا")
         self.reviewer = staff("reviewer", "بازبین علمی محتوا")
-        self.editor = staff("editor", "مدیر محتوا")
+        self.editor = staff("editor", "مدیر وبلاگ")
 
     def publish(self, post):
         post.submit()
@@ -167,7 +167,8 @@ class AdminTests(BlogTestCase):
     def form_data(self, post, **extra):
         data = {"title": post.title, "slug": post.slug, "category": post.category_id, "summary": post.summary,
                 "body": post.body, "references": post.references, "cover_alt": "", "meta_title": "",
-                "meta_description": "", "author_display": "", "reviewer_display": "", "review_note": post.review_note}
+                "meta_description": "", "author_display": "", "reviewer_display": "", "review_note": post.review_note,
+                "doctor": "", "images-TOTAL_FORMS": "0", "images-INITIAL_FORMS": "0"}
         data.update(extra)
         return data
 

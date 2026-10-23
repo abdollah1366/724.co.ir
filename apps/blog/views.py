@@ -1,14 +1,19 @@
+import datetime
 import json
+from urllib.parse import quote
 
 from django.conf import settings
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import permission_required
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Count, F, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from . import markup
-from .models import Category, Post, Tag
+from .models import REVIEW_VALID_DAYS, Category, Post, Tag
 
 PAGE_SIZE = 9
 
@@ -28,12 +33,13 @@ def _listing(request, posts, **context):
 
 def post_list(request):
     posts = Post.objects.published()
-    featured = None
+    featured = popular = None
     if not request.GET.get("q") and not request.GET.get("page"):
         featured = posts.filter(is_featured=True).select_related("category").first()
         if featured:
             posts = posts.exclude(pk=featured.pk)
-    return _listing(request, posts, featured=featured)
+        popular = Post.objects.published().filter(views__gt=0).order_by("-views")[:5]
+    return _listing(request, posts, featured=featured, popular=popular)
 
 
 def category(request, slug):
@@ -72,19 +78,54 @@ def _structured_data(post):
 
 
 def detail(request, slug):
-    post = get_object_or_404(Post.objects.select_related("category", "author", "reviewer"), slug=slug)
+    post = get_object_or_404(
+        Post.objects.select_related("category", "author", "reviewer", "doctor__specialty", "doctor__department"), slug=slug
+    )
     preview = not post.is_live
     # پیش‌نویس‌ها فقط برای کارکنانی که مجوز دیدن مقاله را دارند (پیش‌نمایش) نمایش داده می‌شوند.
     if preview and not (request.user.is_staff and request.user.has_perm("blog.view_post")):
         raise Http404
+    if not preview and not request.user.is_staff:
+        # فقط شمارش کلی؛ هیچ اطلاعاتی از خواننده ذخیره نمی‌شود.
+        Post.objects.filter(pk=post.pk).update(views=F("views") + 1)
+    url = settings.SITE_URL + post.get_absolute_url()
     related = Post.objects.published().filter(category=post.category).exclude(pk=post.pk)[:3]
     return render(request, "blog/detail.html", {
         "post": post,
-        "body_html": markup.render(post.body),
+        "body_html": markup.render(post.body, {image.number: image for image in post.images.all()}),
+        "share": {
+            "whatsapp": f"https://wa.me/?text={quote(post.title + ' ' + url)}",
+            "telegram": f"https://t.me/share/url?url={quote(url)}&text={quote(post.title)}",
+            "url": url,
+        },
         "toc": markup.headings(post.body),
         "references": [line.strip() for line in post.references.splitlines() if line.strip()],
         "related": related,
         "departments": post.departments.filter(is_active=True),
         "preview": preview,
         "structured_data": _structured_data(post),
+    })
+
+
+@staff_member_required
+@permission_required("blog.view_post", raise_exception=True)
+def manage(request):
+    """پیشخوان وبلاگ: کارهای منتظر هر نقش و هشدار بازبینی دوره‌ای."""
+    user = request.user
+    posts = Post.objects.select_related("category", "author")
+    is_editor = user.has_perm("blog.publish_post") or user.has_perm("blog.review_post")
+    visible = posts if is_editor else posts.filter(author=user)
+    counts = dict(visible.values_list("status").annotate(n=Count("pk")))
+    stale_before = timezone.now() - datetime.timedelta(days=REVIEW_VALID_DAYS)
+    return render(request, "blog/manage.html", {
+        "counts": [(value, label, counts.get(value, 0)) for value, label in Post.Status.choices],
+        "returned": posts.filter(author=user, status=Post.Status.DRAFT).exclude(review_note=""),
+        "my_drafts": posts.filter(author=user, status=Post.Status.DRAFT, review_note=""),
+        "to_review": posts.filter(status=Post.Status.IN_REVIEW).exclude(author=user) if user.has_perm("blog.review_post") else None,
+        "to_publish": posts.filter(status=Post.Status.APPROVED) if user.has_perm("blog.publish_post") else None,
+        "scheduled": posts.filter(status=Post.Status.PUBLISHED, published_at__gt=timezone.now()) if is_editor else None,
+        "overdue": posts.filter(status=Post.Status.PUBLISHED, category__requires_medical_review=True,
+                                reviewed_at__lt=stale_before) if is_editor else None,
+        "popular": visible.filter(status=Post.Status.PUBLISHED, views__gt=0).order_by("-views")[:5],
+        "review_valid_days": REVIEW_VALID_DAYS,
     })

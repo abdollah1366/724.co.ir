@@ -2,13 +2,14 @@ from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.http import HttpResponseRedirect
 
-from .models import Category, Post, Tag
+from .models import Category, Post, PostImage, Tag
 
 # دکمه‌های گردش کار در فرم مقاله: نام دکمه ← (متد مدل، مجوز لازم، پیام موفقیت)
 WORKFLOW = {
     "_wf_submit": ("submit", None, "مقاله برای بازبینی علمی ارسال شد."),
     "_wf_approve": ("approve", "blog.review_post", "مقاله از نظر علمی تأیید شد."),
     "_wf_reject": ("reject", "blog.review_post", "مقاله برای اصلاح به نویسنده برگشت."),
+    "_wf_reconfirm": ("reconfirm", "blog.review_post", "بازبینی دوره‌ای ثبت شد و تاریخ بازبینی به‌روز شد."),
     "_wf_publish": ("publish", "blog.publish_post", "مقاله منتشر شد."),
     "_wf_archive": ("archive", "blog.publish_post", "مقاله بایگانی شد و از سایت برداشته شد."),
 }
@@ -31,8 +32,14 @@ def _is_editor(user):
     return user.has_perm("blog.publish_post") or user.has_perm("blog.review_post")
 
 
+class PostImageInline(admin.TabularInline):
+    model = PostImage
+    extra = 0
+
+
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
+    inlines = [PostImageInline]
     change_form_template = "admin/blog/post_change_form.html"
     list_display = ("title", "category", "status", "author", "reviewer", "published_at")
     list_filter = ("status", "category", "is_featured")
@@ -43,7 +50,7 @@ class PostAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
     fieldsets = (
         (None, {"fields": ("title", "slug", "category", "summary", "body", "references")}),
-        ("تصویر و نمایش", {"fields": ("cover", "cover_alt", "tags", "departments", "is_featured")}),
+        ("تصویر و نمایش", {"fields": ("cover", "cover_alt", "tags", "departments", "doctor", "is_featured")}),
         ("سئو", {"fields": ("meta_title", "meta_description"), "classes": ("collapse",)}),
         ("نویسنده و بازبینی", {"fields": (
             "status", "author", "author_display", "reviewer", "reviewer_display", "reviewed_at", "review_note", "published_at",
@@ -92,6 +99,9 @@ class PostAdmin(admin.ModelAdmin):
             allowed += ["_wf_approve", "_wf_reject"]
         if obj.status in (Post.Status.APPROVED, Post.Status.ARCHIVED) and user.has_perm("blog.publish_post"):
             allowed.append("_wf_publish")
+        if (obj.status == Post.Status.PUBLISHED and obj.needs_review and user.has_perm("blog.review_post")
+                and obj.author_id != user.pk):
+            allowed.append("_wf_reconfirm")
         if obj.status == Post.Status.PUBLISHED and user.has_perm("blog.publish_post"):
             allowed.append("_wf_archive")
         return allowed
@@ -107,7 +117,7 @@ class PostAdmin(admin.ModelAdmin):
                 continue
             method, _perm, success = WORKFLOW[name]
             try:
-                if method in ("approve", "reject"):
+                if method in ("approve", "reject", "reconfirm"):
                     getattr(obj, method)(request.user, obj.review_note)
                 else:
                     getattr(obj, method)()

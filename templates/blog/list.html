@@ -36,6 +36,13 @@
     {% endfor %}
   </div>
 
+  {% if popular %}
+    <section class="card post-popular">
+      <h2>پربازدیدترین‌ها</h2>
+      <ol>{% for item in popular %}<li><a href="{{ item.get_absolute_url }}">{{ item.title }}</a></li>{% endfor %}</ol>
+    </section>
+  {% endif %}
+
   {% if page.has_other_pages %}
     <nav class="pager" aria-label="صفحه‌ها">
       {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}">← قبلی</a>{% endif %}

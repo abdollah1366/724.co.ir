@@ -1,5 +1,6 @@
 """وبلاگ سلامت: مقاله‌ها با گردش کار نویسنده ← بازبینی علمی ← انتشار."""
 
+import datetime
 import math
 
 from django.conf import settings
@@ -7,6 +8,9 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+
+# مقاله‌های پزشکی پس از این مدت باید دوباره بازبینی شوند (در پیشخوان وبلاگ هشدار داده می‌شود).
+REVIEW_VALID_DAYS = 365
 
 # تغییر این فیلدها پس از تأیید علمی، مقاله را دوباره به بازبینی می‌فرستد.
 REVIEWED_FIELDS = ("title", "summary", "body", "references")
@@ -84,6 +88,11 @@ class Post(models.Model):
     meta_title = models.CharField("عنوان سئو", max_length=70, blank=True, help_text="خالی = عنوان مقاله")
     meta_description = models.CharField("توضیح سئو", max_length=160, blank=True, help_text="خالی = خلاصه مقاله")
     is_featured = models.BooleanField("مقاله ویژه", default=False)
+    doctor = models.ForeignKey(
+        "clinic.Doctor", on_delete=models.SET_NULL, null=True, blank=True, related_name="posts", verbose_name="پزشک نویسنده",
+        help_text="کارت پزشک و دکمه نوبت‌گیری زیر مقاله نمایش داده می‌شود و مقاله در صفحه پزشک می‌آید.",
+    )
+    views = models.PositiveIntegerField("بازدید", default=0, editable=False)
 
     status = models.CharField("وضعیت", max_length=12, choices=Status.choices, default=Status.DRAFT, db_index=True)
     author = models.ForeignKey(
@@ -114,6 +123,7 @@ class Post(models.Model):
         permissions = [
             ("review_post", "بازبینی علمی و تأیید مقاله"),
             ("publish_post", "انتشار و بایگانی مقاله"),
+            ("manage_blog_staff", "افزودن نویسنده و بازبین وبلاگ"),
         ]
 
     def __str__(self):
@@ -129,6 +139,13 @@ class Post(models.Model):
     @property
     def needs_review(self):
         return self.category.requires_medical_review
+
+    @property
+    def review_overdue(self):
+        return bool(
+            self.reviewed_at and self.needs_review
+            and self.reviewed_at < timezone.now() - datetime.timedelta(days=REVIEW_VALID_DAYS)
+        )
 
     @property
     def reading_minutes(self):
@@ -172,6 +189,17 @@ class Post(models.Model):
         self.review_note = note
         self.save()
 
+    def reconfirm(self, user, note=""):
+        """بازبینی دوره‌ای مقاله منتشرشده بدون تغییر متن: تاریخ بازبینی تازه می‌شود."""
+        if self.status != self.Status.PUBLISHED or not self.needs_review:
+            raise ValidationError("فقط مقاله پزشکی منتشرشده بازبینی دوره‌ای می‌شود.")
+        if user.pk == self.author_id:
+            raise ValidationError("نویسنده نمی‌تواند مقاله خودش را بازبینی علمی کند.")
+        self.reviewer = user
+        self.reviewed_at = timezone.now()
+        self.review_note = note or self.review_note
+        self.save()
+
     def publish(self, when=None):
         if self.status not in (self.Status.APPROVED, self.Status.ARCHIVED):
             raise ValidationError("مقاله پیش از انتشار باید تأیید علمی شود.")
@@ -196,3 +224,22 @@ class Post(models.Model):
                 self.reviewer = None
                 self.reviewed_at = None
         super().save(*args, **kwargs)
+
+
+class PostImage(models.Model):
+    """تصویر داخل متن؛ در متن مقاله با یک خط «[تصویر ۱]» جای‌گذاری می‌شود."""
+
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="images", verbose_name="مقاله")
+    number = models.PositiveSmallIntegerField("شماره", help_text="در متن: [تصویر ۱]")
+    image = models.ImageField("تصویر", upload_to="blog/%Y/%m/")
+    alt = models.CharField("متن جایگزین", max_length=200, help_text="برای نابینایان و موتورهای جست‌وجو")
+    caption = models.CharField("زیرنویس", max_length=200, blank=True)
+
+    class Meta:
+        ordering = ["number"]
+        unique_together = [("post", "number")]
+        verbose_name = "تصویر داخل متن"
+        verbose_name_plural = "تصاویر داخل متن"
+
+    def __str__(self):
+        return f"تصویر {self.number}"

@@ -46,6 +46,19 @@
     <p class="chips">{% for t in post.tags.all %}<a class="chip" href="{{ t.get_absolute_url }}">#{{ t.name }}</a>{% endfor %}</p>
   {% endif %}
 
+  <p class="post-share small">اشتراک‌گذاری:
+    <a href="{{ share.whatsapp }}" target="_blank" rel="noopener">واتس‌اپ</a>
+    <a href="{{ share.telegram }}" target="_blank" rel="noopener">تلگرام</a>
+    <button type="button" class="link-button" data-copy="{{ share.url }}">کپی پیوند</button>
+  </p>
+
+  {% if post.doctor and post.doctor.is_active %}
+    <section class="post-doctor">
+      <h2>درباره نویسنده</h2>
+      {% include "includes/doctor_card.html" with doctor=post.doctor %}
+    </section>
+  {% endif %}
+
   <aside class="alert alert-info post-disclaimer">
     این مقاله فقط برای آموزش عمومی است و جایگزین معاینه، تشخیص یا تجویز پزشک نیست. پیش از شروع یا قطع هر دارو با پزشک یا داروساز مشورت کنید. در شرایط اورژانسی با ۱۱۵ تماس بگیرید.
   </aside>
@@ -65,4 +78,11 @@
   <div class="grid posts">{% for post in related %}{% include "includes/post_card.html" %}{% endfor %}</div>
 </section>
 {% endif %}
+<script>
+document.querySelectorAll("[data-copy]").forEach(function (button) {
+  button.addEventListener("click", function () {
+    navigator.clipboard.writeText(button.dataset.copy).then(function () { button.textContent = "کپی شد"; });
+  });
+});
+</script>
 {% endblock %}

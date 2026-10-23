@@ -11,6 +11,8 @@ from django.utils.safestring import mark_safe
 BOLD = re.compile(r"\*\*(.+?)\*\*")
 LINK = re.compile(r"\[([^\]]+)\]\(((?:https?://|/(?!/))[^\s)]*)\)")
 ORDERED = re.compile(r"^[0-9۰-۹]+[.)]\s+")
+IMAGE = re.compile(r"^\[(?:تصویر|image)\s*([0-9۰-۹]+)\]$")
+FA_TO_EN = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
 
 
 def _inline(text):
@@ -34,7 +36,15 @@ def headings(body):
     return result
 
 
-def render(body):
+def _figure(image):
+    caption = f"<figcaption>{escape(image.caption)}</figcaption>" if image.caption else ""
+    return (f'<figure class="post-figure"><img src="{escape(image.image.url)}" alt="{escape(image.alt)}" loading="lazy">'
+            f"{caption}</figure>")
+
+
+def render(body, images=None):
+    """images: {شماره: PostImage} برای جای‌گذاری «[تصویر ۱]»؛ شماره ناموجود نادیده گرفته می‌شود."""
+    images = images or {}
     html = []
     section = 0
     for block in re.split(r"\n\s*\n", body.replace("\r\n", "\n").strip()):
@@ -50,6 +60,12 @@ def render(body):
             html.append(f'<h2 id="s{section}">{_inline(first[3:])}</h2>')
             lines = lines[1:]
         if not lines:
+            continue
+        match = IMAGE.match(lines[0].strip()) if len(lines) == 1 else None
+        if match:
+            image = images.get(int(match.group(1).translate(FA_TO_EN)))
+            if image:
+                html.append(_figure(image))
             continue
         if all(line.startswith("- ") for line in lines):
             items = "".join(f"<li>{_inline(line[2:])}</li>" for line in lines)

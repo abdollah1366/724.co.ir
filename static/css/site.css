@@ -317,3 +317,10 @@ svg.spark polyline { fill: none; stroke: var(--primary); stroke-width: 2.5; }
 @media (max-width: 720px) { .post-featured { grid-template-columns: 1fr; } }
 .post-body ol, .post-toc ol, .post-references ol { list-style: persian; }
 .post-cta h2 { margin-top: 0; }
+.post-figure { margin: 20px 0; }
+.post-figure img { border-radius: 10px; width: 100%; }
+.post-figure figcaption { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 6px; }
+.post-share { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.post-popular { margin-top: 24px; }
+.post-popular h2 { margin-top: 0; font-size: 1.1rem; }
+.blog-board .stat a { color: inherit; }

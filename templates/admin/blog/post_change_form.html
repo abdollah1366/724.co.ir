@@ -14,6 +14,7 @@
       {% if "_wf_submit" in workflow_actions %}<input type="submit" name="_wf_submit" value="ارسال برای بازبینی علمی">{% endif %}
       {% if "_wf_approve" in workflow_actions %}<input type="submit" class="default" name="_wf_approve" value="تأیید علمی">{% endif %}
       {% if "_wf_reject" in workflow_actions %}<input type="submit" name="_wf_reject" value="برگشت به نویسنده (علت را در یادداشت بازبین بنویسید)">{% endif %}
+      {% if "_wf_reconfirm" in workflow_actions %}<input type="submit" name="_wf_reconfirm" value="ثبت بازبینی دوره‌ای (محتوا هنوز درست است)">{% endif %}
       {% if "_wf_publish" in workflow_actions %}<input type="submit" class="default" name="_wf_publish" value="انتشار">{% endif %}
       {% if "_wf_archive" in workflow_actions %}<input type="submit" name="_wf_archive" value="بایگانی (برداشتن از سایت)">{% endif %}
     </div>

@@ -103,6 +103,7 @@ class Command(BaseCommand):
         setup_roles()
         author = self._user("blog_author", "نویسنده", "نمونه", "نویسنده محتوا")
         reviewer = self._user("blog_reviewer", "دکتر", "بازبین نمونه", "بازبین علمی محتوا")
+        self._user("blog_manager", "مدیر", "وبلاگ نمونه", "مدیر وبلاگ")
         for spec in DEMO_POSTS:
             if Post.objects.filter(slug=spec["slug"]).exists():
                 continue
@@ -120,5 +121,5 @@ class Command(BaseCommand):
                 post.approve(reviewer, "نمونه؛ پیش از انتشار واقعی بازنویسی شود.")
             post.publish()
         self.stdout.write(self.style.SUCCESS(
-            "مقاله‌های نمونه منتشر شد. کاربران نمونه blog_author و blog_reviewer رمز ندارند؛ برای ورود با changepassword رمز بدهید."
+            "مقاله‌های نمونه منتشر شد. کاربران نمونه blog_author، blog_reviewer و blog_manager رمز ندارند؛ برای ورود با changepassword رمز بدهید."
         ))
