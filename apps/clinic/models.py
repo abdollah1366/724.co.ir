@@ -17,39 +17,46 @@ WEEKDAY_CHOICES = [
 ]
 
 
-class Floor(models.Model):
-    """یک طبقه از ساختمان ۷۲۴ (داروخانه، پزشک عمومی، متخصصین، ...)."""
+class Department(models.Model):
+    """یک بخش خدماتی مجموعه ۷۲۴ (داروخانه، تجهیزات پزشکی، پزشکان متخصص، ...)."""
 
-    number = models.SmallIntegerField("شماره طبقه", unique=True, help_text="همکف = ۰")
+    class Kind(models.TextChoices):
+        PHARMACY = "pharmacy", "داروخانه"
+        EQUIPMENT = "equipment", "تجهیزات پزشکی و بهداشتی"
+        CLINIC = "clinic", "درمانگاه و پزشکان"
+        LAB = "lab", "آزمایشگاه"
+        CAFE = "cafe", "کافی‌شاپ"
+        OTHER = "other", "سایر"
+
     title = models.CharField("عنوان", max_length=120)
     slug = models.SlugField("نامک", unique=True, allow_unicode=True)
+    kind = models.CharField("نوع بخش", max_length=12, choices=Kind.choices, default=Kind.OTHER)
     summary = models.CharField("خلاصه", max_length=300)
     description = models.TextField("توضیحات", blank=True)
     icon = models.CharField("آیکون (ایموجی)", max_length=8, blank=True)
     opening_hours = models.CharField("ساعات کاری", max_length=200, blank=True)
+    order = models.PositiveSmallIntegerField("ترتیب نمایش", default=0)
     is_active = models.BooleanField("فعال", default=True)
     is_coming_soon = models.BooleanField(
         "به‌زودی", default=False, help_text="برای خدماتی که هنوز راه‌اندازی نشده‌اند"
     )
 
     class Meta:
-        ordering = ["number"]
-        verbose_name = "طبقه"
-        verbose_name_plural = "طبقات"
+        ordering = ["order", "title"]
+        verbose_name = "بخش خدماتی"
+        verbose_name_plural = "بخش‌های خدماتی"
 
     def __str__(self):
         return self.title
 
-    @property
-    def label(self):
-        return "همکف" if self.number == 0 else f"طبقه {self.number}"
-
     def get_absolute_url(self):
-        return reverse("clinic:floor_detail", args=[self.slug])
+        return reverse("clinic:department_detail", args=[self.slug])
 
 
 class Service(models.Model):
-    floor = models.ForeignKey(Floor, on_delete=models.CASCADE, related_name="services", verbose_name="طبقه")
+    department = models.ForeignKey(
+        Department, on_delete=models.CASCADE, related_name="services", verbose_name="بخش"
+    )
     title = models.CharField("عنوان خدمت", max_length=150)
     description = models.TextField("توضیحات", blank=True)
     price = models.PositiveBigIntegerField("تعرفه (ریال)", null=True, blank=True)
@@ -63,7 +70,7 @@ class Service(models.Model):
     is_active = models.BooleanField("فعال", default=True)
 
     class Meta:
-        ordering = ["floor__number", "order", "title"]
+        ordering = ["department__order", "order", "title"]
         verbose_name = "خدمت"
         verbose_name_plural = "خدمات"
 
@@ -97,7 +104,9 @@ class Doctor(models.Model):
     specialty = models.ForeignKey(
         Specialty, on_delete=models.PROTECT, null=True, blank=True, related_name="doctors", verbose_name="تخصص"
     )
-    floor = models.ForeignKey(Floor, on_delete=models.PROTECT, related_name="doctors", verbose_name="طبقه")
+    department = models.ForeignKey(
+        Department, on_delete=models.PROTECT, related_name="doctors", verbose_name="بخش"
+    )
     medical_council_number = models.CharField(
         "شماره نظام پزشکی", max_length=20, unique=True, help_text="برای نمایش عمومی و احراز صلاحیت الزامی است."
     )
@@ -110,7 +119,7 @@ class Doctor(models.Model):
     objects = DoctorQuerySet.as_manager()
 
     class Meta:
-        ordering = ["floor__number", "last_name"]
+        ordering = ["department__order", "last_name"]
         verbose_name = "پزشک"
         verbose_name_plural = "پزشکان"
 

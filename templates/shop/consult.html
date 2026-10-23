@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}مشاوره دارویی | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>مشاوره رایگان با داروساز</h1>
+  {% if product %}<p class="lead">درباره: <a href="{{ product.get_absolute_url }}">{{ product.name }}</a></p>{% endif %}
+  <div class="alert alert-info">در شرایط اورژانسی (مسمومیت، تنگی نفس، واکنش شدید حساسیتی) منتظر پاسخ نمانید و با ۱۱۵ تماس بگیرید.</div>
+  <form method="post" class="form card" novalidate>
+    {% csrf_token %}
+    {% if product %}<input type="hidden" name="product" value="{{ product.slug }}">{% endif %}
+    {% include "includes/form.html" %}
+    <button class="btn" type="submit">ارسال سؤال</button>
+  </form>
+  {% if not user.is_authenticated %}<p class="muted small">اگر <a href="{% url 'accounts:login' %}">وارد حساب</a> شوید، پاسخ داروساز را در صفحه حساب خود هم می‌بینید.</p>{% endif %}
+</section>
+{% endblock %}

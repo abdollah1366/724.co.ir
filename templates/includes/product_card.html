@@ -1,0 +1,11 @@
+{% load persian %}
+<article class="card product-card">
+  <a href="{{ product.get_absolute_url }}" class="product-thumb">{% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}">{% else %}<span>{% if product.kind == "equipment" %}🩺{% elif product.kind == "cosmetic" %}🧴{% else %}💊{% endif %}</span>{% endif %}</a>
+  <h3><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
+  {% if product.generic_name %}<p class="muted small" dir="ltr">{{ product.generic_name }}</p>{% endif %}
+  <div class="product-meta">
+    {% if product.requires_prescription %}<span class="badge badge-warn">نیازمند نسخه</span>{% endif %}
+    {% if product.in_stock %}<span class="badge">موجود</span>{% else %}<span class="badge status-cancelled">ناموجود</span>{% endif %}
+  </div>
+  {% if product.price %}<p class="price">{{ product.price|toman }}</p>{% endif %}
+</article>

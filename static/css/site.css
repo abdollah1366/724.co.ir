@@ -134,3 +134,53 @@ a.quick:hover { background: rgba(255,255,255,.22); color: #fff; }
   .footer-inner { grid-template-columns: 1fr; }
   .search-box { flex-direction: column; }
 }
+
+/* Shop, account & club */
+.inline-form { display: inline; margin: 0; }
+.link-button { background: none; border: 0; color: var(--primary); font: inherit; cursor: pointer; padding: 0; }
+.site-nav { align-items: center; flex-wrap: wrap; gap: 16px; }
+.nav-cart .count { background: var(--accent); color: #1f2937; border-radius: 999px; padding: 0 7px; font-size: .8rem; }
+.btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+.btn-outline:hover { background: var(--primary-soft); color: var(--primary-dark); }
+.section-head { display: flex; justify-content: space-between; align-items: baseline; }
+.grid.products { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.product-card { display: flex; flex-direction: column; gap: 6px; }
+.product-card h3 { font-size: 1rem; margin: 0; }
+.product-thumb, .product-image { background: var(--primary-soft); border-radius: 12px; display: grid; place-items: center; aspect-ratio: 4 / 3; overflow: hidden; }
+.product-thumb span { font-size: 2.6rem; }
+.product-image span { font-size: 5rem; }
+.product-thumb img, .product-image img { width: 100%; height: 100%; object-fit: cover; }
+.product-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+.badge-warn, .alert-warn { background: #fef3c7; color: #92400e; }
+.product-header { display: grid; grid-template-columns: minmax(220px, 360px) 1fr; gap: 32px; align-items: start; }
+.add-to-cart { display: flex; gap: 10px; align-items: center; margin: 16px 0; }
+.add-to-cart input, .qty-form input { width: 70px; padding: 8px; border: 1px solid var(--border); border-radius: 10px; font: inherit; }
+.qty-form { display: flex; gap: 8px; align-items: center; }
+.drug-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0 24px; }
+.drug-info section.warn h2 { color: #92400e; }
+.breadcrumb { color: var(--muted); font-size: .9rem; margin-bottom: 8px; }
+.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; padding: 14px; }
+.filters input[type=search], .filters select { font: inherit; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+.filters input[type=search] { flex: 1; min-width: 200px; }
+.check { display: flex; gap: 6px; align-items: center; }
+.status-delivered, .status-done, .status-confirmed { background: var(--primary-soft); color: var(--primary-dark); }
+.status-ready { background: #e0f2fe; color: #075985; }
+.grid.stats { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.stat, .referral { display: flex; flex-direction: column; gap: 6px; }
+.stat-label { color: var(--muted); }
+.stat-value { font-size: 2rem; font-weight: 800; color: var(--primary-dark); }
+.referral input { font: inherit; padding: 8px; border: 1px solid var(--border); border-radius: 10px; font-size: .85rem; }
+.share { display: flex; gap: 8px; flex-wrap: wrap; }
+.club-banner { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; background: linear-gradient(135deg, #fff7ed, #fef3c7); border-color: #fde68a; }
+.club-banner h2 { margin-top: 0; }
+.qa { margin-bottom: 12px; }
+.form .field ul { list-style: none; padding: 0; margin: 0; display: flex; gap: 16px; flex-wrap: wrap; }
+@media (max-width: 720px) {
+  .product-header { grid-template-columns: 1fr; }
+}
+.site-nav a.btn, .site-nav a.btn:hover { color: #fff; }
+.badge { white-space: nowrap; }
+.footer-links { flex-wrap: wrap; }
+.status-issued { background: #fef3c7; color: #92400e; }
+.status-used { background: var(--primary-soft); color: var(--primary-dark); }
+.reward h3 { margin-bottom: 4px; }

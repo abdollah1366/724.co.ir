@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}باشگاه مشتریان | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>باشگاه مشتریان ۷۲۴</h1>
+  <p class="lead">عضویت رایگان است. با هر خدمتی که از ۷۲۴ می‌گیرید ژتون جمع کنید.</p>
+  <div class="grid">
+    <div class="card"><h3>🩺 ویزیت و خدمات درمانی</h3><p>هر ویزیت انجام‌شده: <strong>{{ rules.appointment_done|fa_digits }} ژتون</strong></p></div>
+    <div class="card"><h3>💊 خرید از داروخانه</h3><p>هر {{ rules.order_rial_per_point|toman }} خرید: <strong>۱ ژتون</strong></p></div>
+    <div class="card"><h3>🎁 معرفی به دوستان</h3><p>وقتی دوستتان با کد معرف شما عضو شد و اولین خدمت را گرفت: شما <strong>{{ rules.referral_referrer|fa_digits }} ژتون</strong> و دوستتان <strong>{{ rules.referral_new_member|fa_digits }} ژتون</strong></p></div>
+  </div>
+  <h2>سطح‌های عضویت</h2>
+  <div class="grid">
+    {% for name, minimum in levels %}<div class="card"><h3>{% if forloop.first %}🥉{% elif forloop.last %}🥇{% else %}🥈{% endif %} {{ name }}</h3><p>{% if minimum %}از {{ minimum|fa_digits }} ژتون به‌دست‌آمده{% else %}با عضویت{% endif %}</p></div>{% endfor %}
+  </div>
+  {% if rewards %}
+    <h2>جوایز</h2>
+    <ul class="prose-list">{% for reward in rewards %}<li>{{ reward.title }} — <strong>{{ reward.cost|fa_digits }} ژتون</strong>{% if reward.description %} <span class="muted">({{ reward.description }})</span>{% endif %}</li>{% endfor %}</ul>
+  {% endif %}
+  <h2>چطور کار می‌کند؟</h2>
+  <ol class="prose-list">
+    <li>با شماره موبایل خود ثبت‌نام کنید.</li>
+    <li>هنگام نوبت گرفتن یا خرید، با همان شماره وارد حساب شوید.</li>
+    <li>پس از انجام ویزیت یا تحویل سفارش، ژتون‌ها خودکار به حساب شما اضافه می‌شود.</li>
+    <li>کد یا لینک دعوت خود را از صفحه «حساب من» برای دوستانتان بفرستید.</li>
+    <li>از صفحه «حساب من» جایزه را با ژتون دریافت کنید و کد جایزه را در پذیرش یا داروخانه ارائه دهید.</li>
+    <li>سطح عضویت بر اساس مجموع ژتون‌هایی است که به دست آورده‌اید و با دریافت جایزه کم نمی‌شود.</li>
+  </ol>
+  <p class="muted small">ژتون فقط برای خدمات واقعی و انجام‌شده داده می‌شود و قابل انتقال یا تبدیل به وجه نقد نیست.</p>
+  {% if user.is_authenticated %}
+    <a class="btn" href="{% url 'accounts:dashboard' %}">مشاهده ژتون‌ها و لینک دعوت</a>
+  {% else %}
+    <a class="btn" href="{% url 'accounts:signup' %}">عضویت رایگان</a>
+  {% endif %}
+</section>
+{% endblock %}

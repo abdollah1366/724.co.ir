@@ -27,6 +27,8 @@ def jalali(value, fmt="%A %d %B %Y"):
         converted = jdatetime.date.fromgregorian(date=value, locale=jdatetime.FA_LOCALE)
     else:
         return value
+    # روز ماه بدون صفر ابتدایی («۱ آبان» به‌جای «۰۱ آبان»)
+    fmt = fmt.replace("%d", str(converted.day))
     return converted.strftime(fmt).translate(EN_TO_FA)
 
 

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}ثبت سفارش | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>ثبت سفارش</h1>
+  <div class="card">
+    <ul class="result-list">
+      {% for line in lines %}<li>{{ line.product.name }} × {{ line.quantity|fa_digits }} — {{ line.total|toman }}</li>{% endfor %}
+    </ul>
+    <p>جمع کل: <strong class="price">{{ total|toman }}</strong></p>
+  </div>
+  <form method="post" class="form card" novalidate>
+    {% csrf_token %}
+    {% include "includes/form.html" %}
+    <p class="muted small">پرداخت هنگام تحویل انجام می‌شود. پس از ثبت، داروساز سفارش را بررسی و با شما تماس می‌گیرد.</p>
+    <button class="btn" type="submit">ثبت نهایی سفارش</button>
+  </form>
+</section>
+{% endblock %}

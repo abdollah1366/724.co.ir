@@ -1,5 +1,6 @@
 import secrets
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -25,6 +26,10 @@ class Appointment(models.Model):
         DONE = "done", "انجام شده"
 
     doctor = models.ForeignKey(Doctor, on_delete=models.PROTECT, related_name="appointments", verbose_name="پزشک")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="appointments",
+        verbose_name="حساب کاربری",
+    )
     date = models.DateField("تاریخ")
     time = models.TimeField("ساعت")
     patient_full_name = models.CharField("نام و نام خانوادگی بیمار", max_length=150)

@@ -1,14 +1,14 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
 
-from apps.clinic.models import Floor
+from apps.clinic.models import Department
 
 from .forms import ContactForm
 
 
 def home(request):
-    floors = Floor.objects.filter(is_active=True)
-    return render(request, "core/home.html", {"floors": floors})
+    departments = Department.objects.filter(is_active=True)
+    return render(request, "core/home.html", {"departments": departments})
 
 
 def about(request):

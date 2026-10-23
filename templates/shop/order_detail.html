@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}سفارش {{ order.code }} | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>جزئیات سفارش</h1>
+  <div class="card">
+    <p class="tracking">کد سفارش: <strong>{{ order.code|fa_digits }}</strong></p>
+    <table class="table">
+      <tr><th>وضعیت</th><td><span class="badge status-{{ order.status }}">{{ order.get_status_display }}</span></td></tr>
+      <tr><th>زمان ثبت</th><td>{{ order.created_at|jalali:"%d %B %Y - %H:%M" }}</td></tr>
+      <tr><th>روش تحویل</th><td>{{ order.get_delivery_method_display }}</td></tr>
+      {% if order.address %}<tr><th>آدرس</th><td>{{ order.address }}</td></tr>{% endif %}
+    </table>
+    <table class="table">
+      <thead><tr><th>محصول</th><th>تعداد</th><th>مبلغ</th></tr></thead>
+      <tbody>{% for item in order.items.all %}<tr><td>{{ item.product_name }}</td><td>{{ item.quantity|fa_digits }}</td><td>{{ item.line_total|toman }}</td></tr>{% endfor %}</tbody>
+      <tfoot><tr><th colspan="2">جمع کل</th><td class="price">{{ order.total|toman }}</td></tr></tfoot>
+    </table>
+    {% if order.status == "pending" %}
+      <form method="post" action="{% url 'shop:order_cancel' order.code %}" onsubmit="return confirm('از لغو سفارش مطمئن هستید؟');">
+        {% csrf_token %}<button class="btn btn-danger" type="submit">لغو سفارش</button>
+      </form>
+    {% endif %}
+  </div>
+  <p><a href="{% url 'accounts:dashboard' %}">← بازگشت به حساب من</a></p>
+</section>
+{% endblock %}
