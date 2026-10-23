@@ -315,3 +315,5 @@ svg.spark polyline { fill: none; stroke: var(--primary); stroke-width: 2.5; }
 .post-disclaimer, .post-cta { margin-top: 24px; }
 .pager { display: flex; gap: 16px; justify-content: center; margin-top: 24px; }
 @media (max-width: 720px) { .post-featured { grid-template-columns: 1fr; } }
+.post-body ol, .post-toc ol, .post-references ol { list-style: persian; }
+.post-cta h2 { margin-top: 0; }
