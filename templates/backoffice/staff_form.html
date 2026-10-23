@@ -4,6 +4,7 @@
 <h1>{% if staff_user %}ویرایش حساب {{ staff_user.get_full_name|default:staff_user.username }}{% else %}کارمند جدید{% endif %}</h1>
 <form class="card" method="post" autocomplete="off">{% csrf_token %}
   {% include "includes/form.html" %}
+  {% if limited %}<p class="alert alert-info">این همکار نقش یا حسابی بیرون از وبلاگ دارد؛ شما فقط نقش‌های وبلاگی او را تغییر می‌دهید.</p>{% endif %}
   {% if kept %}<p class="muted">نقش‌هایی که فقط مدیر ارشد سامانه تغییر می‌دهد و دست‌نخورده می‌مانند: {{ kept|join:"، " }}</p>{% endif %}
   <details><summary>شرح نقش‌ها</summary>
     {% for name, text in descriptions.items %}<div class="ehr-row"><strong>{{ name }}:</strong> {{ text }}</div>{% endfor %}

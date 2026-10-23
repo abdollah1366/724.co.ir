@@ -295,3 +295,32 @@ svg.spark polyline { fill: none; stroke: var(--primary); stroke-width: 2.5; }
 .queue-console .queue-now { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
 .queue-number { font-size: 2rem; color: var(--primary-dark); direction: ltr; unicode-bidi: isolate; }
 .ehr-filter { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+/* Blog */
+.post-card { display: flex; flex-direction: column; gap: 4px; }
+.post-card h3 a { color: var(--text); }
+.post-card h3 a:hover { color: var(--primary); }
+.post-card p { margin: 0; }
+.post-cover img { border-radius: 10px; aspect-ratio: 16 / 9; object-fit: cover; width: 100%; margin-bottom: 8px; }
+.post-featured { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; margin-block: 16px 24px; }
+.post-featured h2 { margin-top: 0; }
+.post-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; border-block: 1px solid var(--border); padding-block: 8px; margin-bottom: 16px; }
+.post-image { border-radius: var(--radius); margin-block: 16px; width: 100%; }
+.post-toc ol { margin: 6px 0 0; padding-inline-start: 20px; }
+.post-body { font-size: 1.05rem; }
+.post-body h2 { scroll-margin-top: 80px; }
+.post-body .callout { background: var(--primary-soft); border-inline-start: 4px solid var(--primary); padding: 12px 16px; border-radius: 10px; margin-block: 16px; }
+.post-references { border-top: 1px solid var(--border); margin-top: 32px; }
+.post-references li { overflow-wrap: anywhere; }
+.post-disclaimer, .post-cta { margin-top: 24px; }
+.pager { display: flex; gap: 16px; justify-content: center; margin-top: 24px; }
+@media (max-width: 720px) { .post-featured { grid-template-columns: 1fr; } }
+.post-body ol, .post-toc ol, .post-references ol { list-style: persian; }
+.post-cta h2 { margin-top: 0; }
+.post-figure { margin: 20px 0; }
+.post-figure img { border-radius: 10px; width: 100%; }
+.post-figure figcaption { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 6px; }
+.post-share { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.post-popular { margin-top: 24px; }
+.post-popular h2 { margin-top: 0; font-size: 1.1rem; }
+.blog-board .stat a { color: inherit; }

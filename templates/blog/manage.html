@@ -1,0 +1,44 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}پیشخوان وبلاگ{% endblock %}
+{% block bo_content %}
+<div class="section-head"><h1>پیشخوان وبلاگ</h1>
+  <span>{% if perms.blog.add_post %}<a class="btn btn-small" href="{% url 'admin:blog_post_add' %}">مقاله جدید</a>{% endif %}
+  {% if perms.blog.manage_blog_staff %}<a class="btn btn-small btn-outline" href="{% url 'backoffice:staff' %}">نویسندگان و بازبین‌ها</a>{% endif %}</span>
+</div>
+<div class="grid stats blog-board">
+  {% for value, label, n in counts %}
+    <div class="stat"><a href="{% url 'admin:blog_post_changelist' %}?status__exact={{ value }}"><div class="stat-label">{{ label }}</div><div class="stat-value">{{ n|fa_digits }}</div></a></div>
+  {% endfor %}
+</div>
+
+{% if returned %}
+  <h2>برگشت‌خورده برای اصلاح</h2>
+  <ul class="result-list">{% for p in returned %}<li><a href="{% url 'admin:blog_post_change' p.pk %}">{{ p.title }}</a> — <span class="muted">{{ p.review_note|truncatechars:120 }}</span></li>{% endfor %}</ul>
+{% endif %}
+{% if to_review is not None %}
+  <h2>منتظر بازبینی علمی شما</h2>
+  <ul class="result-list">{% for p in to_review %}<li><a href="{% url 'admin:blog_post_change' p.pk %}">{{ p.title }}</a> <span class="muted">({{ p.author_name }}، {{ p.category }})</span></li>{% empty %}<li class="muted">مقاله‌ای منتظر نیست.</li>{% endfor %}</ul>
+{% endif %}
+{% if to_publish is not None %}
+  <h2>تأییدشده، آماده انتشار</h2>
+  <ul class="result-list">{% for p in to_publish %}<li><a href="{% url 'admin:blog_post_change' p.pk %}">{{ p.title }}</a></li>{% empty %}<li class="muted">موردی نیست.</li>{% endfor %}</ul>
+{% endif %}
+{% if scheduled %}
+  <h2>زمان‌بندی‌شده</h2>
+  <ul class="result-list">{% for p in scheduled %}<li><a href="{% url 'admin:blog_post_change' p.pk %}">{{ p.title }}</a> — {{ p.published_at|jalali:"%d %B %Y ساعت %H:%M" }}</li>{% endfor %}</ul>
+{% endif %}
+{% if overdue %}
+  <h2>نیاز به بازبینی دوره‌ای</h2>
+  <p class="muted">از آخرین بازبینی علمی این مقاله‌ها بیش از {{ review_valid_days|fa_digits }} روز گذشته است؛ دوباره بازبینی شوند.</p>
+  <ul class="result-list">{% for p in overdue %}<li><a href="{% url 'admin:blog_post_change' p.pk %}">{{ p.title }}</a> — بازبینی: {{ p.reviewed_at|jalali:"%d %B %Y" }}</li>{% endfor %}</ul>
+{% endif %}
+{% if my_drafts %}
+  <h2>پیش‌نویس‌های من</h2>
+  <ul class="result-list">{% for p in my_drafts %}<li><a href="{% url 'admin:blog_post_change' p.pk %}">{{ p.title }}</a></li>{% endfor %}</ul>
+{% endif %}
+{% if popular %}
+  <h2>پربازدیدترین‌ها</h2>
+  <table class="table data"><tbody>{% for p in popular %}<tr><td><a href="{{ p.get_absolute_url }}">{{ p.title }}</a></td><td class="num">{{ p.views|fa_digits }} بازدید</td></tr>{% endfor %}</tbody></table>
+{% endif %}
+{% endblock %}

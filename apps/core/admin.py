@@ -5,6 +5,8 @@ from .models import ContactMessage, SmsMessage
 admin.site.site_header = "پنل مدیریت ۷۲۴"
 admin.site.site_title = "مدیریت ۷۲۴"
 admin.site.index_title = "مدیریت سامانه"
+# فهرست پیوند همه پنل‌های کاری (داروخانه، درمانگاه، آزمایشگاه، وبلاگ...) بالای صفحه اول پنل؛ apps/core/panels.py
+admin.site.index_template = "admin/panels_index.html"
 
 
 @admin.register(ContactMessage)

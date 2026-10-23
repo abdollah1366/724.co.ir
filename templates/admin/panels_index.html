@@ -1,0 +1,19 @@
+{% extends "admin/index.html" %}
+{% load persian %}
+{% block content %}
+{% staff_panels request.user as panels %}
+{% if panels %}
+<div class="module" id="work-panels">
+  <h2>پنل‌های کاری</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;padding:12px">
+    {% for title, links in panels %}
+      <div>
+        <h3 style="margin:0 0 6px;font-size:14px">{{ title }}</h3>
+        <ul style="margin:0;padding-inline-start:18px">{% for label, url in links %}<li style="margin:4px 0"><a href="{{ url }}">{{ label }}</a></li>{% endfor %}</ul>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{{ block.super }}
+{% endblock %}

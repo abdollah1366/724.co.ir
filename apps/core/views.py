@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
 
+from apps.blog.models import Post
 from apps.clinic.models import Department
 
 from .forms import ContactForm
@@ -8,7 +9,8 @@ from .forms import ContactForm
 
 def home(request):
     departments = Department.objects.filter(is_active=True)
-    return render(request, "core/home.html", {"departments": departments})
+    latest_posts = Post.objects.published().select_related("category")[:3]
+    return render(request, "core/home.html", {"departments": departments, "latest_posts": latest_posts})
 
 
 def about(request):

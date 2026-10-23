@@ -51,3 +51,11 @@ def rial(value):
         return value
     text = f"{abs(number):,}".replace(",", "٬").translate(EN_TO_FA)
     return f"−{text}" if number < 0 else text
+
+
+@register.simple_tag
+def staff_panels(user):
+    """پیوند پنل‌های کاری که این کاربر اجازه باز کردنشان را دارد."""
+    from apps.core.panels import panels_for
+
+    return panels_for(user)

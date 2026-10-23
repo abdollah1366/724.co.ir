@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}{{ post.meta_title|default:post.title }} | {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}{{ post.meta_description|default:post.summary }}{% endblock %}
+{% block extra_head %}
+  {% if preview %}<meta name="robots" content="noindex, nofollow">{% else %}<link rel="canonical" href="{{ SITE_URL }}{{ post.get_absolute_url }}">{% endif %}
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="{{ post.meta_title|default:post.title }}">
+  <meta property="og:description" content="{{ post.meta_description|default:post.summary }}">
+  <meta property="og:url" content="{{ SITE_URL }}{{ post.get_absolute_url }}">
+  <meta property="og:locale" content="fa_IR">
+  {% if post.cover %}<meta property="og:image" content="{{ SITE_URL }}{{ post.cover.url }}">{% endif %}
+  <script type="application/ld+json">{{ structured_data }}</script>
+{% endblock %}
+{% block content %}
+<article class="container section narrow post">
+  {% if preview %}<div class="alert alert-warn" role="status">پیش‌نمایش: این مقاله منتشر نشده است ({{ post.get_status_display }}) و فقط کارکنان آن را می‌بینند.</div>{% endif %}
+  <nav class="breadcrumb"><a href="{% url 'core:home' %}">خانه</a> / <a href="{% url 'blog:list' %}">مقالات سلامت</a> / <a href="{{ post.category.get_absolute_url }}">{{ post.category }}</a></nav>
+  <h1>{{ post.title }}</h1>
+  <p class="lead">{{ post.summary }}</p>
+  <div class="post-meta small muted">
+    <span>نویسنده: {{ post.author_name }}</span>
+    {% if post.reviewer_id %}<span>بازبینی علمی: {{ post.reviewer_name }}{% if post.reviewed_at %} ({{ post.reviewed_at|jalali:"%d %B %Y" }}){% endif %}</span>{% endif %}
+    {% if post.published_at %}<span>انتشار: {{ post.published_at|jalali:"%d %B %Y" }}</span>{% endif %}
+    <span>{{ post.reading_minutes|fa_digits }} دقیقه مطالعه</span>
+  </div>
+  {% if post.cover %}<img class="post-image" src="{{ post.cover.url }}" alt="{{ post.cover_alt|default:post.title }}">{% endif %}
+
+  {% if toc|length > 2 %}
+    <nav class="card post-toc" aria-label="فهرست مطالب">
+      <strong>فهرست مطالب</strong>
+      <ol>{% for id, text in toc %}<li><a href="#{{ id }}">{{ text }}</a></li>{% endfor %}</ol>
+    </nav>
+  {% endif %}
+
+  <div class="prose post-body">{{ body_html }}</div>
+
+  {% if references %}
+    <section class="post-references">
+      <h2>منابع</h2>
+      <ol class="small">{% for ref in references %}<li>{{ ref|urlize }}</li>{% endfor %}</ol>
+    </section>
+  {% endif %}
+
+  {% if post.tags.exists %}
+    <p class="chips">{% for t in post.tags.all %}<a class="chip" href="{{ t.get_absolute_url }}">#{{ t.name }}</a>{% endfor %}</p>
+  {% endif %}
+
+  <p class="post-share small">اشتراک‌گذاری:
+    <a href="{{ share.whatsapp }}" target="_blank" rel="noopener">واتس‌اپ</a>
+    <a href="{{ share.telegram }}" target="_blank" rel="noopener">تلگرام</a>
+    <button type="button" class="link-button" data-copy="{{ share.url }}">کپی پیوند</button>
+  </p>
+
+  {% if post.doctor and post.doctor.is_active %}
+    <section class="post-doctor">
+      <h2>درباره نویسنده</h2>
+      {% include "includes/doctor_card.html" with doctor=post.doctor %}
+    </section>
+  {% endif %}
+
+  <aside class="alert alert-info post-disclaimer">
+    این مقاله فقط برای آموزش عمومی است و جایگزین معاینه، تشخیص یا تجویز پزشک نیست. پیش از شروع یا قطع هر دارو با پزشک یا داروساز مشورت کنید. در شرایط اورژانسی با ۱۱۵ تماس بگیرید.
+  </aside>
+
+  {% if departments %}
+    <section class="card post-cta">
+      <h2>نیاز به مشاوره دارید؟</h2>
+      <p>{% for dep in departments %}<a class="btn btn-small" href="{{ dep.get_absolute_url }}">{{ dep.icon }} {{ dep.title }}</a> {% endfor %}
+        <a class="btn btn-small btn-outline" href="{% url 'clinic:doctor_list' %}">نوبت‌گیری از پزشکان</a></p>
+    </section>
+  {% endif %}
+</article>
+
+{% if related %}
+<section class="container section">
+  <h2>مقاله‌های مرتبط</h2>
+  <div class="grid posts">{% for post in related %}{% include "includes/post_card.html" %}{% endfor %}</div>
+</section>
+{% endif %}
+<script>
+document.querySelectorAll("[data-copy]").forEach(function (button) {
+  button.addEventListener("click", function () {
+    navigator.clipboard.writeText(button.dataset.copy).then(function () { button.textContent = "کپی شد"; });
+  });
+});
+</script>
+{% endblock %}
