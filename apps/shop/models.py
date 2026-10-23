@@ -14,6 +14,31 @@ class ProductKind(models.TextChoices):
     COSMETIC = "cosmetic", "آرایشی و بهداشتی"
 
 
+class StorageCondition(models.TextChoices):
+    ROOM = "room", "دمای اتاق (زیر ۲۵ درجه)"
+    COOL = "cool", "یخچال (۲ تا ۸ درجه)"
+    FROZEN = "frozen", "فریزر (زیر صفر)"
+
+
+class DeviceClass(models.TextChoices):
+    I = "I", "کلاس I"
+    IIA = "IIa", "کلاس IIa"
+    IIB = "IIb", "کلاس IIb"
+    III = "III", "کلاس III"
+
+
+class Unit(models.Model):
+    name = models.CharField("نام واحد", max_length=40, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "واحد شمارش"
+        verbose_name_plural = "واحدهای شمارش"
+
+    def __str__(self):
+        return self.name
+
+
 class Category(models.Model):
     name = models.CharField("نام دسته", max_length=120)
     slug = models.SlugField("نامک", unique=True, allow_unicode=True)
@@ -48,13 +73,50 @@ class Product(models.Model):
     short_description = models.CharField("توضیح کوتاه", max_length=300, blank=True)
     description = models.TextField("توضیحات", blank=True)
     price = models.PositiveBigIntegerField("قیمت (ریال)", null=True, blank=True)
-    stock = models.PositiveIntegerField("موجودی", default=0)
+    stock = models.PositiveIntegerField(
+        "موجودی قابل فروش", default=0, editable=False,
+        help_text="موجودی سالم انبارهای فروش منهای رزرو سفارش‌های آنلاین. فقط با اسناد انبار، خرید و فروش تغییر می‌کند.",
+    )
     requires_prescription = models.BooleanField(
         "نیازمند نسخه پزشک",
         default=False,
         help_text="داروهای نسخه‌ای به‌صورت آنلاین فروخته نمی‌شوند و فقط با نسخه در داروخانه تحویل داده می‌شوند.",
     )
     is_active = models.BooleanField("فعال", default=True)
+
+    # کدها، واحد و ردیابی (سامانه مدیریت داروخانه)
+    sku = models.CharField("کد کالا", max_length=30, unique=True, null=True, blank=True)
+    irc = models.CharField(
+        "کد IRC / شناسه فرآورده", max_length=30, blank=True,
+        help_text="کد ثبت فرآورده در سازمان غذا و دارو (برای دارو و آرایشی-بهداشتی).",
+    )
+    imed_code = models.CharField(
+        "کد اداره کل تجهیزات پزشکی", max_length=40, blank=True, help_text="برای تجهیزات پزشکی دارای شناسه IMED."
+    )
+    device_class = models.CharField("کلاس خطر تجهیزات", max_length=4, choices=DeviceClass.choices, blank=True)
+    base_unit = models.ForeignKey(
+        Unit, on_delete=models.PROTECT, null=True, blank=True, related_name="+", verbose_name="واحد پایه",
+        help_text="موجودی و قیمت همیشه بر حسب این واحد است (مثلاً عدد یا ورق).",
+    )
+    storage_condition = models.CharField(
+        "شرایط نگهداری", max_length=8, choices=StorageCondition.choices, default=StorageCondition.ROOM
+    )
+    track_batch = models.BooleanField("ردیابی بچ (سری ساخت)", default=True)
+    track_expiry = models.BooleanField("ردیابی تاریخ انقضا", default=True)
+    track_serial = models.BooleanField("ردیابی شماره سریال", default=False, help_text="برای دستگاه‌ها؛ هر سریال یک عدد.")
+    requires_authenticity_check = models.BooleanField(
+        "بررسی اصالت هنگام ورود", default=True, help_text="کد اصالت/رهگیری (مثل برچسب اصالت) هنگام رسید انبار الزامی است."
+    )
+    is_controlled = models.BooleanField(
+        "داروی کنترل‌شده", default=False, help_text="داروهای تحت کنترل ویژه؛ فقط حضوری، با نسخه و سقف تعداد."
+    )
+    max_qty_per_sale = models.PositiveIntegerField("سقف تعداد در هر فروش", null=True, blank=True)
+    reorder_point = models.PositiveIntegerField("نقطه سفارش", default=0, help_text="کمتر از این مقدار هشدار کمبود می‌دهد.")
+    tax_rate = models.DecimalField("نرخ مالیات بر ارزش افزوده (٪)", max_digits=5, decimal_places=2, default=0)
+    is_sellable = models.BooleanField("قابل فروش", default=True, help_text="با برداشتن تیک، فروش حضوری و آنلاین متوقف می‌شود.")
+    avg_cost = models.DecimalField(
+        "بهای تمام‌شده میانگین (ریال)", max_digits=20, decimal_places=4, default=0, editable=False
+    )
 
     # اطلاعات علمی دارو
     generic_name = models.CharField("نام ژنریک", max_length=200, blank=True)
@@ -89,13 +151,80 @@ class Product(models.Model):
     def get_absolute_url(self):
         return reverse("shop:product_detail", args=[self.slug])
 
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if self.kind == ProductKind.DRUG and not (self.track_batch and self.track_expiry):
+            raise ValidationError("برای دارو ردیابی بچ و تاریخ انقضا الزامی است.")
+        if self.track_serial and not self.track_batch:
+            raise ValidationError("ردیابی سریال نیازمند ردیابی بچ است (هر سریال یک بچ است).")
+        if self.is_controlled and not self.requires_prescription:
+            raise ValidationError("داروی کنترل‌شده باید نیازمند نسخه باشد.")
+
+    def save(self, *args, **kwargs):
+        old_price = None
+        if self.pk:
+            old_price = Product.objects.filter(pk=self.pk).values_list("price", flat=True).first()
+        super().save(*args, **kwargs)
+        if self.price is not None and (old_price != self.price):
+            PriceHistory.objects.create(product=self, price=self.price, previous_price=old_price)
+
     @property
     def in_stock(self):
         return self.stock > 0
 
     @property
     def can_order_online(self):
-        return self.is_active and not self.requires_prescription and self.in_stock and bool(self.price)
+        return (
+            self.is_active and self.is_sellable and not self.requires_prescription and not self.is_controlled
+            and self.in_stock and bool(self.price)
+        )
+
+
+class ProductPackage(models.Model):
+    """بسته‌بندی و بارکد: هر کالا می‌تواند چند بارکد با ضریب تبدیل متفاوت داشته باشد (عدد، ورق، جعبه)."""
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="packages", verbose_name="کالا")
+    unit = models.ForeignKey(Unit, on_delete=models.PROTECT, verbose_name="واحد")
+    factor = models.PositiveIntegerField("ضریب به واحد پایه", default=1)
+    barcode = models.CharField("بارکد / GTIN", max_length=40, unique=True, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "بسته‌بندی و بارکد"
+        verbose_name_plural = "بسته‌بندی‌ها و بارکدها"
+        constraints = [models.UniqueConstraint(fields=["product", "unit"], name="unique_package_unit")]
+
+    def __str__(self):
+        return f"{self.product} - {self.unit} ({self.factor})"
+
+
+class PriceHistory(models.Model):
+    """تاریخچه قیمت فروش؛ با هر تغییر قیمت کالا خودکار ثبت می‌شود."""
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="price_history", verbose_name="کالا")
+    price = models.PositiveBigIntegerField("قیمت جدید (ریال)")
+    previous_price = models.PositiveBigIntegerField("قیمت قبلی (ریال)", null=True, blank=True)
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="کاربر"
+    )
+    changed_at = models.DateTimeField("زمان", auto_now_add=True)
+
+    class Meta:
+        ordering = ["-changed_at", "-id"]
+        verbose_name = "تاریخچه قیمت"
+        verbose_name_plural = "تاریخچه قیمت‌ها"
+
+    def __str__(self):
+        return f"{self.product}: {self.price}"
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise PermissionError("تاریخچه قیمت قابل ویرایش نیست.")
+        if self.changed_by_id is None:
+            from apps.audit.context import get_actor
+
+            self.changed_by = get_actor()[0]
+        super().save(*args, **kwargs)
 
 
 def generate_order_code():
@@ -133,6 +262,18 @@ class Order(models.Model):
 
     def __str__(self):
         return f"سفارش {self.code}"
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            previous = None
+            if self.pk:
+                previous = Order.objects.filter(pk=self.pk).values_list("status", flat=True).first()
+            super().save(*args, **kwargs)
+            if self.status == self.Status.DELIVERED and previous not in (None, self.Status.DELIVERED):
+                # تحویل سفارش = فاکتور فروش آنلاین و خروج کالا از انبار (به ترتیب نزدیک‌ترین انقضا).
+                from apps.sales.services import fulfill_online_order
+
+                fulfill_online_order(self)
 
     @transaction.atomic
     def cancel(self):

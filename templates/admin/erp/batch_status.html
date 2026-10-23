@@ -1,0 +1,13 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <h1>{{ title }}</h1>
+  <ul>{% for batch in batches %}<li>{{ batch }} ({{ batch.get_status_display }})</li>{% endfor %}</ul>
+  <p>بچ‌های قرنطینه، فراخوان‌شده، توقیف یا منقضی از موجودی قابل فروش خارج می‌شوند.</p>
+  <form method="post">{% csrf_token %}
+    {% for batch in batches %}<input type="hidden" name="_selected_action" value="{{ batch.pk }}">{% endfor %}
+    <input type="hidden" name="action" value="change_status">
+    <input type="hidden" name="apply" value="1">
+    {{ form.as_p }}
+    <input type="submit" value="اعمال" class="default">
+  </form>
+{% endblock %}
