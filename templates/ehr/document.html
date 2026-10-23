@@ -1,0 +1,27 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}{{ document.title }}{% endblock %}
+{% block ehr_content %}
+<div class="card ehr-header">
+  <h1>{{ document.get_kind_display }}: {{ document.title }}{% if document.is_void %} <span class="badge status-cancelled">اشتباه ثبت شده</span>{% endif %}</h1>
+  <p><a href="{% url 'ehr:chart' patient.pk %}">{{ patient.full_name }}</a> · {{ document.document_date|jalali:"%Y/%m/%d" }}{% if document.source %} · {{ document.source }}{% endif %}
+    · بارگذاری: {{ document.uploaded_by.get_full_name|default:document.uploaded_by.username }} {{ document.created_at|jalali:"%Y/%m/%d %H:%M" }}</p>
+  {% if document.is_void %}<p>علت: {{ document.void_reason }}</p>{% endif %}
+  {% if document.note %}<p>{{ document.note|linebreaksbr }}</p>{% endif %}
+  {% if values %}<p>{% for v in values %}<span class="badge">{{ v.test.name }}: {{ v.value.normalize }} {{ v.unit }}</span> {% endfor %}</p>{% endif %}
+</div>
+<div class="ehr-files">
+{% for f in files %}
+  <figure class="card">
+    {% if f.is_image %}<a href="{% url 'ehr:document_file' f.pk %}" target="_blank"><img src="{% url 'ehr:document_file' f.pk %}" alt="صفحه {{ f.page }}" loading="lazy"></a>
+    {% else %}<a class="btn btn-outline" href="{% url 'ehr:document_file' f.pk %}" target="_blank">باز کردن PDF صفحه {{ f.page|fa_digits }}</a>{% endif %}
+    <figcaption class="muted">صفحه {{ f.page|fa_digits }} · {{ f.size|filesizeformat }}</figcaption>
+  </figure>
+{% endfor %}
+</div>
+{% if void_form %}
+<details class="card"><summary>علامت «اشتباه ثبت شده»</summary>
+  <form method="post" action="{% url 'ehr:document_void' document.pk %}">{% csrf_token %}{% include "includes/form.html" with form=void_form %}<button class="btn btn-small btn-danger">ثبت</button></form>
+</details>
+{% endif %}
+{% endblock %}

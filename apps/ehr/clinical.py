@@ -1,5 +1,7 @@
 """منطق ویزیت: شروع، امضا، یادداشت تکمیلی و خلاصه پایش بیماری‌های مزمن."""
 
+import datetime
+
 from dataclasses import dataclass
 
 from django.core.exceptions import ValidationError
@@ -86,16 +88,23 @@ class Reading:
 
 
 def _lab_series(patient, codes):
+    """جواب‌های تأییدشده آزمایشگاه ۷۲۴ و مقادیر برگه‌های بیرونی، به ترتیب زمان."""
     from apps.lab.models import LabResult
 
+    from .models import ExternalLabValue
+
+    readings = []
     lab_patient = getattr(patient, "lab_patient", None)
-    if lab_patient is None:
-        return []
-    results = LabResult.objects.filter(
-        item__order__patient=lab_patient, item__test__code__in=codes, status=LabResult.Status.APPROVED,
-        numeric_value__isnull=False,
-    ).order_by("approved_at")
-    return [Reading(r.approved_at, float(r.numeric_value), f"{r.numeric_value.normalize()}") for r in results]
+    if lab_patient is not None:
+        results = LabResult.objects.filter(
+            item__order__patient=lab_patient, item__test__code__in=codes, status=LabResult.Status.APPROVED,
+            numeric_value__isnull=False,
+        )
+        readings += [Reading(r.approved_at, float(r.numeric_value), f"{r.numeric_value.normalize()}") for r in results]
+    for v in ExternalLabValue.objects.filter(document__patient=patient, document__is_void=False, test__code__in=codes).select_related("document"):
+        when = timezone.make_aware(datetime.datetime.combine(v.document.document_date, datetime.time(12)))
+        readings.append(Reading(when, float(v.value), f"{v.value.normalize()} (بیرون)"))
+    return sorted(readings, key=lambda r: r.when)
 
 
 def chronic_summary(patient):

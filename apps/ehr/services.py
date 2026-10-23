@@ -162,6 +162,7 @@ KINDS = {
     "encounter": "ویزیت و شرح حال",
     "vitals": "علائم حیاتی",
     "prescription": "نسخه و مشاوره دارویی",
+    "document": "مدارک بیرونی",
     "appointment": "نوبت",
     "lab": "آزمایش",
     "drug": "دارو",
@@ -205,6 +206,23 @@ def _prescription_events(patient):
     for c in patient.counselings.select_related("user"):
         yield Event("prescription", "مشاوره دارویی", c.created_at, f"مشاوره دارویی: {c.topics}",
                     by=c.user.get_full_name() or c.user.username, lines=[c.notes] if c.notes else [])
+
+
+def _document_events(patient):
+    from django.urls import reverse
+
+    for d in patient.documents.prefetch_related("files", "values__test"):
+        lines = [str(v) for v in d.values.all()]
+        if d.note:
+            lines.append(d.note[:200])
+        lines.append(f"{len(d.files.all())} فایل")
+        yield Event("document", KINDS["document"], _aware(d.document_date, datetime.time(12)), f"{d.get_kind_display()}: {d.title}",
+                    status="اشتباه ثبت شده" if d.is_void else "", by=d.source, lines=lines,
+                    url=reverse("ehr:document", args=[d.pk]))
+    for r in patient.lab_requests.select_related("doctor").prefetch_related("tests", "panels"):
+        names = [t.name for t in r.tests.all()] + [p.name for p in r.panels.all()]
+        yield Event("lab", KINDS["lab"], r.created_at, f"درخواست آزمایش {r.number}", status=r.get_status_display(),
+                    by=r.doctor.full_name, lines=[", ".join(names)])
 
 
 def _vitals_events(patient):
@@ -280,7 +298,7 @@ def _return_events(patient):
 
 
 def timeline(patient, kind=None):
-    events = [*_encounter_events(patient), *_prescription_events(patient), *_vitals_events(patient), *_appointment_events(patient), *_lab_events(patient), *_sales_events(patient), *_return_events(patient)]
+    events = [*_encounter_events(patient), *_prescription_events(patient), *_document_events(patient), *_vitals_events(patient), *_appointment_events(patient), *_lab_events(patient), *_sales_events(patient), *_return_events(patient)]
     if kind:
         events = [e for e in events if e.kind == kind]
     return sorted(events, key=lambda e: e.when, reverse=True)

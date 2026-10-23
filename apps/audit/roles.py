@@ -109,7 +109,7 @@ LAB_INSURANCE = {
 
 ROLES.update({
     "پذیرش آزمایشگاه": {
-        "models": LAB_RECEPTION,
+        "models": {**LAB_RECEPTION, "ehr.labrequest": ("change", VIEW)},
         "extra": ["lab.post_laborder", "lab.post_labpayment", "lab.deliver_lab_report"],
     },
     "نمونه‌گیر آزمایشگاه": {
@@ -162,10 +162,14 @@ EHR_DOCTOR = {
     "ehr.allergy": ("add", "change", VIEW), "ehr.historyentry": ("add", "change", VIEW), "ehr.referral": ("add", "change", VIEW),
     "ehr.encounterservice": EDIT, "ehr.servicecode": (VIEW,), "ehr.genericdrug": (VIEW,),
     "ehr.prescription": ("add", "change", VIEW), "ehr.prescriptionitem": EDIT, "ehr.drugcounseling": ("add", VIEW),
+    "ehr.labrequest": ("add", "change", VIEW), "ehr.externaldocument": ("add", "change", VIEW), "ehr.documentfile": ("add", VIEW),
+    "ehr.externallabvalue": ("add", VIEW),
 }
 EHR_NURSE = {
     **EHR_CLINICAL, "ehr.encounter": (VIEW,), "ehr.vitalsigns": ("add", VIEW), "ehr.diagnosis": (VIEW,),
     "ehr.problem": (VIEW,), "ehr.allergy": ("add", VIEW), "ehr.historyentry": ("add", VIEW), "ehr.referral": (VIEW,),
+    "ehr.externaldocument": ("add", VIEW), "ehr.documentfile": ("add", VIEW), "ehr.externallabvalue": ("add", VIEW),
+    "ehr.labrequest": (VIEW,),
 }
 
 ROLES.update({

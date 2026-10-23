@@ -165,6 +165,7 @@ def encounter(request, pk):
         "service_form": EncounterServiceForm(prefix="s", initial={"sector": settings.EHR_TARIFF_SECTOR}) if writable else None,
         "services": encounter.services.select_related("service_code"),
         "prescriptions": encounter.prescriptions.prefetch_related("items__generic", "items__product"),
+        "lab_requests": encounter.lab_requests.prefetch_related("tests"),
         "addendum_form": AddendumForm() if not encounter.is_open and getattr(services.provider_for(request.user), "pk", None) == encounter.provider_id else None,
         "vitals": encounter.vitals.all(), "diagnoses": encounter.diagnoses.select_related("icd"),
         "allergies": patient.allergies.filter(is_active=True), "problems": patient.problems.filter(status="active"),

@@ -280,3 +280,9 @@ svg.spark polyline { fill: none; stroke: var(--primary); stroke-width: 2.5; }
 .ehr-encounter { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 16px; }
 @media (max-width: 800px) { .ehr-encounter { grid-template-columns: 1fr; } }
 .ehr-soap pre { white-space: pre-wrap; font: inherit; margin: 0 0 8px; }
+.ehr-files { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.ehr-files img { width: 100%; height: auto; border-radius: 8px; }
+.ehr-files figure { margin: 0; }
+.lab-point { display: inline-block; margin: 2px 6px 2px 0; padding: 2px 8px; border-radius: 8px; background: var(--primary-soft); font-size: .85rem; }
+.lab-point.flagged { background: #fee2e2; }
+.ehr-checklist ul { list-style: none; padding: 0; columns: 2 220px; }

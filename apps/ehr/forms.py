@@ -7,7 +7,7 @@ from django.utils import timezone
 from apps.core.validators import normalize_digits
 from apps.lab.forms import DigitsMixin
 
-from .models import Allergy, DrugCounseling, EncounterService, GenericDrug, Prescription, ServiceCode, Diagnosis, Encounter, HistoryEntry, ICD10Code, Patient, Problem, Referral, VitalSigns
+from .models import Allergy, DrugCounseling, ExternalDocument, ExternalLabValue, LabRequest, EncounterService, GenericDrug, Prescription, ServiceCode, Diagnosis, Encounter, HistoryEntry, ICD10Code, Patient, Problem, Referral, VitalSigns
 
 
 def parse_jalali(value, allow_future=True):
@@ -281,3 +281,72 @@ class CounselingForm(forms.ModelForm):
 
 class ReasonForm(forms.Form):
     reason = forms.CharField(label="علت", min_length=5, max_length=300)
+
+
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultipleFileField(forms.FileField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput(attrs={"accept": "image/*,application/pdf", "capture": "environment"}))
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        single = super().clean
+        files = data if isinstance(data, (list, tuple)) else [data]
+        return [single(f, initial) for f in files if f] or [single(None, initial)]
+
+
+class ExternalDocumentForm(forms.ModelForm):
+    document_date = JalaliDateField(label="تاریخ مدرک (شمسی)", allow_future=False, required=True)
+    files = MultipleFileField(
+        label="فایل‌ها (PDF یا عکس؛ با گوشی می‌توانید مستقیم عکس بگیرید)",
+        help_text="چند صفحه را با هم انتخاب کنید؛ هر فایل حداکثر ۱۵ مگابایت.",
+    )
+
+    class Meta:
+        model = ExternalDocument
+        fields = ["kind", "title", "source", "document_date", "note"]
+        widgets = {"note": forms.Textarea(attrs={"rows": 3})}
+
+    def clean_files(self):
+        from .models.documents import validate_medical_file
+
+        files = self.cleaned_data["files"]
+        for f in files:
+            validate_medical_file(f)
+        if len(files) > 20:
+            raise forms.ValidationError("حداکثر ۲۰ فایل در هر مدرک.")
+        return files
+
+
+class ExternalValueForm(DigitsMixin, forms.ModelForm):
+    digit_fields = ("value",)
+
+    class Meta:
+        model = ExternalLabValue
+        fields = ["test", "value", "unit"]
+
+    def __init__(self, data=None, *args, **kwargs):
+        super().__init__(self._normalize(data), *args, **kwargs)
+        self.fields["test"].queryset = self.fields["test"].queryset.filter(result_type="numeric", is_active=True)
+        self.empty_permitted = True
+        self.use_required_attribute = False
+
+
+ExternalValueFormSet = forms.formset_factory(ExternalValueForm, extra=3)
+
+
+class LabRequestForm(forms.ModelForm):
+    class Meta:
+        model = LabRequest
+        fields = ["tests", "panels", "is_urgent", "clinical_note"]
+        widgets = {"tests": forms.CheckboxSelectMultiple, "panels": forms.CheckboxSelectMultiple}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["tests"].queryset = self.fields["tests"].queryset.filter(is_active=True).order_by("section__order", "name")
+        self.fields["panels"].queryset = self.fields["panels"].queryset.filter(is_active=True)
+        self.fields["tests"].required = False
+        self.fields["panels"].required = False

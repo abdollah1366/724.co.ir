@@ -101,6 +101,14 @@
       {% endif %}
     </div>
 
+    <div class="card">
+      <h2>درخواست آزمایش</h2>
+      {% for r in lab_requests %}<div class="ehr-row">{{ r.number }} · {{ r.get_status_display }}<div class="muted">{% for t in r.tests.all %}{{ t.name }}{% if not forloop.last %}، {% endif %}{% endfor %}</div></div>
+      {% empty %}<p class="muted">درخواستی ندارد.</p>{% endfor %}
+      {% if writable and perms.ehr.add_labrequest %}<a class="btn btn-small" href="{% url 'ehr:lab_request_new' encounter.pk %}">درخواست آزمایش</a>{% endif %}
+      <a class="btn btn-small btn-outline" href="{% url 'ehr:patient_labs' patient.pk %}">روند جواب‌ها</a>
+    </div>
+
     {% if referral_form %}
     <div class="card">
       <h2>ارجاع</h2>

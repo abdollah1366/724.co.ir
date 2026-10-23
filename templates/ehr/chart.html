@@ -20,6 +20,8 @@
   {% elif is_provider and perms.ehr.add_encounter %}
   <form method="post" action="{% url 'ehr:encounter_start' patient.pk %}">{% csrf_token %}<button class="btn">شروع ویزیت جدید</button></form>
   {% endif %}
+  <a class="btn btn-outline" href="{% url 'ehr:patient_labs' patient.pk %}">روند آزمایش‌ها</a>
+  {% if perms.ehr.add_externaldocument %}<a class="btn btn-outline" href="{% url 'ehr:document_upload' patient.pk %}">بارگذاری مدرک / اسکن</a>{% endif %}
   {% if is_provider and perms.ehr.add_prescription %}
   <form method="post" action="{% url 'ehr:prescription_new' patient.pk %}">{% csrf_token %}<button class="btn btn-outline">نسخه جدید</button></form>
   {% endif %}

@@ -116,3 +116,18 @@ class GenericDrugAdmin(admin.ModelAdmin):
 admin.site.register(EncounterService, type("EncounterServiceAdmin", (ReadOnlyClinicalAdmin,), {
     "list_display": ("encounter", "service_code", "quantity", "unit_tariff"),
 }))
+
+
+from .models import DocumentFile, ExternalDocument, LabRequest  # noqa: E402
+
+for model in (LabRequest, ExternalDocument):
+    admin.site.register(model, type(f"{model.__name__}Admin", (ReadOnlyClinicalAdmin,), {
+        "list_display": ("__str__", "patient"), "search_fields": ("patient__file_number", "patient__last_name"),
+    }))
+
+
+@admin.register(DocumentFile)
+class DocumentFileAdmin(ReadOnlyClinicalAdmin):
+    # فایل‌ها فقط از نمای دارای مجوز پرونده باز می‌شوند، نه از پنل مدیریت.
+    list_display = ("document", "page", "content_type", "size")
+    exclude = ("file",)
