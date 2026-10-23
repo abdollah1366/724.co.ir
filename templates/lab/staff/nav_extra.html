@@ -1,0 +1,4 @@
+{% if perms.lab.view_labresult %}<a href="{% url 'lab:staff_worklist' %}">کارتابل جواب</a>{% endif %}
+{% if perms.lab.add_qcresult %}<a href="{% url 'lab:staff_qc' %}">کنترل کیفی</a>{% endif %}
+{% if perms.lab.view_insuranceclaim %}<a href="{% url 'lab:staff_claims' %}">بیمه‌ها</a>{% endif %}
+{% if perms.lab.view_labpayment %}<a href="{% url 'lab:staff_cashier' %}">صندوق</a>{% endif %}

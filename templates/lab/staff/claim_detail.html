@@ -1,0 +1,29 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}صورت‌حساب {{ claim }}{% endblock %}
+{% block lab_content %}
+<p class="breadcrumb"><a href="{% url 'lab:staff_claims' %}">صورت‌حساب‌های بیمه</a></p>
+<h1>صورت‌حساب {{ claim.number|default:"پیش‌نویس" }} · {{ claim.plan }}</h1>
+<p>{{ claim.period_start|jalali }} تا {{ claim.period_end|jalali }} · {{ claim.get_status_display }} · جمع {{ claim.total|rial }} ریال · تسویه‌شده {{ claim.settled_total|rial }}</p>
+<p>
+  <a class="btn btn-small btn-outline" href="?format=csv">خروجی CSV برای بیمه</a>
+  {% if claim.status == "draft" %}
+    <form method="post" class="inline-form">{% csrf_token %}<button class="btn btn-small" name="action" value="post">ثبت و ارسال</button></form>
+    <form method="post" class="inline-form">{% csrf_token %}<button class="link-button" name="action" value="delete">حذف پیش‌نویس</button></form>
+  {% endif %}
+</p>
+<div class="pos-grid">
+  <div class="table-wrap card"><table class="table data">
+    <thead><tr><th>پذیرش</th><th>تاریخ</th><th>بیمار</th><th class="num">مبلغ</th></tr></thead>
+    <tbody>{% for l in lines %}<tr><td><a href="{% url 'lab:staff_order' l.order.pk %}">{{ l.order.number }}</a></td><td>{{ l.order.date|jalali:"%Y/%m/%d" }}</td><td>{{ l.order.patient.full_name }}</td><td class="num">{{ l.amount|rial }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div>
+    {% if claim.status == "posted" and perms.lab.post_claimsettlement %}
+      <form method="post" class="form card" novalidate>{% csrf_token %}<h2>ثبت تسویه</h2>{% include "includes/form.html" %}
+        <p class="muted small">مبلغ دریافتی + کسورات از طلب بیمه کم می‌شود؛ کسورات به حساب هزینه «کسورات بیمه» می‌رود.</p>
+        <button class="btn" name="action" value="settle">ثبت تسویه</button></form>
+    {% endif %}
+    {% for s in settlements %}<div class="card"><p>{{ s.number }} · دریافتی {{ s.received|rial }} · کسورات {{ s.deductions|rial }} · {{ s.get_status_display }}</p></div>{% endfor %}
+  </div>
+</div>
+{% endblock %}

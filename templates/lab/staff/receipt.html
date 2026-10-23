@@ -1,0 +1,24 @@
+{% load persian %}<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>رسید {{ order.number }}</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+<style>body{font-family:Vazirmatn,Tahoma,sans-serif;max-width:80mm;margin:0 auto;font-size:12px}table{width:100%;border-collapse:collapse}td{padding:2px 0}.num{text-align:left;direction:ltr}h1{font-size:14px;text-align:center;margin:4px 0}.c{text-align:center}hr{border:0;border-top:1px dashed #999}</style>
+</head><body onload="window.print()">
+<h1>{{ LAB_INFO.name }}</h1>
+<p class="c">رسید پذیرش {{ order.number }}<br>{{ order.date|jalali }}</p>
+<p>بیمار: {{ order.patient.full_name }}</p>
+<hr>
+<table>{% for item in items %}<tr><td>{{ item.test.name }}</td><td class="num">{{ item.patient_share|rial }}</td></tr>{% endfor %}
+{% if order.home_fee %}<tr><td>نمونه‌گیری در منزل</td><td class="num">{{ order.home_fee|rial }}</td></tr>{% endif %}</table>
+<hr>
+<table>
+<tr><td>جمع تعرفه</td><td class="num">{{ order.gross_amount|rial }}</td></tr>
+{% if order.basic_share %}<tr><td>سهم بیمه پایه</td><td class="num">{{ order.basic_share|rial }}</td></tr>{% endif %}
+{% if order.supplementary_share %}<tr><td>سهم بیمه تکمیلی</td><td class="num">{{ order.supplementary_share|rial }}</td></tr>{% endif %}
+{% if order.discount %}<tr><td>تخفیف</td><td class="num">{{ order.discount|rial }}</td></tr>{% endif %}
+<tr><td><strong>سهم بیمار</strong></td><td class="num"><strong>{{ order.net_patient|rial }}</strong></td></tr>
+<tr><td>پرداخت‌شده</td><td class="num">{{ order.paid_amount|rial }}</td></tr>
+<tr><td>مانده</td><td class="num">{{ order.balance_due|rial }}</td></tr>
+</table>
+<hr>
+<p>دریافت جواب: {{ SITE_URL }}/lab/results/<br>شماره پذیرش و کد ملی خود را نگه دارید.</p>
+</body></html>

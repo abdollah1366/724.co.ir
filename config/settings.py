@@ -190,6 +190,32 @@ PHARMACY_RULES = {
     "online_warehouse_code": os.environ.get("ONLINE_WAREHOUSE_CODE", ""),  # خالی = اولین انبار فروش
 }
 
+# پیامک: console (فقط ثبت در لاگ) یا kavenegar
+SMS_BACKEND = os.environ.get("SMS_BACKEND", "console")
+SMS_API_KEY = os.environ.get("SMS_API_KEY", "")
+SMS_SENDER = os.environ.get("SMS_SENDER", "")
+SITE_URL = os.environ.get("SITE_URL", "https://724.co.ir").rstrip("/")
+
+# آزمایشگاه
+LAB_RULES = {
+    "booking_days_ahead": 14,
+    "home_sampling_fee": int(os.environ.get("LAB_HOME_SAMPLING_FEE", "1500000")),  # ریال
+    "otp_ttl_seconds": 300,
+    "otp_max_attempts": 5,
+    "otp_resend_seconds": 60,
+    "result_access_minutes": 15,  # مدت دسترسی به جواب پس از تأیید کد پیامکی
+    "lookup_limit_per_hour": 20,  # سقف تلاش برای هر IP
+    "approver_must_differ": env_bool("LAB_APPROVER_MUST_DIFFER", False),  # تأییدکننده ≠ ثبت‌کننده
+    "require_qc_for_approval": env_bool("LAB_REQUIRE_QC", False),
+}
+LAB_INFO = {
+    "name": os.environ.get("LAB_NAME", "آزمایشگاه تشخیص طبی ۷۲۴"),
+    "license_no": os.environ.get("LAB_LICENSE_NO", ""),
+    "technical_director": os.environ.get("LAB_TECHNICAL_DIRECTOR", ""),
+    "technical_director_council_no": os.environ.get("LAB_TECHNICAL_DIRECTOR_COUNCIL_NO", ""),
+    "phone": os.environ.get("LAB_PHONE", ""),
+}
+
 # پشتیبان‌گیری: python manage.py backup_db
 BACKUP_DIR = os.environ.get("BACKUP_DIR", str(BASE_DIR / "backups"))
 

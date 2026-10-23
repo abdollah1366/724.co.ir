@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}استعلام اصالت جواب آزمایش | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>استعلام اصالت برگه جواب</h1>
+  <form method="post" class="form card" novalidate>{% csrf_token %}{% include "includes/form.html" %}<button class="btn" type="submit">استعلام</button></form>
+  {% if found %}
+    {% if found.order %}
+      <div class="alert">این برگه توسط {{ LAB_INFO.name }} صادر شده است.
+        <br>شماره پذیرش {{ found.order.number }} · تاریخ {{ found.order.date|jalali }} · بیمار {{ found.order.patient.first_name|slice:":1" }}. {{ found.order.patient.last_name }}
+        <br>{{ found.report.sections|length|fa_digits }} بخش، {% if found.report.is_complete %}همه جواب‌ها تأیید شده‌اند{% else %}{{ found.report.pending|fa_digits }} آزمایش هنوز تأیید نشده{% endif %}.
+        {% if found.order.status == "reversed" %}<br><strong>این پذیرش باطل شده است.</strong>{% endif %}
+      </div>
+    {% else %}
+      <div class="alert alert-error">برگه‌ای با این مشخصات پیدا نشد.</div>
+    {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

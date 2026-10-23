@@ -1,0 +1,21 @@
+{% load persian %}<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>برچسب {{ order.number }}</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+<style>
+body{font-family:Vazirmatn,Tahoma,sans-serif;margin:0}
+.label{width:50mm;height:25mm;padding:1.5mm;box-sizing:border-box;page-break-after:always;font-size:8px;line-height:1.3;overflow:hidden}
+.label svg{width:100%;height:9mm;display:block}
+.code{direction:ltr;text-align:center;font-size:9px;letter-spacing:1px}
+.row{display:flex;justify-content:space-between;gap:4px}
+@page{size:50mm 25mm;margin:0}
+</style></head><body onload="window.print()">
+{% for l in labels %}
+<div class="label">
+  <div class="row"><strong>{{ order.patient.full_name }}</strong><span>{{ order.patient.get_sex_display }} {{ order.patient.age_years|fa_digits }}س</span></div>
+  {{ l.svg }}
+  <div class="code">{{ l.specimen.barcode }}</div>
+  <div class="row"><span>{{ l.specimen.specimen_type.name }}</span><span dir="ltr">{{ l.tests|truncatechars:28 }}</span></div>
+  <div class="row"><span>{{ order.number }}</span><span>{% if order.priority == "urgent" %}<strong>فوری</strong>{% endif %} {{ order.date|jalali:"%Y/%m/%d" }}</span></div>
+</div>
+{% endfor %}
+</body></html>

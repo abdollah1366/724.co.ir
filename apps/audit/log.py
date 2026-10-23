@@ -14,7 +14,7 @@ _tracked = set()
 
 
 def _value(value):
-    if isinstance(value, (datetime.date, datetime.datetime, decimal.Decimal)):
+    if isinstance(value, (datetime.date, datetime.datetime, datetime.time, decimal.Decimal)):
         return str(value)
     if isinstance(value, FieldFile):
         return value.name or ""

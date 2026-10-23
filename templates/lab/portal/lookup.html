@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}جواب آزمایش | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <p class="breadcrumb"><a href="{% url 'lab:home' %}">آزمایشگاه</a> / جواب آزمایش</p>
+  <h1>دریافت جواب آزمایش</h1>
+  <p class="lead">شماره پذیرش (روی رسید) و کد ملی را وارد کنید. یک کد یک‌بارمصرف به موبایلی که هنگام پذیرش ثبت شده پیامک می‌شود.</p>
+  <form method="post" class="form card" novalidate>{% csrf_token %}{% include "includes/form.html" %}<button class="btn" type="submit">ارسال کد</button></form>
+  {% if user.is_authenticated %}<p><a href="{% url 'lab:my_results' %}">همه جواب‌های من</a></p>{% else %}<p class="muted">با <a href="{% url 'accounts:login' %}?next={% url 'lab:my_results' %}">ورود به حساب</a> می‌توانید همه جواب‌ها و نمودار روند را یکجا ببینید.</p>{% endif %}
+  <p class="muted small">جواب برخی آزمایش‌های حساس فقط حضوری تحویل می‌شود. اگر موبایل شما تغییر کرده، با کارت ملی به پذیرش مراجعه کنید.</p>
+</section>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}داشبورد آزمایشگاه{% endblock %}
+{% block lab_content %}
+<h1>داشبورد آزمایشگاه <span class="muted small">{{ today|jalali }}</span></h1>
+{% if critical %}
+  <div class="alert alert-error"><strong>مقادیر بحرانی بدون اطلاع‌رسانی:</strong>
+    {% for r in critical %}<a href="{% url 'lab:staff_critical' r.pk %}">{{ r.item.order.number }} {{ r.item.test.code }}={{ r.value }}</a>{% if not forloop.last %}، {% endif %}{% endfor %}</div>
+{% endif %}
+<div class="grid stats">
+  <a class="card stat" href="{% url 'lab:staff_orders' %}"><span class="stat-label">پذیرش امروز</span><span class="stat-value">{{ orders_today|fa_digits }}</span></a>
+  <a class="card stat" href="{% url 'lab:staff_appointments' %}"><span class="stat-label">نوبت نمونه‌گیری امروز</span><span class="stat-value">{{ appointments_today|fa_digits }}</span></a>
+  <a class="card stat" href="{% url 'lab:staff_orders' %}?progress=sampling"><span class="stat-label">منتظر نمونه‌گیری</span><span class="stat-value">{{ awaiting_sampling|fa_digits }}</span></a>
+  <a class="card stat" href="{% url 'lab:staff_worklist' %}"><span class="stat-label">منتظر جواب</span><span class="stat-value">{{ awaiting_result|fa_digits }}</span></a>
+  <a class="card stat" href="{% url 'lab:staff_worklist' %}?status=entered"><span class="stat-label">منتظر تأیید مسئول فنی</span><span class="stat-value">{{ awaiting_approval|fa_digits }}</span></a>
+  <a class="card stat" href="{% url 'lab:staff_orders' %}?progress=ready"><span class="stat-label">جواب آماده، تحویل‌نشده</span><span class="stat-value">{{ ready_not_delivered|fa_digits }}</span></a>
+  <div class="card stat"><span class="stat-label">فوری‌های باز</span><span class="stat-value">{{ urgent_open|fa_digits }}</span></div>
+  <div class="card stat"><span class="stat-label">میانگین زمان جواب‌دهی امروز (ساعت)</span><span class="stat-value">{% if tat_hours is not None %}{{ tat_hours|fa_digits }}{% else %}—{% endif %}</span></div>
+</div>
+{% block dashboard_extra %}{% include "lab/staff/dashboard_extra.html" %}{% endblock %}
+{% if finance %}
+  <h2>مالی امروز (ریال)</h2>
+  <div class="grid stats">
+    <div class="card stat"><span class="stat-label">جمع تعرفه پذیرش‌ها</span><span class="stat-value">{{ finance.gross|rial }}</span></div>
+    <div class="card stat"><span class="stat-label">سهم بیمه پایه / تکمیلی</span><span class="stat-value small">{{ finance.basic|rial }} / {{ finance.supp|rial }}</span></div>
+    <a class="card stat" href="{% url 'lab:staff_cashier' %}"><span class="stat-label">خالص دریافت صندوق</span><span class="stat-value">{{ finance.cash_in|rial }}</span></a>
+    <a class="card stat" href="{% url 'lab:staff_claims' %}"><span class="stat-label">کل طلب از بیمه‌ها</span><span class="stat-value">{{ finance.insurer_receivable|rial }}</span></a>
+  </div>
+{% endif %}
+{% endblock %}

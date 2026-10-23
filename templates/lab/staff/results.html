@@ -1,0 +1,44 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}جواب‌ها {{ order.number }}{% endblock %}
+{% block lab_content %}
+<p class="breadcrumb"><a href="{% url 'lab:staff_order' order.pk %}">پذیرش {{ order.number }}</a></p>
+<h1>جواب‌ها: {{ order.patient.full_name }} <span class="muted small">{{ order.patient.get_sex_display }} {{ order.patient.age_years|fa_digits }} سال</span></h1>
+{% if order.clinical_note %}<div class="alert alert-info">نکته بالینی: {{ order.clinical_note }}</div>{% endif %}
+<div class="chips">
+  <a class="chip{% if not section %} active{% endif %}" href="?">همه بخش‌ها</a>
+  {% for s in sections %}<a class="chip{% if s.code == section %} active{% endif %}" href="?section={{ s.code }}">{{ s.name }}</a>{% endfor %}
+</div>
+<form method="post">
+  {% csrf_token %}
+  <div class="table-wrap"><table class="table data results-table">
+    <thead><tr><th>آزمایش</th><th>جواب</th><th>واحد</th><th>محدوده مرجع</th><th>علامت</th><th>قبلی</th><th>توضیح</th><th>وضعیت</th><th>تأیید</th></tr></thead>
+    <tbody>{% for row in rows %}{% with r=row.result %}
+      <tr class="{% if r.is_critical %}row-critical{% elif r.flag %}row-abnormal{% endif %}">
+        <td>{{ r.item.test.name }} <span class="muted small" dir="ltr">{{ r.item.test.code }}</span>
+          {% if r.specimen.status == "pending" or r.specimen.status == "rejected" %}<br><span class="badge badge-warn">نمونه {{ r.specimen.get_status_display }}</span>{% endif %}
+          {% if row.qc == "rejected" %}<br><span class="badge status-cancelled">کنترل کیفی مردود</span>{% elif row.qc == "missing" %}<br><span class="badge badge-warn">کنترل کیفی امروز ثبت نشده</span>{% endif %}</td>
+        <td>{% if r.status == "approved" %}<strong dir="ltr">{{ r.value }}</strong>{% if r.version > 1 %} <span class="badge">اصلاح‌شده</span>{% endif %}
+          {% elif r.item.test.result_type == "choice" %}
+            <select name="value_{{ r.pk }}"><option value=""></option>{% for c in r.item.test.choice_list %}<option{% if c == r.value %} selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+          {% elif r.item.test.result_type == "text" %}<textarea name="value_{{ r.pk }}" rows="2">{{ r.value }}</textarea>
+          {% else %}<input name="value_{{ r.pk }}" value="{{ r.value }}" dir="ltr" inputmode="decimal" size="8">{% endif %}</td>
+        <td dir="ltr">{{ r.unit }}</td>
+        <td dir="ltr">{{ r.reference_text }}</td>
+        <td><strong>{{ r.flag }}</strong>{% if r.delta_alert %}<br><span class="small badge-warn">{{ r.delta_alert }}</span>{% endif %}</td>
+        <td>{% if row.previous %}<span dir="ltr">{{ row.previous.value }}</span><br><span class="small muted">{{ row.previous.item.order.date|jalali:"%Y/%m/%d" }}</span>{% endif %}</td>
+        <td>{% if r.status != "approved" %}<input name="comment_{{ r.pk }}" value="{{ r.comment }}" size="12">{% else %}{{ r.comment }}{% endif %}</td>
+        <td>{{ r.get_status_display }}{% if r.entered_by %}<br><span class="small muted">{{ r.entered_by }}{% if r.source == "instrument" %} (دستگاه){% endif %}</span>{% endif %}
+          {% if r.is_critical %}<br><a class="badge status-cancelled" href="{% url 'lab:staff_critical' r.pk %}">بحرانی: ثبت اطلاع‌رسانی</a>{% endif %}</td>
+        <td>{% if r.status == "entered" and perms.lab.approve_labresult %}<input type="checkbox" name="approve_{{ r.pk }}" value="1" aria-label="تأیید {{ r.item.test.code }}">
+          {% elif r.status == "approved" %}<span class="small">{{ r.approved_by }}</span>{% if perms.lab.amend_labresult %}<br><a class="small" href="{% url 'lab:staff_amend' r.pk %}">اصلاح</a>{% endif %}{% endif %}</td>
+      </tr>
+    {% endwith %}{% endfor %}</tbody>
+  </table></div>
+  <p>
+    {% if perms.lab.enter_labresult %}<button class="btn" name="action" value="save">ذخیره جواب‌ها</button>{% endif %}
+    {% if perms.lab.approve_labresult %}<button class="btn btn-outline" name="action" value="approve">تأیید جواب‌های انتخاب‌شده</button>{% endif %}
+    <a class="btn btn-outline" href="{% url 'lab:staff_report' order.pk %}" target="_blank">پیش‌نمایش برگه جواب</a>
+  </p>
+</form>
+{% endblock %}
