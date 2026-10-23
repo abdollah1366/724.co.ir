@@ -8,7 +8,7 @@
     <div>
       <h1>{{ doctor.full_name }}</h1>
       <p class="lead">{{ doctor.specialty|default:"پزشک عمومی" }}</p>
-      <p class="muted">شماره نظام پزشکی: {{ doctor.medical_council_number|fa_digits }} · {{ doctor.floor.title }} ({{ doctor.floor.label|fa_digits }})</p>
+      <p class="muted">شماره نظام پزشکی: {{ doctor.medical_council_number|fa_digits }} · {{ doctor.department.title }}</p>
       {% if doctor.visit_fee %}<p>هزینه ویزیت: <strong>{{ doctor.visit_fee|toman }}</strong></p>{% endif %}
       {% if doctor.accepts_online_booking %}<a class="btn" href="{% url 'appointments:book' doctor.slug %}">دریافت نوبت اینترنتی</a>{% endif %}
     </div>

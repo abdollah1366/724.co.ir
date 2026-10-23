@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}خدمات | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <h1>خدمات ۷۲۴</h1>
+  <div class="grid floors">
+    {% for department in departments %}{% include "includes/department_card.html" %}{% endfor %}
+  </div>
+</section>
+{% endblock %}

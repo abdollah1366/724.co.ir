@@ -6,9 +6,10 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.clinic.models import Floor, Service, WorkingHours
+from apps.clinic.models import Department, Service, WorkingHours
+from apps.shop.models import Product
 
-from .factories import make_doctor, make_floor, make_specialty
+from .factories import make_department, make_doctor, make_specialty
 
 
 class WorkingHoursTests(TestCase):
@@ -43,7 +44,7 @@ class AvailabilityTests(TestCase):
             self.assertEqual(self.doctor.available_slots(today), [datetime.time(9, 30)])
 
     def test_available_dates_follow_schedule(self):
-        doctor = make_doctor(floor=self.doctor.floor, slug="dr-sat", weekdays=[5], medical_council_number="MC-2")
+        doctor = make_doctor(department=self.doctor.department, slug="dr-sat", weekdays=[5], medical_council_number="MC-2")
         dates = doctor.available_dates(days=14)
         self.assertTrue(dates)
         self.assertTrue(all(d.weekday() == 5 for d in dates))
@@ -51,24 +52,35 @@ class AvailabilityTests(TestCase):
 
 class ClinicPageTests(TestCase):
     def setUp(self):
-        self.floor = make_floor(number=2, slug="specialists", title="کلینیک متخصصین")
-        Service.objects.create(floor=self.floor, title="اکوکاردیوگرافی", price=10_000_000)
+        self.dept = make_department(slug="specialists", title="پزشکان متخصص")
+        Service.objects.create(department=self.dept, title="اکوکاردیوگرافی", price=10_000_000)
         self.specialty = make_specialty()
-        self.doctor = make_doctor(floor=self.floor, specialty=self.specialty)
+        self.doctor = make_doctor(department=self.dept, specialty=self.specialty)
 
-    def test_floor_detail(self):
-        response = self.client.get(reverse("clinic:floor_detail", args=["specialists"]))
+    def test_department_detail(self):
+        response = self.client.get(reverse("clinic:department_detail", args=["specialists"]))
         self.assertContains(response, "اکوکاردیوگرافی")
         self.assertContains(response, "۱٬۰۰۰٬۰۰۰ تومان")
         self.assertContains(response, self.doctor.full_name)
 
-    def test_inactive_floor_404(self):
-        Floor.objects.filter(pk=self.floor.pk).update(is_active=False)
-        response = self.client.get(reverse("clinic:floor_detail", args=["specialists"]))
+    def test_inactive_department_404(self):
+        Department.objects.filter(pk=self.dept.pk).update(is_active=False)
+        response = self.client.get(reverse("clinic:department_detail", args=["specialists"]))
         self.assertEqual(response.status_code, 404)
 
+    def test_department_list(self):
+        response = self.client.get(reverse("clinic:department_list"))
+        self.assertContains(response, "پزشکان متخصص")
+        self.assertNotContains(response, "طبقه")
+
+    def test_pharmacy_department_shows_products(self):
+        make_department(slug="pharmacy", kind=Department.Kind.PHARMACY, title="داروخانه")
+        Product.objects.create(kind=Product.Kind.DRUG, name="داروی آزمایشی", slug="test-drug", price=1000, stock=3)
+        response = self.client.get(reverse("clinic:department_detail", args=["pharmacy"]))
+        self.assertContains(response, "داروی آزمایشی")
+
     def test_doctor_list_and_filter(self):
-        other = make_doctor(floor=self.floor, slug="dr-other", first_name="رضا", medical_council_number="MC-9")
+        other = make_doctor(department=self.dept, slug="dr-other", first_name="رضا", medical_council_number="MC-9")
         response = self.client.get(reverse("clinic:doctor_list"), {"specialty": "cardio"})
         self.assertContains(response, self.doctor.full_name)
         self.assertNotContains(response, other.full_name)
@@ -89,13 +101,17 @@ class ClinicPageTests(TestCase):
         self.assertContains(response, self.doctor.full_name)
         response = self.client.get(reverse("clinic:search"), {"q": "اکو"})
         self.assertContains(response, "اکوکاردیوگرافی")
+        Product.objects.create(kind=Product.Kind.DRUG, name="ژلوفن", generic_name="Ibuprofen", slug="gelofen", stock=1)
+        response = self.client.get(reverse("clinic:search"), {"q": "ibuprofen"})
+        self.assertContains(response, "ژلوفن")
 
 
 class SeedCommandTests(TestCase):
     def test_seed_is_idempotent(self):
-        call_command("seed_floors", "--demo-doctors", stdout=mock.MagicMock())
-        call_command("seed_floors", "--demo-doctors", stdout=mock.MagicMock())
-        self.assertEqual(Floor.objects.count(), 6)
-        self.assertEqual(Floor.objects.get(number=4).is_coming_soon, True)
+        call_command("seed_services", "--demo", stdout=mock.MagicMock())
+        call_command("seed_services", "--demo", stdout=mock.MagicMock())
+        self.assertEqual(Department.objects.count(), 7)
+        self.assertTrue(Department.objects.get(slug="rehab").is_coming_soon)
+        self.assertEqual(Product.objects.count(), 5)
         response = self.client.get(reverse("core:home"))
         self.assertContains(response, "کافی‌شاپ ۷۲۴")

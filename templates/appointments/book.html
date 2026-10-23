@@ -5,6 +5,7 @@
 <section class="container section narrow">
   <h1>دریافت نوبت</h1>
   <p class="lead">{{ doctor.full_name }} · {{ doctor.specialty|default:"پزشک عمومی" }}</p>
+  {% if not user.is_authenticated %}<div class="alert alert-info">🎁 اگر <a href="{% url 'accounts:login' %}?next={{ request.get_full_path|urlencode }}">وارد حساب</a> شوید یا <a href="{% url 'accounts:signup' %}?next={{ request.get_full_path|urlencode }}">ثبت‌نام</a> کنید، پس از ویزیت ژتون باشگاه مشتریان می‌گیرید.</div>{% endif %}
 
   {% if not form.fields.date.choices %}
     <div class="alert alert-info">در حال حاضر زمان آزادی برای این پزشک ثبت نشده است.</div>

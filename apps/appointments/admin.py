@@ -11,12 +11,23 @@ class AppointmentAdmin(admin.ModelAdmin):
     readonly_fields = ("tracking_code", "consent_at", "created_at", "updated_at")
     date_hierarchy = "date"
     list_select_related = ("doctor",)
-    actions = ["mark_confirmed", "mark_cancelled"]
+    raw_id_fields = ("user",)
+    actions = ["mark_confirmed", "mark_done", "mark_cancelled"]
+
+    def _set_status(self, queryset, status):
+        # ذخیره تک‌تک نوبت‌ها تا سیگنال‌ها (ژتون باشگاه مشتریان) اجرا شوند.
+        for appointment in queryset:
+            appointment.status = status
+            appointment.save(update_fields=["status", "updated_at"])
 
     @admin.action(description="تأیید نوبت‌های انتخاب‌شده")
     def mark_confirmed(self, request, queryset):
-        queryset.filter(status=Appointment.Status.PENDING).update(status=Appointment.Status.CONFIRMED)
+        self._set_status(queryset.filter(status=Appointment.Status.PENDING), Appointment.Status.CONFIRMED)
+
+    @admin.action(description="انجام شد (اعطای ژتون باشگاه)")
+    def mark_done(self, request, queryset):
+        self._set_status(queryset.exclude(status=Appointment.Status.CANCELLED), Appointment.Status.DONE)
 
     @admin.action(description="لغو نوبت‌های انتخاب‌شده")
     def mark_cancelled(self, request, queryset):
-        queryset.exclude(status=Appointment.Status.DONE).update(status=Appointment.Status.CANCELLED)
+        self._set_status(queryset.exclude(status=Appointment.Status.DONE), Appointment.Status.CANCELLED)

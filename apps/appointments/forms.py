@@ -63,10 +63,11 @@ class BookingForm(forms.Form):
             cleaned["time"] = datetime.time.fromisoformat(cleaned["time"])
         return cleaned
 
-    def save(self):
+    def save(self, user=None):
         data = self.cleaned_data
         return Appointment.objects.create(
             doctor=self.doctor,
+            user=user if user and user.is_authenticated else None,
             date=data["date"],
             time=data["time"],
             patient_full_name=data["patient_full_name"],

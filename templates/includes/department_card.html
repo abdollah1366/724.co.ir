@@ -1,0 +1,6 @@
+<a class="card floor-card" href="{{ department.get_absolute_url }}">
+  <span class="floor-icon">{{ department.icon|default:"🏥" }}</span>
+  <h3>{{ department.title }}</h3>
+  <p>{{ department.summary }}</p>
+  {% if department.is_coming_soon %}<span class="badge">به‌زودی</span>{% endif %}
+</a>

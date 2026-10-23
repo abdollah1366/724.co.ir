@@ -31,14 +31,18 @@ def book(request, slug):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    appointment = form.save()
+                    appointment = form.save(user=request.user)
             except IntegrityError:
                 messages.error(request, "این زمان همین حالا رزرو شد. لطفاً زمان دیگری انتخاب کنید.")
                 return redirect(f"{request.path}?date={form.cleaned_data['date'].isoformat()}")
             _remember(request, appointment)
             return redirect("appointments:detail", pk=appointment.pk)
     else:
-        form = BookingForm(doctor=doctor, selected_date=request.GET.get("date"))
+        initial = {}
+        profile = getattr(request.user, "profile", None) if request.user.is_authenticated else None
+        if profile:
+            initial = {"patient_full_name": request.user.get_full_name(), "mobile": profile.mobile}
+        form = BookingForm(doctor=doctor, selected_date=request.GET.get("date"), initial=initial)
     return render(request, "appointments/book.html", {"doctor": doctor, "form": form})
 
 

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}{{ department.title }} | {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}{{ department.summary }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <p class="floor-label">{{ department.icon }} {{ department.get_kind_display }}</p>
+  <h1>{{ department.title }}</h1>
+  <p class="lead">{{ department.summary }}</p>
+  {% if department.opening_hours %}<p><strong>ساعات کاری:</strong> {{ department.opening_hours }}</p>{% endif %}
+  {% if department.is_coming_soon %}<div class="alert alert-info">این خدمت به‌زودی راه‌اندازی می‌شود.</div>{% endif %}
+  {% if department.description %}<div class="prose">{{ department.description|linebreaks }}</div>{% endif %}
+
+  {% if product_kind %}
+    <div class="section-head">
+      <h2>{% if product_kind == "drug" %}داروها{% else %}محصولات{% endif %}</h2>
+      <a href="{% if product_kind == 'drug' %}{% url 'shop:pharmacy' %}{% else %}{% url 'shop:equipment' %}{% endif %}">مشاهده همه ←</a>
+    </div>
+    <div class="grid products">
+      {% for product in products %}{% include "includes/product_card.html" %}{% empty %}<p class="muted">هنوز محصولی ثبت نشده است.</p>{% endfor %}
+    </div>
+    {% if product_kind == "drug" %}<p><a class="btn" href="{% url 'shop:consult' %}">مشاوره رایگان با داروساز</a></p>{% endif %}
+  {% endif %}
+
+  {% if services %}
+    <h2>خدمات</h2>
+    <div class="grid">
+      {% for service in services %}
+        <article class="card">
+          <h3>{{ service.title }}</h3>
+          {% if service.description %}<p>{{ service.description }}</p>{% endif %}
+          {% if service.price %}<p class="price">{{ service.price|toman }}</p>{% endif %}
+          {% if service.price_note %}<p class="muted">{{ service.price_note }}</p>{% endif %}
+          {% if service.requires_qualified_provider %}<p class="muted small">این خدمت فقط توسط پزشک دارای صلاحیت و مجوز ارائه می‌شود.</p>{% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if doctors %}
+    <h2>پزشکان</h2>
+    <div class="grid">
+      {% for doctor in doctors %}{% include "includes/doctor_card.html" %}{% endfor %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

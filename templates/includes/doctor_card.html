@@ -3,7 +3,7 @@
   <div class="avatar">{% if doctor.photo %}<img src="{{ doctor.photo.url }}" alt="{{ doctor.full_name }}">{% else %}🩺{% endif %}</div>
   <div>
     <h3><a href="{{ doctor.get_absolute_url }}">{{ doctor.full_name }}</a></h3>
-    <p class="muted">{{ doctor.specialty|default:"پزشک عمومی" }} · {{ doctor.floor.label|fa_digits }}</p>
+    <p class="muted">{{ doctor.specialty|default:"پزشک عمومی" }} · {{ doctor.department.title }}</p>
     {% if doctor.accepts_online_booking %}
       <a class="btn btn-small" href="{% url 'appointments:book' doctor.slug %}">نوبت بگیرید</a>
     {% endif %}
