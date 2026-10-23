@@ -74,6 +74,7 @@ class Patient(models.Model):
         permissions = [
             ("view_clinical_record", "مشاهده پرونده بالینی بیمارانی که با آن‌ها رابطه درمانی دارد"),
             ("view_all_records", "مشاهده پرونده بالینی همه بیماران بدون ذکر دلیل (مسئول فنی)"),
+            ("view_management_report", "مشاهده گزارش آماری درمانگاه (بدون اطلاعات بیمار)"),
         ]
 
     def __str__(self):

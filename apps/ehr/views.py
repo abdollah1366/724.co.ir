@@ -391,7 +391,7 @@ def service_search(request):
     ]})
 
 
-@staff_perm("ehr.view_all_records")
+@staff_member_required
 def management_report(request):
     import datetime
 
@@ -400,6 +400,8 @@ def management_report(request):
     from . import reports
     from .forms import parse_jalali
 
+    if not request.user.has_perm("ehr.view_all_records") and not request.user.has_perm("ehr.view_management_report"):
+        raise PermissionDenied
     today = timezone.localdate()
     try:
         start = parse_jalali(request.GET.get("from")) or today - datetime.timedelta(days=29)

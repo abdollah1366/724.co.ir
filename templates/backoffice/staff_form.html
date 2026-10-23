@@ -1,0 +1,13 @@
+{% extends "backoffice/base.html" %}
+{% block bo_title %}{% if staff_user %}ویرایش {{ staff_user.username }}{% else %}کارمند جدید{% endif %}{% endblock %}
+{% block bo_content %}
+<h1>{% if staff_user %}ویرایش حساب {{ staff_user.get_full_name|default:staff_user.username }}{% else %}کارمند جدید{% endif %}</h1>
+<form class="card" method="post" autocomplete="off">{% csrf_token %}
+  {% include "includes/form.html" %}
+  {% if kept %}<p class="muted">نقش‌هایی که فقط مدیر ارشد سامانه تغییر می‌دهد و دست‌نخورده می‌مانند: {{ kept|join:"، " }}</p>{% endif %}
+  <details><summary>شرح نقش‌ها</summary>
+    {% for name, text in descriptions.items %}<div class="ehr-row"><strong>{{ name }}:</strong> {{ text }}</div>{% endfor %}
+  </details>
+  <button class="btn">ذخیره</button> <a class="btn btn-outline" href="{% url 'backoffice:staff' %}">بازگشت</a>
+</form>
+{% endblock %}

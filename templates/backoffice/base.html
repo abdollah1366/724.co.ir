@@ -13,6 +13,8 @@
       <a href="{% url 'backoffice:trial_balance' %}">تراز آزمایشی</a>
       <a href="{% url 'backoffice:parties' %}">بدهی و طلب</a>
     {% endif %}
+    {% if perms.auth.view_user %}<a href="{% url 'backoffice:staff' %}">کارکنان و نقش‌ها</a>{% endif %}
+    {% if perms.ehr.view_management_report or perms.ehr.view_all_records %}<a href="{% url 'ehr:report' %}">گزارش درمانگاه</a>{% endif %}
     <a href="{% url 'admin:index' %}">پنل مدیریت</a>
   </nav>
   {% block bo_content %}{% endblock %}
