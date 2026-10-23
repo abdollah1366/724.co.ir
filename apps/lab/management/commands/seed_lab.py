@@ -12,7 +12,9 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from apps.lab import catalog_data as data
-from apps.lab.models import LabPanel, LabSection, LabTest, PrepInstruction, ReferenceRange, ScreeningRule, SpecimenType
+from apps.lab.models import (
+    LabPanel, LabSection, LabTest, PrepInstruction, QueueCounter, QueueService, ReferenceRange, ScreeningRule, SpecimenType,
+)
 
 
 def _dec(value):
@@ -69,6 +71,13 @@ class Command(BaseCommand):
             })
             if is_new:
                 rule.tests.set([tests[c] for c in codes])
+        if not QueueService.objects.exists():
+            services = {
+                code: QueueService.objects.create(code=code, name=name, description=desc, order=i)
+                for i, (code, name, desc) in enumerate(data.QUEUE_SERVICES)
+            }
+            for i, (name, codes) in enumerate(data.QUEUE_COUNTERS):
+                QueueCounter.objects.create(name=name, order=i).services.set([services[c] for c in codes])
         self.stdout.write(self.style.SUCCESS(f"کاتالوگ آزمایشگاه آماده است ({created} آزمایش جدید)."))
         if not demo:
             self.stdout.write(

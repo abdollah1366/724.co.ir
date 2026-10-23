@@ -1,0 +1,90 @@
+{% extends "lab/queue/screen_base.html" %}
+{% block title %}نمایشگر نوبت{% endblock %}
+{% block body_class %}queue-display{% endblock %}
+{% block screen %}
+<div id="start" class="display-start">
+  <button class="btn" type="button" id="start-btn">شروع نمایش (تمام‌صفحه و صدا)</button>
+  <p>برای پخش صدای فراخوان، مرورگر یک بار کلیک لازم دارد.</p>
+</div>
+<header class="display-head">
+  <div>{{ LAB_INFO.name|default:"آزمایشگاه" }}</div>
+  <div id="clock" class="display-clock"></div>
+</header>
+<main class="display-main">
+  <section class="display-now" aria-live="assertive">
+    <div class="display-label">شماره</div><div class="display-label">باجه</div>
+    <div id="now-ticket" class="display-ticket">—</div><div id="now-counter" class="display-counter"></div>
+  </section>
+  <section class="display-side">
+    <h2>فراخوان‌های اخیر</h2>
+    <ul id="history" class="display-history"></ul>
+    <h2>در انتظار</h2>
+    <ul id="waiting" class="display-waiting"></ul>
+  </section>
+</main>
+<footer class="display-foot">لطفاً با دیدن شماره خود به باجه اعلام‌شده مراجعه کنید. نام بیماران هرگز روی این صفحه نمایش داده نمی‌شود.</footer>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var url = "{% url 'lab:queue_display_data' %}" + "{% if codes %}?s={{ codes|urlencode }}{% endif %}";
+  var fa = "۰۱۲۳۴۵۶۷۸۹";
+  function faDigits(s) { return String(s).replace(/[0-9]/g, function (d) { return fa[d]; }); }
+  var seen = null, audio = null, voice = null;
+
+  function chime() {
+    if (!audio) return;
+    [880, 660].forEach(function (f, i) {
+      var o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + i * 0.35;
+      o.frequency.value = f; o.connect(g); g.connect(audio.destination);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.4, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+      o.start(t); o.stop(t + 0.32);
+    });
+  }
+  function speak(call) {
+    if (!voice || !window.speechSynthesis) return;
+    var u = new SpeechSynthesisUtterance("شماره " + call.ticket.split("").join(" ") + "، " + call.counter);
+    u.voice = voice; u.lang = voice.lang; u.rate = 0.9;
+    setTimeout(function () { speechSynthesis.speak(u); }, 800);
+  }
+  function pickVoice() {
+    if (!window.speechSynthesis) return;
+    voice = speechSynthesis.getVoices().filter(function (v) { return /^fa/i.test(v.lang); })[0] || null;
+  }
+  function render(data) {
+    document.getElementById("clock").textContent = faDigits(data.time);
+    var calls = data.calls, now = calls.filter(function (c) { return c.active; })[0] || calls[0];
+    document.getElementById("now-ticket").textContent = now ? faDigits(now.ticket) : "—";
+    document.getElementById("now-counter").textContent = now ? now.counter : "";
+    var h = document.getElementById("history"); h.innerHTML = "";
+    calls.slice(now ? 1 : 0).forEach(function (c) {
+      var li = document.createElement("li"); li.textContent = faDigits(c.ticket) + " ← " + c.counter; h.appendChild(li);
+    });
+    var w = document.getElementById("waiting"); w.innerHTML = "";
+    data.waiting.forEach(function (s) {
+      var li = document.createElement("li"); li.textContent = s.name + ": " + faDigits(s.count) + " نفر"; w.appendChild(li);
+    });
+    var keys = calls.map(function (c) { return c.key; });
+    if (seen !== null) {
+      var fresh = calls.filter(function (c) { return seen.indexOf(c.key) === -1; });
+      if (fresh.length) {
+        var el = document.querySelector(".display-now"); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+        chime(); fresh.slice(0, 2).reverse().forEach(speak);
+      }
+    }
+    seen = keys;
+  }
+  function poll() {
+    fetch(url, { cache: "no-store" }).then(function (r) { return r.json(); }).then(render).catch(function () {})
+      .then(function () { setTimeout(poll, 3000); });
+  }
+  document.getElementById("start-btn").addEventListener("click", function () {
+    try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    pickVoice(); if (window.speechSynthesis) speechSynthesis.onvoiceschanged = pickVoice;
+    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {});
+    document.getElementById("start").hidden = true;
+  });
+  poll();
+})();
+</script>
+{% endblock %}

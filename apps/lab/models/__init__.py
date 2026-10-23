@@ -9,3 +9,4 @@ from .lis import (  # noqa: F401
     CriticalNotification, Instrument, LabResult, QCMaterial, QCResult, ResultRevision, Specimen,
 )
 from .portal import AccessCode  # noqa: F401
+from .queue import QueueCounter, QueueService, QueueTicket  # noqa: F401

@@ -7,6 +7,7 @@
     {% if perms.lab.add_laborder %}<a href="{% url 'lab:staff_reception' %}">پذیرش جدید</a>{% endif %}
     {% if perms.lab.view_laborder %}<a href="{% url 'lab:staff_orders' %}">پذیرش‌ها</a>{% endif %}
     {% if perms.lab.view_samplingappointment %}<a href="{% url 'lab:staff_appointments' %}">نوبت‌های امروز</a>{% endif %}
+    {% if perms.lab.change_queueticket %}<a href="{% url 'lab:queue_console' %}">فراخوان نوبت</a>{% endif %}
     {% block lab_nav_extra %}{% include "lab/staff/nav_extra.html" %}{% endblock %}
     <a href="{% url 'admin:app_list' 'lab' %}">تنظیمات آزمایشگاه</a>
   </nav>

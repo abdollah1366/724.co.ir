@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import api, booking, dashboard, finance, lis, portal, public, staff
+from .views import api, booking, dashboard, finance, lis, portal, public, queue, staff
 
 app_name = "lab"
 
@@ -24,6 +24,13 @@ urlpatterns = [
     path("my/link/", portal.link_patient, name="link_patient"),
     path("my/trend/<str:code>/", portal.my_trend, name="my_trend"),
     path("verify/", portal.verify_report, name="verify_report"),
+    # صف و نمایشگر
+    path("queue/display/", queue.display, name="queue_display"),
+    path("queue/display/data/", queue.display_data, name="queue_display_data"),
+    path("queue/kiosk/", queue.kiosk, name="kiosk"),
+    path("queue/kiosk/<int:pk>/", queue.kiosk_ticket, name="kiosk_ticket"),
+    path("staff/queue/", queue.console, name="queue_console"),
+    path("staff/queue/action/", queue.console_action, name="queue_action"),
     # API دستگاه
     path("api/instrument/results/", api.instrument_results, name="api_instrument_results"),
     # پیشخوان

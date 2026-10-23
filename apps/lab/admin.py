@@ -4,7 +4,7 @@ from apps.audit.admin_utils import ReadOnlyAdmin
 
 from .models import (
     ClaimSettlement, CriticalNotification, InsuranceClaim, InsurancePlan, Instrument, LabOrder, LabPanel, LabPatient,
-    LabPayment, LabResult, LabSection, LabTest, PlanTestRule, PrepInstruction, QCMaterial, QCResult, ReferenceRange,
+    LabPayment, LabResult, QueueCounter, QueueService, QueueTicket, LabSection, LabTest, PlanTestRule, PrepInstruction, QCMaterial, QCResult, ReferenceRange,
     ResultRevision, SamplingAppointment, SamplingSchedule, ScreeningRule, Specimen, SpecimenType,
 )
 
@@ -170,3 +170,23 @@ class InstrumentAdmin(admin.ModelAdmin):
                 request, f"کلید {instrument}: {key} — فقط همین یک بار نمایش داده می‌شود؛ آن را در نرم‌افزار واسط ذخیره کنید.",
                 messages.WARNING,
             )
+
+
+# --- صف ---
+@admin.register(QueueService)
+class QueueServiceAdmin(admin.ModelAdmin):
+    list_display = ("code", "name", "order", "is_active")
+    list_editable = ("order", "is_active")
+
+
+@admin.register(QueueCounter)
+class QueueCounterAdmin(admin.ModelAdmin):
+    list_display = ("name", "order", "is_active")
+    list_editable = ("order", "is_active")
+    filter_horizontal = ("services",)
+
+
+@admin.register(QueueTicket)
+class QueueTicketAdmin(ReadOnlyAdmin):
+    list_display = ("label", "date", "service", "priority", "status", "counter", "issued_at", "called_at", "finished_at")
+    list_filter = ("date", "service", "status", "priority")
