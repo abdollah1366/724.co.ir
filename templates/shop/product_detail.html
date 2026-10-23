@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}{{ product.name }} | {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}{{ product.short_description|default:product.name }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <nav class="breadcrumb">
+    {% if product.kind == "drug" %}<a href="{% url 'shop:pharmacy' %}">داروخانه</a>{% elif product.kind == "equipment" %}<a href="{% url 'shop:equipment' %}">تجهیزات پزشکی</a>{% else %}<a href="{% url 'shop:cosmetics' %}">آرایشی و بهداشتی</a>{% endif %}
+    {% if product.category %} / {{ product.category.name }}{% endif %}
+  </nav>
+  <div class="product-header">
+    <div class="product-image">{% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}">{% else %}<span>{% if product.kind == "equipment" %}🩺{% elif product.kind == "cosmetic" %}🧴{% else %}💊{% endif %}</span>{% endif %}</div>
+    <div class="product-info">
+      <h1>{{ product.name }}</h1>
+      {% if product.generic_name %}<p class="muted"><span dir="ltr">{{ product.generic_name }}</span>{% if product.strength %} · {{ product.strength }}{% endif %}</p>{% endif %}
+      {% if product.short_description %}<p class="lead">{{ product.short_description }}</p>{% endif %}
+      <table class="table">
+        {% if product.brand %}<tr><th>برند / سازنده</th><td>{{ product.brand }}</td></tr>{% endif %}
+        {% if product.dosage_form %}<tr><th>شکل دارویی</th><td>{{ product.dosage_form }}{% if product.strength %} {{ product.strength }}{% endif %}</td></tr>{% endif %}
+        <tr><th>قیمت</th><td class="price">{% if product.price %}{{ product.price|toman }}{% else %}تماس بگیرید{% endif %}</td></tr>
+        <tr><th>موجودی</th><td>{% if product.in_stock %}<span class="badge">موجود</span>{% else %}<span class="badge status-cancelled">ناموجود</span>{% endif %}</td></tr>
+        {% if product.warranty %}<tr><th>گارانتی</th><td>{{ product.warranty }}</td></tr>{% endif %}
+      </table>
+
+      {% if product.requires_prescription %}
+        <div class="alert alert-warn">این دارو <strong>نیازمند نسخه پزشک</strong> است و به‌صورت آنلاین فروخته نمی‌شود. برای تهیه آن، نسخه کاغذی یا کد نسخه الکترونیک خود را در داروخانه ارائه دهید.</div>
+      {% elif product.can_order_online %}
+        <form method="post" action="{% url 'shop:cart_add' product.pk %}" class="add-to-cart">
+          {% csrf_token %}
+          <label for="qty">تعداد</label>
+          <input id="qty" type="number" name="quantity" value="1" min="1" max="10">
+          <button class="btn" type="submit">افزودن به سبد خرید</button>
+        </form>
+      {% elif not product.in_stock %}
+        <div class="alert alert-info">این محصول در حال حاضر موجود نیست. برای اطلاع از زمان موجود شدن با داروخانه تماس بگیرید.</div>
+      {% endif %}
+      {% if product.kind != "equipment" %}<p><a href="{% url 'shop:consult' %}?product={{ product.slug|urlencode }}">❓ سؤال درباره این {% if product.kind == "drug" %}دارو{% else %}محصول{% endif %} از داروساز</a></p>{% endif %}
+    </div>
+  </div>
+
+  {% if product.description %}<h2>توضیحات</h2><div class="prose">{{ product.description|linebreaks }}</div>{% endif %}
+
+  {% if product.kind == "drug" %}
+    <div class="drug-info">
+      {% if product.indications %}<section><h2>موارد مصرف</h2>{{ product.indications|linebreaks }}</section>{% endif %}
+      {% if product.mechanism %}<section><h2>مکانیسم اثر</h2>{{ product.mechanism|linebreaks }}</section>{% endif %}
+      {% if product.dosage_note %}<section><h2>نحوه مصرف</h2>{{ product.dosage_note|linebreaks }}</section>{% endif %}
+      {% if product.warnings %}<section class="warn"><h2>⚠️ هشدارها</h2>{{ product.warnings|linebreaks }}</section>{% endif %}
+      {% if product.interactions %}<section><h2>تداخلات دارویی</h2>{{ product.interactions|linebreaks }}</section>{% endif %}
+      {% if product.side_effects %}<section><h2>عوارض جانبی</h2>{{ product.side_effects|linebreaks }}</section>{% endif %}
+      {% if product.contraindications %}<section><h2>موارد منع مصرف</h2>{{ product.contraindications|linebreaks }}</section>{% endif %}
+      {% if product.pregnancy_note %}<section><h2>بارداری و شیردهی</h2>{{ product.pregnancy_note|linebreaks }}</section>{% endif %}
+    </div>
+    <p class="muted small">این اطلاعات فقط برای آگاهی عمومی است و جایگزین تجویز و مشاوره پزشک یا داروساز نیست.</p>
+  {% endif %}
+
+  {% if product.specifications %}<h2>مشخصات فنی</h2><div class="prose">{{ product.specifications|linebreaks }}</div>{% endif %}
+
+  {% if related %}
+    <h2>محصولات مشابه</h2>
+    <div class="grid products">{% for product in related %}{% include "includes/product_card.html" %}{% endfor %}</div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} | {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}{{ subtitle }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <h1>{{ title }}</h1>
+  <p class="lead">{{ subtitle }}</p>
+  <nav class="chips" aria-label="بخش‌ها">
+    <a class="chip{% if kind == 'drug' %} active{% endif %}" href="{% url 'shop:pharmacy' %}">دارو</a>
+    <a class="chip{% if kind == 'equipment' %} active{% endif %}" href="{% url 'shop:equipment' %}">تجهیزات پزشکی</a>
+    <a class="chip{% if kind == 'cosmetic' %} active{% endif %}" href="{% url 'shop:cosmetics' %}">آرایشی و بهداشتی</a>
+  </nav>
+  <form class="filters card" method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="{% if kind == 'drug' %}نام دارو، نام ژنریک یا مورد مصرف...{% else %}نام محصول یا برند...{% endif %}" aria-label="جست‌وجو">
+    {% if categories %}
+      <select name="category" aria-label="دسته‌بندی">
+        <option value="">همه دسته‌ها</option>
+        {% for c in categories %}<option value="{{ c.slug }}" {% if current_category == c.slug %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+      </select>
+    {% endif %}
+    <label class="check"><input type="checkbox" name="in_stock" value="1" {% if request.GET.in_stock %}checked{% endif %}> فقط موجود</label>
+    <button class="btn" type="submit">جست‌وجو</button>
+  </form>
+  {% if kind == "drug" %}
+    <div class="alert alert-info">داروهای نسخه‌ای فقط با نسخه پزشک و به‌صورت حضوری یا از طریق نسخه الکترونیک تحویل داده می‌شوند. سؤالی دارید؟ <a href="{% url 'shop:consult' %}">مشاوره رایگان با داروساز</a></div>
+  {% endif %}
+  <div class="grid products">
+    {% for product in products %}{% include "includes/product_card.html" %}{% empty %}<p class="muted">محصولی یافت نشد.</p>{% endfor %}
+  </div>
+</section>
+{% endblock %}

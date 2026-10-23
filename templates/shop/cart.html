@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}سبد خرید | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>سبد خرید</h1>
+  {% if lines %}
+    <div class="card">
+      <table class="table cart-table">
+        <thead><tr><th>محصول</th><th>تعداد</th><th>مبلغ</th></tr></thead>
+        <tbody>
+          {% for line in lines %}
+            <tr>
+              <td><a href="{{ line.product.get_absolute_url }}">{{ line.product.name }}</a><br><small class="muted">{{ line.product.price|toman }}</small></td>
+              <td>
+                <form method="post" action="{% url 'shop:cart_update' line.product.pk %}" class="qty-form">
+                  {% csrf_token %}
+                  <input type="number" name="quantity" value="{{ line.quantity }}" min="0" max="10" aria-label="تعداد">
+                  <button type="submit" class="link-button">به‌روزرسانی</button>
+                </form>
+              </td>
+              <td>{{ line.total|toman }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot><tr><th colspan="2">جمع کل</th><td class="price">{{ total|toman }}</td></tr></tfoot>
+      </table>
+      <p class="muted small">برای حذف یک قلم، تعداد را صفر کنید. پرداخت هنگام تحویل انجام می‌شود.</p>
+      <a class="btn" href="{% url 'shop:checkout' %}">ادامه و ثبت سفارش</a>
+    </div>
+  {% else %}
+    <p class="muted">سبد خرید شما خالی است.</p>
+    <p><a class="btn" href="{% url 'shop:pharmacy' %}">رفتن به داروخانه</a></p>
+  {% endif %}
+</section>
+{% endblock %}
