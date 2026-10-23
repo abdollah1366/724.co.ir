@@ -1,0 +1,22 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}سود و زیان{% endblock %}
+{% block bo_content %}
+<h1>صورت سود و زیان</h1>
+<form method="get" class="filters">
+  <label>از <input type="date" name="start" value="{{ start|date:'Y-m-d' }}"></label>
+  <label>تا <input type="date" name="end" value="{{ end|date:'Y-m-d' }}"></label>
+  <button class="btn btn-small">نمایش</button>
+</form>
+<p class="muted">{{ start|jalali }} تا {{ end|jalali }} (ریال)</p>
+<div class="table-wrap"><table class="table data">
+<tr><th colspan="2">درآمدها</th></tr>
+{% for r in report.revenue %}<tr><td>{{ r.account__code }} {{ r.account__name }}</td><td class="num">{{ r.amount|rial }}</td></tr>{% endfor %}
+<tr><td><strong>فروش خالص و سایر درآمدها</strong></td><td class="num"><strong>{{ report.total_revenue|rial }}</strong></td></tr>
+<tr><td>بهای تمام‌شده کالای فروش‌رفته</td><td class="num">{{ report.cogs|rial }}</td></tr>
+<tr><td><strong>سود ناخالص</strong></td><td class="num"><strong>{{ report.gross_profit|rial }}</strong></td></tr>
+<tr><th colspan="2">هزینه‌ها</th></tr>
+{% for r in report.expenses %}<tr><td>{{ r.account__code }} {{ r.account__name }}</td><td class="num">{{ r.amount|rial }}</td></tr>{% endfor %}
+<tr><td><strong>سود (زیان) خالص</strong></td><td class="num"><strong>{{ report.net_profit|rial }}</strong></td></tr>
+</table></div>
+{% endblock %}

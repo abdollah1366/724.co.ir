@@ -1,0 +1,27 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}فاکتور {{ invoice.number }}{% endblock %}
+{% block bo_content %}
+<div class="card">
+  <h1>فاکتور فروش {{ invoice.number|default:"پیش‌نویس" }}</h1>
+  <p>{{ invoice.get_channel_display }} — {{ invoice.date|jalali }} — وضعیت: {{ invoice.get_status_display }}</p>
+  {% if invoice.customer %}<p>مشتری: {{ invoice.customer }}</p>{% endif %}
+  {% if invoice.prescription_number %}<p>نسخه: <span dir="ltr">{{ invoice.prescription_number }}</span> — پزشک: {{ invoice.prescriber_name }} (نظام پزشکی {{ invoice.prescriber_council_no }}) — تأیید داروساز: {{ invoice.pharmacist_approved_by|default:"—" }}</p>{% endif %}
+  <div class="table-wrap"><table class="table data">
+    <tr><th>کالا</th><th>بچ / انقضا</th><th class="num">تعداد</th><th class="num">قیمت واحد</th><th class="num">تخفیف</th><th class="num">مالیات</th><th class="num">جمع</th></tr>
+    {% for line in lines %}
+    <tr><td>{{ line.product.name }}</td><td dir="ltr">{% for a in line.allocations.all %}{{ a.batch.number }}{% if a.batch.expiry_date %} ({{ a.batch.expiry_date|date:"Y/m" }}){% endif %}×{{ a.quantity }} {% endfor %}</td>
+    <td class="num">{{ line.quantity|fa_digits }}</td><td class="num">{{ line.unit_price|rial }}</td><td class="num">{{ line.line_discount|rial }}</td><td class="num">{{ line.tax|rial }}</td><td class="num">{{ line.line_total|rial }}</td></tr>
+    {% endfor %}
+    <tfoot>
+      <tr><td colspan="6">تخفیف فاکتور</td><td class="num">{{ invoice.discount|rial }}</td></tr>
+      <tr><td colspan="6">جمع کل</td><td class="num">{{ invoice.total|rial }}</td></tr>
+      {% if invoice.insurance_amount %}<tr><td colspan="6">سهم بیمه ({{ invoice.insurer }})</td><td class="num">{{ invoice.insurance_amount|rial }}</td></tr>{% endif %}
+      {% for p in invoice.payments.all %}<tr><td colspan="6">{{ p.get_method_display }}</td><td class="num">{{ p.amount|rial }}</td></tr>{% endfor %}
+    </tfoot>
+  </table></div>
+  <p class="muted small">مبالغ به ریال. ثبت‌کننده: {{ invoice.posted_by|default:"—" }}</p>
+  <button class="btn no-print" onclick="window.print()">چاپ</button>
+  {% if perms.sales.use_pos %}<a class="btn btn-outline no-print" href="{% url 'backoffice:pos' %}">بازگشت به صندوق</a>{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}صورت‌حساب {{ party }}{% endblock %}
+{% block bo_content %}
+<h1>صورت‌حساب: {{ party }}</h1>
+<div class="table-wrap"><table class="table data">
+<tr><th>تاریخ</th><th>سند</th><th>شرح</th><th>حساب</th><th class="num">بدهکار</th><th class="num">بستانکار</th><th class="num">مانده</th></tr>
+{% for r in rows %}<tr><td>{{ r.line.entry.date|jalali:"%Y/%m/%d" }}</td><td dir="ltr">{{ r.line.entry.source_number }}</td><td>{{ r.line.description }}</td><td>{{ r.line.account.name }}</td><td class="num">{{ r.line.debit|rial }}</td><td class="num">{{ r.line.credit|rial }}</td><td class="num">{{ r.running|rial }}</td></tr>
+{% empty %}<tr><td colspan="7" class="muted">گردشی نیست.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

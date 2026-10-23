@@ -1,0 +1,8 @@
+{% load persian %}
+<div class="table-wrap"><table class="table data">
+<tr><th>کالا</th><th>انبار / محل</th><th>بچ</th><th>انقضا</th><th>وضعیت</th><th class="num">مانده</th></tr>
+{% for b in rows %}
+<tr><td><a href="{% url 'backoffice:kardex' b.product_id %}">{{ b.product.name }}</a></td><td>{{ b.warehouse }} / {{ b.location.name }}</td><td dir="ltr">{{ b.batch.number }}</td>
+<td>{% if b.batch.expiry_date %}{{ b.batch.expiry_date|jalali:"%Y/%m/%d" }}{% else %}—{% endif %}</td><td>{{ b.batch.get_status_display }}</td><td class="num">{{ b.quantity|fa_digits }}</td></tr>
+{% empty %}<tr><td colspan="6" class="muted">موردی نیست.</td></tr>{% endfor %}
+</table></div>

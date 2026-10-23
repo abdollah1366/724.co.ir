@@ -15,6 +15,7 @@ urlpatterns = [
     path("appointments/", include("apps.appointments.urls")),
     path("accounts/", include("apps.accounts.urls")),
     path("club/", accounts_views.club, name="club"),
+    path("backoffice/", include("apps.backoffice.urls")),
     path("", include("apps.shop.urls")),
     path("", include("apps.clinic.urls")),
     path("", include("apps.core.urls")),

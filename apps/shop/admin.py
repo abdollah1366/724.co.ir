@@ -1,7 +1,43 @@
+from django import forms
 from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Category, Order, OrderItem, PharmacyQuestion, Product
+from .models import Category, Order, OrderItem, PharmacyQuestion, PriceHistory, Product, ProductPackage, Unit
+
+
+@admin.register(Unit)
+class UnitAdmin(admin.ModelAdmin):
+    search_fields = ("name",)
+
+
+class ProductPackageInline(admin.TabularInline):
+    model = ProductPackage
+    extra = 0
+
+
+class PriceHistoryInline(admin.TabularInline):
+    model = PriceHistory
+    extra = 0
+    can_delete = False
+    readonly_fields = ("price", "previous_price", "changed_by", "changed_at")
+    max_num = 0
+    verbose_name_plural = "تاریخچه قیمت فروش"
+
+
+@admin.register(PriceHistory)
+class PriceHistoryAdmin(admin.ModelAdmin):
+    list_display = ("product", "previous_price", "price", "changed_by", "changed_at")
+    search_fields = ("product__name",)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Category)
@@ -13,14 +49,27 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ("name", "kind", "category", "price", "stock", "requires_prescription", "is_active")
-    list_filter = ("kind", "category", "requires_prescription", "is_active")
-    list_editable = ("price", "stock", "is_active")
-    search_fields = ("name", "generic_name", "brand")
+    list_display = ("name", "sku", "kind", "category", "price", "stock", "avg_cost", "requires_prescription", "is_active")
+    list_filter = ("kind", "category", "requires_prescription", "is_controlled", "storage_condition", "is_sellable", "is_active")
+    # موجودی فقط با اسناد انبار، خرید و فروش تغییر می‌کند و اینجا قابل ویرایش نیست.
+    list_editable = ("price", "is_active")
+    search_fields = ("name", "generic_name", "brand", "sku", "irc", "packages__barcode")
     prepopulated_fields = {"slug": ("name",)}
+    readonly_fields = ("stock", "avg_cost")
+    inlines = [ProductPackageInline, PriceHistoryInline]
     fieldsets = (
         (None, {"fields": ("kind", "name", "slug", "category", "brand", "image", "short_description", "description")}),
-        ("قیمت و موجودی", {"fields": ("price", "stock", "requires_prescription", "is_active")}),
+        ("قیمت و موجودی", {"fields": ("price", "tax_rate", "stock", "avg_cost", "reorder_point", "is_sellable", "is_active")}),
+        ("کدها و واحد", {"fields": ("sku", "base_unit", "irc", "imed_code", "device_class")}),
+        (
+            "ردیابی و محدودیت فروش",
+            {
+                "fields": (
+                    "storage_condition", "track_batch", "track_expiry", "track_serial", "requires_authenticity_check",
+                    "requires_prescription", "is_controlled", "max_qty_per_sale",
+                )
+            },
+        ),
         (
             "اطلاعات علمی دارو",
             {
@@ -42,8 +91,25 @@ class OrderItemInline(admin.TabularInline):
     can_delete = False
 
 
+class OrderAdminForm(forms.ModelForm):
+    class Meta:
+        model = Order
+        fields = "__all__"
+
+    def clean_status(self):
+        status = self.cleaned_data["status"]
+        old = self.instance.status if self.instance.pk else None
+        # لغو و تحویل اثر انبار و مالی دارند و فقط از اکشن‌های فهرست سفارش‌ها انجام می‌شوند.
+        if status != old and status in (Order.Status.CANCELLED, Order.Status.DELIVERED):
+            raise forms.ValidationError("برای لغو یا تحویل، از اکشن‌های فهرست سفارش‌ها استفاده کنید.")
+        if old in (Order.Status.CANCELLED, Order.Status.DELIVERED) and status != old:
+            raise forms.ValidationError("وضعیت سفارش لغوشده یا تحویل‌شده قابل تغییر نیست.")
+        return status
+
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
+    form = OrderAdminForm
     list_display = ("code", "full_name", "mobile", "delivery_method", "total", "status", "created_at")
     list_filter = ("status", "delivery_method")
     search_fields = ("code", "full_name", "mobile")
@@ -68,10 +134,14 @@ class OrderAdmin(admin.ModelAdmin):
     def mark_ready(self, request, queryset):
         self._set_status(queryset, Order.Status.READY, [Order.Status.PENDING, Order.Status.CONFIRMED])
 
-    @admin.action(description="تحویل شد")
+    @admin.action(description="تحویل شد (صدور فاکتور فروش و خروج از انبار)")
     def mark_delivered(self, request, queryset):
         allowed = [Order.Status.PENDING, Order.Status.CONFIRMED, Order.Status.READY]
-        self._set_status(queryset, Order.Status.DELIVERED, allowed)
+        for order in queryset.filter(status__in=allowed):
+            try:
+                self._set_status(Order.objects.filter(pk=order.pk), Order.Status.DELIVERED, allowed)
+            except ValidationError as exc:
+                self.message_user(request, f"سفارش {order.code}: {' '.join(exc.messages)}", messages.ERROR)
 
     @admin.action(description="لغو و برگرداندن موجودی")
     def cancel_orders(self, request, queryset):

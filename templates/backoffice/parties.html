@@ -1,0 +1,13 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}بدهی و طلب{% endblock %}
+{% block bo_content %}
+<h1>بدهی و طلب طرف‌های حساب</h1>
+<form method="get" class="filters"><select name="kind"><option value="">همه</option>{% for value, label in kinds %}<option value="{{ value }}"{% if value == kind %} selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="btn btn-small">نمایش</button></form>
+<div class="table-wrap"><table class="table data">
+<tr><th>طرف حساب</th><th class="num">طلب ما</th><th class="num">بدهی ما</th></tr>
+{% for r in rows %}<tr><td><a href="{% url 'backoffice:party_statement' r.party_id %}">{{ r.party__name }}</a></td><td class="num">{{ r.receivable|rial }}</td><td class="num">{{ r.payable|rial }}</td></tr>
+{% empty %}<tr><td colspan="3" class="muted">مانده‌ای نیست.</td></tr>{% endfor %}
+</table></div>
+<p class="muted small">مانده «کالای دریافتی فاکتورنشده» هم در این جدول دیده می‌شود تا رسیدهای بدون فاکتور پیگیری شوند.</p>
+{% endblock %}

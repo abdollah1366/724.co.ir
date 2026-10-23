@@ -145,12 +145,39 @@ class Command(BaseCommand):
         categories = {}
         for order, (slug, name, kind) in enumerate(CATEGORIES):
             categories[slug], _ = Category.objects.get_or_create(slug=slug, defaults={"name": name, "kind": kind, "order": order})
+        opening = []
         for data in DEMO_PRODUCTS:
             data = dict(data)
             slug = data.pop("slug")
             data["category"] = categories[data.pop("category")]
+            # موجودی فقط با سند انبار وارد می‌شود (سند افتتاحیه پایین).
+            stock = data.pop("stock", 0)
+            if data["kind"] == ProductKind.EQUIPMENT:
+                data.setdefault("track_expiry", False)
             product, created = Product.objects.get_or_create(slug=slug, defaults=data)
+            if created and stock:
+                opening.append((product, stock))
             self.stdout.write(f"{'+' if created else '='} {product}")
+        if opening:
+            self._opening_stock(opening)
+
+    def _opening_stock(self, rows):
+        from apps.inventory import services as inv
+        from apps.inventory.models import InventoryDocument, InventoryDocumentLine
+
+        warehouse = inv.default_warehouse()
+        doc = InventoryDocument.objects.create(
+            kind=InventoryDocument.Kind.OPENING, warehouse=warehouse, reason="موجودی نمونه برای آزمایش"
+        )
+        expiry = datetime.date.today() + datetime.timedelta(days=730)
+        for product, qty in rows:
+            InventoryDocumentLine.objects.create(
+                document=doc, product=product, batch_number=f"DEMO-{product.pk}", quantity=qty,
+                expiry_date=expiry if product.track_expiry else None, location=inv.default_location(warehouse, product),
+                unit_cost=int(product.price * 0.7),
+            )
+        doc.post(None)
+        self.stdout.write(f"+ سند موجودی افتتاحیه {doc.number}")
 
     def _demo_rewards(self):
         rewards = [

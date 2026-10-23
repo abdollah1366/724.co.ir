@@ -1,0 +1,23 @@
+{% extends "admin/change_form.html" %}
+{% block object-tools-items %}
+  {% if original %}
+    <li><span style="padding:0 8px">وضعیت: <strong>{{ original.get_status_display }}</strong>{% if original.number %} — {{ original.number }}{% endif %}</span></li>
+    {% if can_reverse_document %}<li><a href="{{ reverse_url }}">برگشت سند</a></li>{% endif %}
+  {% endif %}
+  {{ block.super }}
+{% endblock %}
+{% block submit_buttons_bottom %}
+  {{ block.super }}
+  {% if original and can_post_document %}
+    <div class="submit-row">
+      <p>پس از ذخیره همه ردیف‌ها، سند را ثبت نهایی کنید. سند نهایی قابل ویرایش یا حذف نیست.</p>
+      <button type="submit" form="post-document-form" class="default">ثبت نهایی سند</button>
+    </div>
+  {% endif %}
+{% endblock %}
+{% block content %}
+  {{ block.super }}
+  {% if original and can_post_document %}
+    <form id="post-document-form" method="post" action="{{ post_url }}">{% csrf_token %}</form>
+  {% endif %}
+{% endblock %}

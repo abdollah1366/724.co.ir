@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{% block bo_title %}پیشخوان{% endblock %} | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <nav class="bo-nav" aria-label="پیشخوان">
+    <a href="{% url 'backoffice:dashboard' %}">داشبورد</a>
+    <a href="{% url 'backoffice:alerts' %}">هشدارها</a>
+    <a href="{% url 'backoffice:stock' %}">موجودی</a>
+    {% if perms.sales.use_pos %}<a href="{% url 'backoffice:pos' %}">صندوق فروش</a>{% endif %}
+    {% if perms.accounting.view_financial_reports %}
+      <a href="{% url 'backoffice:pnl' %}">سود و زیان</a>
+      <a href="{% url 'backoffice:trial_balance' %}">تراز آزمایشی</a>
+      <a href="{% url 'backoffice:parties' %}">بدهی و طلب</a>
+    {% endif %}
+    <a href="{% url 'admin:index' %}">پنل مدیریت</a>
+  </nav>
+  {% block bo_content %}{% endblock %}
+</section>
+{% endblock %}
