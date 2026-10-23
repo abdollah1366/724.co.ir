@@ -9,4 +9,5 @@ def site_info(request):
         "SITE_ADDRESS": settings.SITE_ADDRESS,
         "SITE_URL": settings.SITE_URL,
         "LAB_INFO": settings.LAB_INFO,
+        "CLINIC_NAME": settings.CLINIC_NAME,
     }

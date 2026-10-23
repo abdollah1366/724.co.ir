@@ -19,7 +19,7 @@ from apps.core.validators import normalize_digits
 from . import clinical, pharmacy, services
 from .forms import (
     AddendumForm, AllergyForm, CounselingForm, DiagnosisForm, EmergencyAccessForm, EncounterForm, EncounterServiceForm, HistoryForm, PatientForm, ProblemForm,
-    ReferralForm, VitalsForm,
+    ReferralForm, ReminderForm, VitalsForm,
 )
 from .models import (
     Allergy, ChronicProgram, Diagnosis, Encounter, EncounterService, ICD10Code, Patient, Problem, RecordAccess, ServiceCode,
@@ -43,12 +43,17 @@ def patient_search(request):
 def my_patients(request):
     doctor = services.provider_for(request.user)
     today = timezone.localdate()
-    appointments = []
+    appointments, queue = [], None
     if doctor:
         appointments = (
-            Appointment.objects.active().filter(doctor=doctor, date=today).select_related("patient", "encounter").order_by("time")
+            Appointment.objects.active().filter(doctor=doctor, date=today).select_related("patient", "encounter", "ticket").order_by("time")
         )
-    return render(request, "ehr/my_patients.html", {"doctor": doctor, "appointments": appointments, "today": today})
+        from . import engagement
+
+        queue = {"current": engagement.current(doctor), "waiting": list(engagement.waiting(doctor)),
+                 "skipped": doctor.tickets.filter(date=today, status="skipped").order_by("-finished_at")[:5]}
+    return render(request, "ehr/my_patients.html", {"doctor": doctor, "appointments": appointments, "today": today,
+                                                    "queue": queue})
 
 
 @staff_member_required
@@ -97,6 +102,7 @@ def chart(request, pk):
         "history_form": HistoryForm(prefix="history"), "is_provider": services.provider_for(request.user) is not None,
         "current_meds": pharmacy.current_medications(patient), "counseling_form": CounselingForm(prefix="c"),
         "provider": services.provider_for(request.user),
+        "reminders": patient.reminders.select_related("doctor")[:20], "reminder_form": ReminderForm(prefix="rem"),
         "plans": patient.treatment_plans.filter(status="active").select_related("therapist"),
     })
 

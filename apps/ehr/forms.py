@@ -7,7 +7,7 @@ from django.utils import timezone
 from apps.core.validators import normalize_digits
 from apps.lab.forms import DigitsMixin
 
-from .models import Assessment, TherapySession, TreatmentPlan, Allergy, DrugCounseling, ExternalDocument, ExternalLabValue, LabRequest, EncounterService, GenericDrug, Prescription, ServiceCode, Diagnosis, Encounter, HistoryEntry, ICD10Code, Patient, Problem, Referral, VitalSigns
+from .models import Reminder, Assessment, TherapySession, TreatmentPlan, Allergy, DrugCounseling, ExternalDocument, ExternalLabValue, LabRequest, EncounterService, GenericDrug, Prescription, ServiceCode, Diagnosis, Encounter, HistoryEntry, ICD10Code, Patient, Problem, Referral, VitalSigns
 from .models.rehab import AUDIOGRAM_FREQUENCIES
 
 
@@ -45,6 +45,10 @@ class PatientForm(DigitsMixin, forms.ModelForm):
 
     digit_fields = ("national_code", "mobile", "phone", "birth_date")
     birth_date = forms.CharField(label="تاریخ تولد (شمسی، مثل ۱۳۶۵/۰۴/۲۰)", required=False)
+    reminder_consent = forms.BooleanField(
+        label="بیمار با دریافت پیامک یادآوری ویزیت و دارو موافق است", required=False,
+        help_text="متن پیامک هیچ اطلاعات پزشکی ندارد. رضایت را از خود بیمار بپرسید.",
+    )
 
     class Meta:
         model = Patient
@@ -57,11 +61,22 @@ class PatientForm(DigitsMixin, forms.ModelForm):
         super().__init__(self._normalize(data), *args, **kwargs)
         for name in ("first_name", "last_name", "sex", "mobile"):
             self.fields[name].required = True
+        self.initial["reminder_consent"] = bool(self.instance.reminder_consent_at)
         if self.instance.pk and self.instance.birth_date:
             self.initial["birth_date"] = jdatetime.date.fromgregorian(date=self.instance.birth_date).strftime("%Y/%m/%d")
 
     def clean_national_code(self):
         return normalize_digits(self.cleaned_data.get("national_code") or "") or None
+
+    def save(self, commit=True):
+        patient = super().save(commit=False)
+        if self.cleaned_data.get("reminder_consent") and not patient.reminder_consent_at:
+            patient.reminder_consent_at = timezone.now()
+        elif not self.cleaned_data.get("reminder_consent"):
+            patient.reminder_consent_at = None
+        if commit:
+            patient.save()
+        return patient
 
     def clean_foreign_id(self):
         return (self.cleaned_data.get("foreign_id") or "").strip() or None
@@ -437,3 +452,36 @@ class AssessmentForm(DigitsMixin, forms.Form):
 class ClosePlanForm(forms.Form):
     status = forms.ChoiceField(label="نتیجه", choices=[c for c in TreatmentPlan.Status.choices if c[0] != "active"])
     summary = forms.CharField(label="خلاصه پایان درمان", min_length=5, widget=forms.Textarea(attrs={"rows": 3}))
+
+
+# ---------------------------------------------------------------- یادآور و صف
+
+
+class ReminderForm(DigitsMixin, forms.Form):
+    digit_fields = ("due_date", "days_before")
+    kind = forms.ChoiceField(label="نوع", choices=Reminder.Kind.choices)
+    due_date = JalaliDateField(label="موعد مراجعه (شمسی)", required=True)
+    days_before = forms.IntegerField(label="ارسال پیامک چند روز قبل", min_value=0, max_value=30, initial=1)
+    note = forms.CharField(label="یادداشت داخلی (در پیامک نمی‌آید)", max_length=200, required=False)
+
+    def __init__(self, data=None, *args, **kwargs):
+        super().__init__(self._normalize(data), *args, **kwargs)
+
+    def clean_due_date(self):
+        date = self.cleaned_data["due_date"]
+        if date and date < timezone.localdate():
+            raise forms.ValidationError("موعد در گذشته است.")
+        return date
+
+
+class WalkInForm(DigitsMixin, forms.Form):
+    digit_fields = ("identifier",)
+    doctor = forms.ModelChoiceField(label="پزشک / درمانگر", queryset=None)
+    identifier = forms.CharField(label="کد ملی یا شماره پرونده (اختیاری)", max_length=30, required=False)
+    special = forms.BooleanField(label="اولویت‌دار (سالمند، باردار، معلول، کودک، اورژانسی)", required=False)
+
+    def __init__(self, data=None, *args, **kwargs):
+        from apps.clinic.models import Doctor
+
+        super().__init__(self._normalize(data), *args, **kwargs)
+        self.fields["doctor"].queryset = Doctor.objects.filter(is_active=True)

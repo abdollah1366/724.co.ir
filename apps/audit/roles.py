@@ -165,6 +165,7 @@ EHR_DOCTOR = {
     "ehr.labrequest": ("add", "change", VIEW), "ehr.externaldocument": ("add", "change", VIEW), "ehr.documentfile": ("add", VIEW),
     "ehr.externallabvalue": ("add", VIEW),
     "ehr.treatmentplan": (VIEW,), "ehr.therapysession": (VIEW,), "ehr.assessment": (VIEW,),
+    "ehr.reminder": ("add", "change", VIEW), "ehr.clinicticket": ("change", VIEW),
 }
 EHR_THERAPIST = {
     **EHR_CLINICAL, "ehr.encounter": (VIEW,), "ehr.vitalsigns": ("add", VIEW), "ehr.diagnosis": (VIEW,),
@@ -172,12 +173,13 @@ EHR_THERAPIST = {
     "ehr.servicecode": (VIEW,), "ehr.externaldocument": ("add", VIEW), "ehr.documentfile": ("add", VIEW),
     "ehr.externallabvalue": (VIEW,), "ehr.labrequest": (VIEW,), "ehr.prescription": (VIEW,),
     "ehr.treatmentplan": ("add", "change", VIEW), "ehr.therapysession": ("add", VIEW), "ehr.assessment": ("add", VIEW),
+    "ehr.reminder": ("add", "change", VIEW), "ehr.clinicticket": ("change", VIEW),
 }
 EHR_NURSE = {
     **EHR_CLINICAL, "ehr.encounter": (VIEW,), "ehr.vitalsigns": ("add", VIEW), "ehr.diagnosis": (VIEW,),
     "ehr.problem": (VIEW,), "ehr.allergy": ("add", VIEW), "ehr.historyentry": ("add", VIEW), "ehr.referral": (VIEW,),
     "ehr.externaldocument": ("add", VIEW), "ehr.documentfile": ("add", VIEW), "ehr.externallabvalue": ("add", VIEW),
-    "ehr.labrequest": (VIEW,),
+    "ehr.labrequest": (VIEW,), "ehr.clinicticket": ("change", VIEW),
 }
 
 ROLES.update({
@@ -188,7 +190,8 @@ ROLES.update({
     # یادداشت‌های روانشناسی به‌طور پیش‌فرض فقط برای خود درمانگر قابل خواندن است (TreatmentPlan.can_read_notes)
     "روانشناس": {"models": EHR_THERAPIST, "extra": ["ehr.view_clinical_record"]},
     "پذیرش درمانگاه": {
-        "models": {"ehr.patient": ("add", "change", VIEW), "appointments.appointment": ("add", "change", VIEW)},
+        "models": {"ehr.patient": ("add", "change", VIEW), "appointments.appointment": ("add", "change", VIEW),
+                   "ehr.clinicticket": ("add", "change", VIEW)},
         "extra": [],
     },
     "مسئول فنی درمانگاه": {
@@ -196,7 +199,7 @@ ROLES.update({
             **EHR_DOCTOR, "ehr.patient": ("add", "change", VIEW), "ehr.recordaccess": (VIEW,), "audit.auditlog": (VIEW,),
             "clinic.doctor": ("change", VIEW), "ehr.icd10code": EDIT,
             "ehr.servicecode": EDIT, "ehr.rvucoefficient": EDIT, "ehr.genericdrug": EDIT,
-            "ehr.treatmentplan": ("change", VIEW),
+            "ehr.treatmentplan": ("change", VIEW), "ehr.clinicticket": ("add", "change", VIEW),
         },
         "extra": ["ehr.view_clinical_record", "ehr.view_all_records"],
     },

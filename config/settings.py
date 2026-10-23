@@ -244,3 +244,7 @@ if LOG_DIR:
 
 # پرونده سلامت: بخش تعرفه پیش‌فرض برای محاسبه تعرفه خدمات (public / nonprofit / private)
 EHR_TARIFF_SECTOR = os.environ.get("EHR_TARIFF_SECTOR", "private")
+# نام درمانگاه در پیامک یادآوری و مانیتور صف
+CLINIC_NAME = os.environ.get("CLINIC_NAME", "درمانگاه ۷۲۴")
+EHR_REMINDER_DAYS_BEFORE = 1  # پیامک یادآوری ویزیت یک روز قبل
+EHR_REFILL_DAYS_BEFORE = 3  # یادآوری تمدید دارو سه روز پیش از تمام شدن

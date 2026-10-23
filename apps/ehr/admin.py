@@ -143,3 +143,19 @@ class TreatmentPlanAdmin(ReadOnlyClinicalAdmin):
     list_filter = ("discipline", "status")
     search_fields = ("patient__file_number", "patient__last_name")
     fields = ("patient", "discipline", "therapist", "status", "start_date", "planned_sessions", "share_with_physicians")
+
+
+from .models import ClinicTicket, Reminder  # noqa: E402
+
+
+@admin.register(Reminder)
+class ReminderAdmin(ReadOnlyClinicalAdmin):
+    list_display = ("patient", "kind", "due_date", "send_on", "status", "sent_at")
+    list_filter = ("status", "kind")
+    search_fields = ("patient__file_number", "patient__last_name")
+
+
+@admin.register(ClinicTicket)
+class ClinicTicketAdmin(ReadOnlyClinicalAdmin):
+    list_display = ("date", "label", "doctor", "status", "checked_in_at", "called_at")
+    list_filter = ("date", "status", "doctor")

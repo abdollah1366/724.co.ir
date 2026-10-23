@@ -42,6 +42,7 @@ class Appointment(models.Model):
     )
     tracking_code = models.CharField("کد پیگیری", max_length=8, unique=True, default=generate_tracking_code, editable=False)
     consent_at = models.DateTimeField("زمان رضایت به پردازش اطلاعات")
+    reminder_sent_at = models.DateTimeField("ارسال پیامک یادآوری", null=True, blank=True, editable=False)
     created_at = models.DateTimeField("زمان ثبت", auto_now_add=True)
     updated_at = models.DateTimeField("آخرین تغییر", auto_now=True)
 

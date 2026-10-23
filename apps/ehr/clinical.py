@@ -59,6 +59,9 @@ def sign(encounter, user):
             Appointment.objects.filter(pk=encounter.appointment_id).update(
                 status=Appointment.Status.DONE, updated_at=timezone.now()
             )
+        from .engagement import visit_reminder_from_encounter
+
+        visit_reminder_from_encounter(encounter, user)
     return encounter
 
 

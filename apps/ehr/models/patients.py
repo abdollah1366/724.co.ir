@@ -50,6 +50,10 @@ class Patient(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="ehr_patient",
         verbose_name="حساب کاربری", help_text="فقط پس از تأیید کد پیامکی به موبایل ثبت‌شده متصل می‌شود.",
     )
+    reminder_consent_at = models.DateTimeField(
+        "رضایت به پیامک یادآوری", null=True, blank=True,
+        help_text="فقط با رضایت بیمار پیامک یادآوری ویزیت و دارو ارسال می‌شود؛ متن پیامک هیچ اطلاعات پزشکی ندارد.",
+    )
     is_verified = models.BooleanField(
         "هویت در پذیرش تأیید شده", default=False,
         help_text="پرونده‌ای که از نوبت اینترنتی یا فروش ساخته شده تا تطبیق با کارت ملی در پذیرش «تأییدنشده» است.",

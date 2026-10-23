@@ -7,7 +7,8 @@
   <p>{{ prescription.prescriber.full_name }} · {{ prescription.get_status_display }}{% if prescription.status == "issued" %} · {{ prescription.dispense_status }} · اعتبار تا {{ prescription.valid_until|jalali:"%Y/%m/%d" }}{% endif %}
     {% if prescription.encounter %} · <a href="{% url 'ehr:encounter' prescription.encounter_id %}">ویزیت مرتبط</a>{% endif %}</p>
   {% if allergies %}<p><strong>حساسیت:</strong> {% for a in allergies %}<span class="badge {% if a.severity == 'severe' %}status-cancelled{% else %}badge-warn{% endif %}">{{ a.substance }}</span> {% endfor %}</p>{% endif %}
-  {% if prescription.status == "issued" %}<a class="btn btn-small btn-outline no-print" href="{% url 'ehr:prescription_print' prescription.pk %}" target="_blank">چاپ نسخه</a>{% endif %}
+  {% if prescription.status == "issued" %}<a class="btn btn-small btn-outline no-print" href="{% url 'ehr:prescription_print' prescription.pk %}" target="_blank">چاپ نسخه</a>
+    {% if perms.ehr.add_reminder %}<form method="post" action="{% url 'ehr:refill_reminder' prescription.pk %}" class="inline no-print">{% csrf_token %}<button class="btn btn-small btn-outline">یادآور تمدید دارو</button></form>{% endif %}{% endif %}
 </div>
 
 <div class="table-wrap"><table class="table data">

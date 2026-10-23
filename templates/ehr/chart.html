@@ -103,6 +103,18 @@
       <form method="post" action="{% url 'ehr:chart_add' patient.pk 'history' %}">{% csrf_token %}{% include "includes/form.html" with form=history_form %}<button class="btn btn-small">ثبت</button></form>
     </details>{% endif %}
   </div>
+
+  <div class="card" id="reminders">
+    <h2>یادآورها</h2>
+    <p class="muted">{% if patient.reminder_consent_at %}رضایت پیامکی از {{ patient.reminder_consent_at|jalali:"%Y/%m/%d" }}{% else %}بیمار رضایت پیامکی نداده؛ یادآورها فقط در پرونده ثبت می‌شوند.{% endif %}</p>
+    {% for r in reminders %}
+      <div class="ehr-row">{{ r.get_kind_display }} · {{ r.due_date|jalali:"%Y/%m/%d" }} · <span class="muted">{{ r.get_status_display }}</span>{% if r.note %} · {{ r.note }}{% endif %}
+        {% if r.status == 'pending' and perms.ehr.change_reminder %}<form method="post" action="{% url 'ehr:reminder_cancel' r.pk %}" class="inline">{% csrf_token %}<button class="link">لغو</button></form>{% endif %}</div>
+    {% empty %}<p class="muted">یادآوری ثبت نشده.</p>{% endfor %}
+    {% if perms.ehr.add_reminder %}<details><summary>یادآور جدید (ویزیت، تمدید دارو، آزمایش)</summary>
+      <form method="post" action="{% url 'ehr:reminder_add' patient.pk %}">{% csrf_token %}{% include "includes/form.html" with form=reminder_form %}<button class="btn btn-small">ثبت</button></form>
+    </details>{% endif %}
+  </div>
 </section>
 
 <h2>خط زمانی</h2>

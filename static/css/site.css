@@ -290,3 +290,7 @@ svg.spark polyline { fill: none; stroke: var(--primary); stroke-width: 2.5; }
 .audiogram { font-size: .85rem; margin-top: 6px; }
 .audiogram th, .audiogram td { padding: 2px 4px; text-align: center; }
 .audiogram-input { width: 4.2em; }
+.display-now.clinic .display-counter { font-size: clamp(1.8rem, 4vw, 3.6rem); }
+.display-room { color: #fbbf24; margin-top: 8px; }
+.queue-console .queue-now { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.queue-number { font-size: 2rem; color: var(--primary-dark); direction: ltr; unicode-bidi: isolate; }

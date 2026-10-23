@@ -136,6 +136,10 @@ class Doctor(models.Model):
     bio = models.TextField("رزومه و معرفی", blank=True)
     visit_fee = models.PositiveBigIntegerField("هزینه ویزیت (ریال)", null=True, blank=True)
     accepts_online_booking = models.BooleanField("نوبت‌دهی اینترنتی", default=True)
+    room = models.CharField("اتاق / مطب", max_length=40, blank=True, help_text="روی مانیتور صف خوانده می‌شود؛ مثل «اتاق ۳»")
+    queue_code = models.CharField(
+        "حرف صف", max_length=2, blank=True, help_text="پیشوند شماره نوبت حضوری این پزشک روی مانیتور؛ مثل M (خالی = فقط عدد)"
+    )
     is_active = models.BooleanField("فعال", default=True)
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="doctor",

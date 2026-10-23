@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_docs, views_rehab, views_rx
+from . import views, views_docs, views_queue, views_rehab, views_rx
 
 app_name = "ehr"
 
@@ -50,4 +50,12 @@ urlpatterns = [
     path("plans/<int:pk>/assessment/", views_rehab.plan_assessment, name="plan_assessment"),
     path("plans/<int:pk>/close/", views_rehab.plan_close, name="plan_close"),
     path("sessions/<int:pk>/sign/", views_rehab.session_sign, name="session_sign"),
+    path("patients/<int:pk>/reminders/", views_queue.reminder_add, name="reminder_add"),
+    path("reminders/<int:pk>/cancel/", views_queue.reminder_cancel, name="reminder_cancel"),
+    path("prescriptions/<int:pk>/refill-reminder/", views_queue.refill_reminder, name="refill_reminder"),
+    path("queue/", views_queue.queue_reception, name="queue_reception"),
+    path("queue/tickets/<int:pk>/", views_queue.queue_ticket, name="queue_ticket"),
+    path("queue/action/", views_queue.queue_action, name="queue_action"),
+    path("queue/display/", views_queue.queue_display, name="queue_display"),
+    path("queue/display/data/", views_queue.queue_display_data, name="queue_display_data"),
 ]
