@@ -197,3 +197,8 @@ a.quick:hover { background: rgba(255,255,255,.22); color: #fff; }
 .pos-grid .form input, .pos-grid .form select { width: 100%; }
 @media (max-width: 800px) { .pos-grid { grid-template-columns: 1fr; } }
 @media print { .site-header, .site-footer, .bo-nav, .no-print { display: none !important; } }
+
+/* آزمایشگاه */
+.lab-hero { background: linear-gradient(135deg, #1d4ed8 0%, #0f766e 100%); }
+.test-checklist { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; margin: 12px 0; max-height: 420px; overflow-y: auto; }
+#test-filter { margin-bottom: 8px; }

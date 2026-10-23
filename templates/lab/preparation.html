@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}آمادگی پیش از آزمایش | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <p class="breadcrumb"><a href="{% url 'lab:home' %}">آزمایشگاه</a> / آمادگی</p>
+  <h1>آمادگی پیش از آزمایش</h1>
+  <p class="lead">آزمایش‌های نسخه خود را انتخاب کنید تا آمادگی همه را یکجا ببینید. انتخاب شما جایی ذخیره نمی‌شود.</p>
+  {% if prep %}{% include "lab/includes/prep_summary.html" %}{% endif %}
+  <form method="get" class="form card">
+    <input type="search" id="test-filter" placeholder="جست‌وجو در فهرست" aria-label="جست‌وجو در فهرست" class="no-print">
+    <div class="test-checklist">
+      {% for test in all_tests %}
+        <label class="check" data-name="{{ test.name }} {{ test.code }} {{ test.aliases }}"><input type="checkbox" name="t" value="{{ test.code }}"{% if test.code in selected_codes %} checked{% endif %}> {{ test.name }}</label>
+      {% endfor %}
+    </div>
+    <button class="btn" type="submit">نمایش آمادگی</button>
+  </form>
+</section>
+<script>
+document.getElementById("test-filter").addEventListener("input", function () {
+  var q = this.value.trim().toLowerCase();
+  document.querySelectorAll(".test-checklist .check").forEach(function (el) {
+    el.style.display = !q || el.dataset.name.toLowerCase().indexOf(q) >= 0 ? "" : "none";
+  });
+});
+</script>
+{% endblock %}

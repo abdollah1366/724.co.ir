@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}{{ panel.name }} | آزمایشگاه {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <p class="breadcrumb"><a href="{% url 'lab:home' %}">آزمایشگاه</a> / بسته‌ها</p>
+  <h1>{{ panel.name }}</h1>
+  {% if panel.description %}{{ panel.description|linebreaks }}{% endif %}
+  {% if panel.price %}
+    <p class="price">{{ panel.price|toman }}{% if panel.package_price is not None and panel.package_price < panel.list_price %} <span class="muted small">(به‌جای {{ panel.list_price|toman }})</span>{% endif %}</p>
+  {% endif %}
+  <h2>آزمایش‌های این بسته</h2>
+  <ul class="prose-list">
+    {% for test in panel.tests.all %}<li><a href="{{ test.get_absolute_url }}">{{ test.name }}</a> <span class="muted small">{{ test.specimen_type.name }}</span></li>{% endfor %}
+  </ul>
+  {% include "lab/includes/prep_summary.html" %}
+</section>
+{% endblock %}
