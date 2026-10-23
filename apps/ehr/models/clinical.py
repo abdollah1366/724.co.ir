@@ -13,6 +13,7 @@ from django.utils import timezone
 from apps.audit.documents import ImmutableRecord
 from apps.clinic.models import Doctor
 
+from .catalog import RVUCoefficient, ServiceCode
 from .patients import Patient
 
 
@@ -346,3 +347,26 @@ class Referral(models.Model):
     def clean(self):
         if not self.to_provider_id and not self.to_service:
             raise ValidationError("پزشک مقصد یا خدمت مقصد را مشخص کنید.")
+
+
+class EncounterService(EncounterChild):
+    """خدمت انجام‌شده در ویزیت با کد ملی خدمت؛ تعرفه هنگام ثبت از ضریب ریالی همان سال محاسبه و ذخیره می‌شود."""
+
+    encounter = models.ForeignKey(Encounter, on_delete=models.CASCADE, related_name="services", verbose_name="ویزیت")
+    service_code = models.ForeignKey(ServiceCode, on_delete=models.PROTECT, related_name="+", verbose_name="کد خدمت")
+    quantity = models.PositiveSmallIntegerField("تعداد", default=1)
+    sector = models.CharField("بخش تعرفه", max_length=10, choices=RVUCoefficient.Sector.choices, default=RVUCoefficient.Sector.PRIVATE)
+    unit_tariff = models.PositiveBigIntegerField("تعرفه واحد (ریال)", null=True, blank=True)
+    note = models.CharField("توضیح", max_length=200, blank=True)
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "خدمت ویزیت"
+        verbose_name_plural = "خدمات انجام‌شده در ویزیت"
+
+    def __str__(self):
+        return f"{self.service_code.code} × {self.quantity}"
+
+    @property
+    def total(self):
+        return self.unit_tariff * self.quantity if self.unit_tariff is not None else None

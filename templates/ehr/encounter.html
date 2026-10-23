@@ -46,6 +46,21 @@
       {% endif %}
     </div>
 
+    <div class="card">
+      <h2>خدمات انجام‌شده (کد ملی خدمت)</h2>
+      {% for s in services %}
+        <div class="ehr-row"><span dir="ltr">{{ s.service_code.code }}</span> {{ s.service_code.title|truncatechars:90 }} × {{ s.quantity|fa_digits }}
+          {% if s.service_code.is_cosmetic %}<span class="badge badge-warn">* زیبایی / خارج از تعهد بیمه</span>{% endif %}
+          · {% if s.total is not None %}{{ s.total|rial }}{% else %}<span class="muted">تعرفه: ضریب ریالی ثبت نشده</span>{% endif %}
+          {% if writable %}<form method="post" action="{% url 'ehr:encounter_service_delete' s.pk %}" class="inline">{% csrf_token %}<button class="link">حذف</button></form>{% endif %}</div>
+      {% empty %}<p class="muted">خدمتی ثبت نشده.</p>{% endfor %}
+      {% if service_form %}
+      <form method="post" action="{% url 'ehr:encounter_service' encounter.pk %}">{% csrf_token %}
+        {% include "includes/form.html" with form=service_form %}<button class="btn btn-small">افزودن خدمت</button>
+      </form>
+      {% endif %}
+    </div>
+
     {% for a in encounter.addenda.all %}
     <div class="card"><strong>یادداشت تکمیلی</strong> <span class="muted">{{ a.user.get_full_name|default:a.user.username }} · {{ a.created_at|jalali:"%Y/%m/%d %H:%M" }}</span><div class="ehr-soap"><pre>{{ a.text }}</pre></div></div>
     {% endfor %}

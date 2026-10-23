@@ -1,5 +1,6 @@
 """پرونده سلامت برای کادر درمان: جست‌وجوی بیمار، پرونده یکپارچه، ثبت دلیل دسترسی و گزارش مشاهده‌ها."""
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import permission_required
@@ -17,10 +18,12 @@ from apps.core.validators import normalize_digits
 
 from . import clinical, services
 from .forms import (
-    AddendumForm, AllergyForm, DiagnosisForm, EmergencyAccessForm, EncounterForm, HistoryForm, PatientForm, ProblemForm,
+    AddendumForm, AllergyForm, DiagnosisForm, EmergencyAccessForm, EncounterForm, EncounterServiceForm, HistoryForm, PatientForm, ProblemForm,
     ReferralForm, VitalsForm,
 )
-from .models import Allergy, ChronicProgram, Diagnosis, Encounter, ICD10Code, Patient, Problem, RecordAccess
+from .models import (
+    Allergy, ChronicProgram, Diagnosis, Encounter, EncounterService, ICD10Code, Patient, Problem, RecordAccess, ServiceCode,
+)
 
 
 def staff_perm(perm):
@@ -158,6 +161,8 @@ def encounter(request, pk):
         "vitals_form": VitalsForm(prefix="v") if encounter.is_open else None,
         "diagnosis_form": DiagnosisForm(prefix="d") if writable else None,
         "referral_form": ReferralForm(prefix="r") if writable else None,
+        "service_form": EncounterServiceForm(prefix="s", initial={"sector": settings.EHR_TARIFF_SECTOR}) if writable else None,
+        "services": encounter.services.select_related("service_code"),
         "addendum_form": AddendumForm() if not encounter.is_open and getattr(services.provider_for(request.user), "pk", None) == encounter.provider_id else None,
         "vitals": encounter.vitals.all(), "diagnoses": encounter.diagnoses.select_related("icd"),
         "allergies": patient.allergies.filter(is_active=True), "problems": patient.problems.filter(status="active"),
@@ -333,3 +338,43 @@ def chronic_registry(request):
         "rows": clinical.registry(program), "program": program,
         "programs": [c for c in ChronicProgram.choices if c[0]], "targets": clinical,
     })
+
+
+@staff_perm("ehr.add_encounterservice")
+@require_POST
+def encounter_service(request, pk):
+    encounter = get_object_or_404(Encounter, pk=pk)
+    if not clinical.can_write(request.user, encounter):
+        raise PermissionDenied
+    form = EncounterServiceForm(request.POST, prefix="s")
+    if form.is_valid():
+        item = form.save(commit=False)
+        item.encounter = encounter
+        item.unit_tariff = item.service_code.tariff(item.sector)
+        item.save()
+        if item.unit_tariff is None:
+            messages.warning(request, "خدمت ثبت شد ولی ضریب ریالی امسال وارد نشده و تعرفه محاسبه نشد.")
+    else:
+        messages.error(request, " ".join(e for errs in form.errors.values() for e in errs))
+    return redirect("ehr:encounter", pk=encounter.pk)
+
+
+@staff_perm("ehr.delete_encounterservice")
+@require_POST
+def encounter_service_delete(request, pk):
+    item = get_object_or_404(EncounterService, pk=pk)
+    if not clinical.can_write(request.user, item.encounter):
+        raise PermissionDenied
+    item.delete()
+    return redirect("ehr:encounter", pk=item.encounter_id)
+
+
+@staff_member_required
+def service_search(request):
+    query = normalize_digits(request.GET.get("q", "")).strip()
+    codes = ServiceCode.objects.filter(is_active=True)
+    if query:
+        codes = codes.filter(Q(code__startswith=query) | Q(title__icontains=query))
+    return JsonResponse({"results": [
+        {"code": c.code, "title": c.title[:120], "rvu": str(c.total_rvu or ""), "cosmetic": c.is_cosmetic} for c in codes[:20]
+    ]})

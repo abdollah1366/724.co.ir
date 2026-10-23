@@ -238,3 +238,6 @@ if LOG_DIR:
         "maxBytes": 10 * 1024 * 1024, "backupCount": 10, "encoding": "utf-8", "formatter": "plain",
     }
     LOGGING["root"]["handlers"].append("file")
+
+# پرونده سلامت: بخش تعرفه پیش‌فرض برای محاسبه تعرفه خدمات (public / nonprofit / private)
+EHR_TARIFF_SECTOR = os.environ.get("EHR_TARIFF_SECTOR", "private")

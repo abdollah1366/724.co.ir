@@ -84,3 +84,35 @@ for model in (VitalSigns, Problem, Allergy, HistoryEntry, Referral):
     admin.site.register(model, type(f"{model.__name__}Admin", (ReadOnlyClinicalAdmin,), {
         "list_display": ("__str__", "patient"), "search_fields": ("patient__file_number", "patient__last_name"),
     }))
+
+
+from .models import EncounterService, GenericDrug, RVUCoefficient, ServiceCode  # noqa: E402
+
+
+@admin.register(ServiceCode)
+class ServiceCodeAdmin(admin.ModelAdmin):
+    list_display = ("code", "short_title", "attribute", "total_rvu", "professional_rvu", "technical_rvu", "sheet", "is_active")
+    list_filter = ("sheet", "edition", "is_active")
+    search_fields = ("code", "title")
+
+    @admin.display(description="شرح")
+    def short_title(self, obj):
+        return obj.title[:90]
+
+
+@admin.register(RVUCoefficient)
+class RVUCoefficientAdmin(admin.ModelAdmin):
+    list_display = ("year", "sector", "component", "value", "reference")
+    list_filter = ("year", "sector")
+
+
+@admin.register(GenericDrug)
+class GenericDrugAdmin(admin.ModelAdmin):
+    list_display = ("name", "name_fa", "dosage_form", "strength", "code", "category", "needs_verification", "is_active")
+    list_filter = ("category", "needs_verification", "is_active", "dosage_form")
+    search_fields = ("name", "name_fa", "code", "atc_code")
+
+
+admin.site.register(EncounterService, type("EncounterServiceAdmin", (ReadOnlyClinicalAdmin,), {
+    "list_display": ("encounter", "service_code", "quantity", "unit_tariff"),
+}))

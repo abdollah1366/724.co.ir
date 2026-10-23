@@ -22,6 +22,7 @@ class ServiceAdmin(admin.ModelAdmin):
     list_display = ("title", "department", "price", "requires_qualified_provider", "is_active")
     list_filter = ("department", "is_active", "requires_qualified_provider")
     search_fields = ("title", "description")
+    raw_id_fields = ("service_code",)
 
 
 @admin.register(Specialty)

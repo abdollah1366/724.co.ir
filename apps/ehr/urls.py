@@ -23,5 +23,8 @@ urlpatterns = [
     path("problems/<int:pk>/toggle/", views.problem_resolve, name="problem_toggle"),
     path("allergies/<int:pk>/toggle/", views.allergy_toggle, name="allergy_toggle"),
     path("icd10/", views.icd_search, name="icd_search"),
+    path("service-codes/", views.service_search, name="service_search"),
+    path("encounters/<int:pk>/service/", views.encounter_service, name="encounter_service"),
+    path("encounter-services/<int:pk>/delete/", views.encounter_service_delete, name="encounter_service_delete"),
     path("registry/", views.chronic_registry, name="registry"),
 ]

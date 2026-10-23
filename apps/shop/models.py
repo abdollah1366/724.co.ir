@@ -120,6 +120,10 @@ class Product(models.Model):
 
     # اطلاعات علمی دارو
     generic_name = models.CharField("نام ژنریک", max_length=200, blank=True)
+    generic = models.ForeignKey(
+        "ehr.GenericDrug", on_delete=models.SET_NULL, null=True, blank=True, related_name="products",
+        verbose_name="داروی ژنریک (فهرست رسمی)", help_text="برای نمایش موجودی به پزشک هنگام نسخه‌نویسی",
+    )
     dosage_form = models.CharField("شکل دارویی", max_length=100, blank=True, help_text="مثلاً قرص، شربت، کپسول")
     strength = models.CharField("مقدار ماده مؤثر", max_length=100, blank=True)
     mechanism = models.TextField("مکانیسم اثر", blank=True)

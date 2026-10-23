@@ -61,6 +61,10 @@ class Service(models.Model):
     description = models.TextField("توضیحات", blank=True)
     price = models.PositiveBigIntegerField("تعرفه (ریال)", null=True, blank=True)
     price_note = models.CharField("توضیح تعرفه", max_length=200, blank=True)
+    service_code = models.ForeignKey(
+        "ehr.ServiceCode", on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+        verbose_name="کد ملی خدمت (کتاب ارزش نسبی)",
+    )
     requires_qualified_provider = models.BooleanField(
         "نیازمند ارائه‌دهنده دارای صلاحیت",
         default=False,

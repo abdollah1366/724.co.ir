@@ -12,16 +12,18 @@
   {% block ehr_content %}{% endblock %}
 </section>
 <datalist id="icd-options"></datalist>
+<datalist id="service-options"></datalist>
 <script>
-// جست‌وجوی کد ICD-10 هنگام تایپ
-document.querySelectorAll("[data-icd-search]").forEach(function (input) {
+// جست‌وجوی کد ICD-10 و کد خدمت هنگام تایپ
+function bindSearch(selector, url, listId) {
+document.querySelectorAll(selector).forEach(function (input) {
   var timer;
   input.addEventListener("input", function () {
     clearTimeout(timer);
     timer = setTimeout(function () {
       if (input.value.length < 2) return;
-      fetch("{% url 'ehr:icd_search' %}?q=" + encodeURIComponent(input.value)).then(function (r) { return r.json(); }).then(function (data) {
-        var list = document.getElementById("icd-options");
+      fetch(url + "?q=" + encodeURIComponent(input.value)).then(function (r) { return r.json(); }).then(function (data) {
+        var list = document.getElementById(listId);
         list.innerHTML = "";
         data.results.forEach(function (item) {
           var option = document.createElement("option");
@@ -34,5 +36,8 @@ document.querySelectorAll("[data-icd-search]").forEach(function (input) {
     }, 250);
   });
 });
+}
+bindSearch("[data-icd-search]", "{% url 'ehr:icd_search' %}", "icd-options");
+bindSearch("[data-service-search]", "{% url 'ehr:service_search' %}", "service-options");
 </script>
 {% endblock %}

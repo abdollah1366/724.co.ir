@@ -158,6 +158,7 @@ EHR_DOCTOR = {
     **EHR_CLINICAL, "ehr.encounter": ("add", "change", VIEW), "ehr.encounteraddendum": ("add", VIEW),
     "ehr.vitalsigns": ("add", VIEW), "ehr.diagnosis": EDIT, "ehr.problem": ("add", "change", VIEW),
     "ehr.allergy": ("add", "change", VIEW), "ehr.historyentry": ("add", "change", VIEW), "ehr.referral": ("add", "change", VIEW),
+    "ehr.encounterservice": EDIT, "ehr.servicecode": (VIEW,), "ehr.genericdrug": (VIEW,),
 }
 EHR_NURSE = {
     **EHR_CLINICAL, "ehr.encounter": (VIEW,), "ehr.vitalsigns": ("add", VIEW), "ehr.diagnosis": (VIEW,),
@@ -175,6 +176,7 @@ ROLES.update({
         "models": {
             **EHR_DOCTOR, "ehr.patient": ("add", "change", VIEW), "ehr.recordaccess": (VIEW,), "audit.auditlog": (VIEW,),
             "clinic.doctor": ("change", VIEW), "ehr.icd10code": EDIT,
+            "ehr.servicecode": EDIT, "ehr.rvucoefficient": EDIT, "ehr.genericdrug": EDIT,
         },
         "extra": ["ehr.view_clinical_record", "ehr.view_all_records"],
     },

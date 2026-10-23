@@ -7,7 +7,7 @@ from django.utils import timezone
 from apps.core.validators import normalize_digits
 from apps.lab.forms import DigitsMixin
 
-from .models import Allergy, Diagnosis, Encounter, HistoryEntry, ICD10Code, Patient, Problem, Referral, VitalSigns
+from .models import Allergy, EncounterService, ServiceCode, Diagnosis, Encounter, HistoryEntry, ICD10Code, Patient, Problem, Referral, VitalSigns
 
 
 def parse_jalali(value, allow_future=True):
@@ -204,3 +204,26 @@ class ReferralForm(forms.ModelForm):
 
 class AddendumForm(forms.Form):
     text = forms.CharField(label="یادداشت تکمیلی / اصلاحیه", min_length=5, widget=forms.Textarea(attrs={"rows": 3}))
+
+
+class EncounterServiceForm(forms.ModelForm):
+    code = forms.CharField(
+        label="کد ملی خدمت", max_length=12,
+        widget=forms.TextInput(attrs={"list": "service-options", "data-service-search": "1", "dir": "ltr", "autocomplete": "off"}),
+    )
+
+    class Meta:
+        model = EncounterService
+        fields = ["quantity", "sector", "note"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.order_fields(["code", "quantity", "sector", "note"])
+
+    def clean_code(self):
+        code = normalize_digits(self.cleaned_data["code"]).split(" ")[0]
+        service = ServiceCode.objects.filter(code=code, is_active=True).first()
+        if service is None:
+            raise forms.ValidationError("این کد در کدینگ خدمات سلامت نیست.")
+        self.instance.service_code = service
+        return service
