@@ -187,7 +187,7 @@ def _apply_value(result, value, comment=None):
 
 @transaction.atomic
 def enter_result(result, value, user, comment=None, instrument=None):
-    result = LabResult.objects.select_for_update().select_related("item__test", "item__order__patient", "specimen").get(pk=result.pk)
+    result = LabResult.objects.select_for_update(of=("self",)).select_related("item__test", "item__order__patient", "specimen").get(pk=result.pk)
     _editable(result)
     _apply_value(result, normalize_digits(value) if result.item.test.result_type == LabTest.ResultType.NUMERIC else value, comment)
     result.status = LabResult.Status.ENTERED
@@ -217,7 +217,7 @@ def qc_status(test, on_date=None):
 
 @transaction.atomic
 def approve_result(result, user):
-    result = LabResult.objects.select_for_update().select_related("item__test", "item__order").get(pk=result.pk)
+    result = LabResult.objects.select_for_update(of=("self",)).select_related("item__test", "item__order").get(pk=result.pk)
     _check_order(result.item.order)
     if result.status != LabResult.Status.ENTERED:
         raise DocumentError("فقط جواب ثبت‌شده و تأییدنشده قابل تأیید است.")
@@ -242,7 +242,7 @@ def amend_result(result, new_value, reason, user, comment=None):
     """اصلاح جواب تأییدشده: نسخه قبلی با علت در تاریخچه می‌ماند و جواب جدید دوباره نیاز به تأیید دارد."""
     if not (reason or "").strip():
         raise DocumentError("علت اصلاح جواب را وارد کنید.")
-    result = LabResult.objects.select_for_update().select_related("item__test", "item__order__patient").get(pk=result.pk)
+    result = LabResult.objects.select_for_update(of=("self",)).select_related("item__test", "item__order__patient").get(pk=result.pk)
     _check_order(result.item.order)
     if result.status != LabResult.Status.APPROVED:
         raise DocumentError("فقط جواب تأییدشده نیاز به اصلاح دارد؛ جواب تأییدنشده را مستقیم ویرایش کنید.")
