@@ -8,7 +8,8 @@ from apps.ehr.models import GenericDrug
 class Command(BaseCommand):
     help = (
         "ورود کاتالوگ‌ها: اکسل ابلاغی کدینگ خدمات سلامت، فهرست داروهای ژنریک (xlsx/csv)، ICD-10 (csv: code,title,title_fa). "
-        "مثال: python manage.py import_catalogs --service-codes data/catalogs/service-codes-1404.xlsx --sample-generics"
+        "مثال: python manage.py import_catalogs --service-codes data/catalogs/service-codes-1404.xlsx "
+        "--generics data/catalogs/iran-drug-list.xlsx"
     )
 
     def add_arguments(self, parser):
@@ -30,7 +31,9 @@ class Command(BaseCommand):
                     self.stdout.write(f"  {sheet}: {count}")
             if options["generics"]:
                 stats = importers.import_generics(options["generics"])
-                self.stdout.write(f"داروهای ژنریک: {stats['created']} جدید، {stats['updated']} به‌روز")
+                self.stdout.write(f"داروهای ژنریک: {stats['created']} جدید، {stats['updated']} به‌روز، "
+                                  f"{stats['needs_review']} نیازمند بررسی")
+                self.stdout.write(f"نام فارسی اضافه‌شده: {importers.fill_persian_names(SAMPLE_GENERICS)}")
             if options["icd10"]:
                 stats = importers.import_icd10(options["icd10"])
                 self.stdout.write(f"ICD-10: {stats['created']} جدید، {stats['updated']} به‌روز")

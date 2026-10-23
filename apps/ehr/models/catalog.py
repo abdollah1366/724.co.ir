@@ -99,10 +99,11 @@ class GenericDrug(models.Model):
     code = models.CharField("کد ژنریک", max_length=20, unique=True, null=True, blank=True)
     name = models.CharField("نام ژنریک (لاتین)", max_length=200)
     name_fa = models.CharField("نام فارسی", max_length=200, blank=True)
-    dosage_form = models.CharField("شکل دارویی", max_length=100)
-    strength = models.CharField("قدرت / مقدار", max_length=100, blank=True)
+    dosage_form = models.CharField("شکل دارویی", max_length=120)
+    strength = models.CharField("قدرت / مقدار", max_length=150, blank=True)
     route = models.CharField("راه مصرف", max_length=60, blank=True)
     atc_code = models.CharField("کد ATC", max_length=10, blank=True)
+    description = models.TextField("ترکیب / توضیح", blank=True)
     category = models.CharField("دسته", max_length=10, choices=Category.choices, default=Category.RX)
     default_sig = models.CharField("دستور مصرف پیش‌فرض", max_length=200, blank=True)
     needs_verification = models.BooleanField(

@@ -88,11 +88,11 @@ class GenericImportTests(TestCase):
             path = Path(tmp) / "generics.csv"
             path.write_text("کد ژنریک,Generic Name,نام فارسی,شکل دارویی,Strength,ATC,دسته\n"
                             "12345,Metformin,متفورمین,قرص,500 mg,A10BA02,نسخه‌ای\n"
-                            "12346,Paracetamol,استامینوفن,قرص,500 mg,N02BE01,OTC\n", encoding="utf-8")
+                            "12346,Acetaminophen,استامینوفن,قرص,500 mg,N02BE01,OTC\n", encoding="utf-8")
             call_command("import_catalogs", "--generics", str(path), "--sample-generics", stdout=StringIO())
         metformin = GenericDrug.objects.get(name="Metformin", strength="500 mg")
         self.assertEqual((metformin.code, metformin.needs_verification), ("12345", False))  # نمونه، رسمی را بازنویسی نمی‌کند
-        self.assertEqual(GenericDrug.objects.get(name="Paracetamol").category, "otc")
+        self.assertEqual(GenericDrug.objects.get(name="Acetaminophen", code="12346").category, "otc")
         self.assertTrue(GenericDrug.objects.get(name="Alprazolam").needs_verification)
         product = drug("glucophage", generic_name="metformin", strength="500 mg")
         self.assertEqual(importers.link_products_to_generics(), 1)
@@ -107,6 +107,18 @@ class GenericImportTests(TestCase):
         from apps.ehr.models import ICD10Code
 
         self.assertEqual(ICD10Code.objects.get(code="J00").title_fa, "سرماخوردگی")
+
+    def test_official_iran_drug_list(self):
+        call_command("import_catalogs", "--generics", str(OFFICIAL_FILE.parent / "iran-drug-list.xlsx"), stdout=StringIO())
+        self.assertGreater(GenericDrug.objects.count(), 2200)
+        acarbose = GenericDrug.objects.get(name="Acarbose", strength="100 mg")
+        self.assertEqual((acarbose.dosage_form, acarbose.route, acarbose.atc_code, acarbose.needs_verification),
+                         ("TABLET", "ORAL", "A10BF01", False))
+        acetic = GenericDrug.objects.get(name="Acetic Acid")
+        self.assertTrue(acetic.needs_verification)
+        self.assertEqual(acetic.dosage_form, "-")
+        self.assertEqual(GenericDrug.objects.filter(name="Alprazolam").first().category, "controlled")
+        self.assertEqual(GenericDrug.objects.get(name="Metformin Hydrochloride", strength="500 mg").name_fa, "متفورمین")
 
 
 class EncounterServiceTests(TestCase):

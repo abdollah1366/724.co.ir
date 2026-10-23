@@ -6,6 +6,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from django.db import transaction
+from django.db.models import Q
 
 from .models import GenericDrug, ICD10Code, ServiceCode
 
@@ -109,28 +110,42 @@ def import_service_codes(path, edition="1404"):
 
 
 GENERIC_RULES = {
-    "code": lambda h: "کد" in h and "atc" not in h.lower() or h.lower() in ("code", "generic code"),
-    "name": lambda h: h.lower() in ("name", "generic name", "generic") or "نام ژنریک" in h or h == "نام لاتین",
+    "code": lambda h: ("کد" in h and "atc" not in h.lower()) or h.lower() in ("code", "generic code"),
+    "name": lambda h: h.lower() in ("name", "generic name", "generic", "drug name") or "نام ژنریک" in h or h == "نام لاتین",
     "name_fa": lambda h: "فارسی" in h,
     "dosage_form": lambda h: "شکل" in h or "form" in h.lower(),
     "strength": lambda h: "قدرت" in h or "strength" in h.lower() or "دوز" in h,
     "route": lambda h: "راه" in h or "route" in h.lower(),
     "atc": lambda h: "atc" in h.lower(),
+    "description": lambda h: h.lower() == "description" or "ترکیب" in h or "توضیح" in h,
     "category": lambda h: "دسته" in h or "category" in h.lower() or "otc" in h.lower(),
+    "review": lambda h: "review" in h.lower() or "بررسی" in h,
+    "raw": lambda h: "raw" in h.lower(),
 }
 
+# داروهای تحت کنترل (مخدر، بنزودیازپین‌ها، محرک‌ها) بر اساس گروه ATC؛ داروساز باید تأیید کند.
+CONTROLLED_ATC_PREFIXES = ("N01AH", "N02A", "N05BA", "N05CD", "N05CF", "N03AE", "N06BA", "N07BC")
 
-def _category(value):
+
+def _category(value, atc=""):
     value = _text(value).lower()
     if "otc" in value or "بدون نسخه" in value:
         return GenericDrug.Category.OTC
     if "کنترل" in value or "مخدر" in value or "controlled" in value:
         return GenericDrug.Category.CONTROLLED
+    if atc and atc.upper().startswith(CONTROLLED_ATC_PREFIXES):
+        return GenericDrug.Category.CONTROLLED
     return GenericDrug.Category.RX
 
 
+def _split_strength(name):
+    """«Acetaminophen 10 mg/ml, 100ml» → («Acetaminophen», «10 mg/ml, 100ml»)."""
+    match = re.match(r"^(.*?[^\s])\s+(\d.*)$", name)
+    return (match.group(1), match.group(2)) if match else (name, "")
+
+
 def import_generics(path, verified=True):
-    stats = {"created": 0, "updated": 0}
+    stats = {"created": 0, "updated": 0, "needs_review": 0}
     with transaction.atomic():
         for _, rows in _rows(path):
             if not rows:
@@ -139,21 +154,50 @@ def import_generics(path, verified=True):
             if header_index is None:
                 continue
             columns = _find_columns(rows[header_index], GENERIC_RULES)
+            if "dosage_form" not in columns and "raw" not in columns:
+                continue
             for row in rows[header_index + 1:]:
                 get = lambda name: row[columns[name]] if name in columns and columns[name] < len(row) else None  # noqa: E731
-                name = _text(get("name"))
+                raw = [_text(part) for part in _text(get("raw")).split("|")]
+                name = _text(get("name")) or (raw[0] if len(raw) >= 4 else "")
                 if not name:
                     continue
-                key = {"name": name, "dosage_form": _text(get("dosage_form")) or "-", "strength": _text(get("strength"))}
+                form, route, atc, description = (_text(get(k)) for k in ("dosage_form", "route", "atc", "description"))
+                if not form and len(raw) >= 4:
+                    # ردیف‌هایی که ستون‌بندی نشده‌اند: «نام | شکل | راه مصرف | ATC | توضیح»
+                    form, route, atc = raw[1], raw[2], raw[3]
+                    description = description or " ".join(raw[4:])
+                form = "" if form.upper() == "UNKNOWN" else form
+                route = "" if route.upper() == "UNASSIGNED" else route
+                strength = _text(get("strength"))
+                if "strength" not in columns:
+                    name, strength = _split_strength(name)
+                review = _text(get("review")).lower()
+                needs_review = (not verified) or ("review" in review) or not form
+                key = {"name": name[:200], "dosage_form": (form or "-")[:120], "strength": strength[:150]}
                 defaults = {
-                    "code": _text(get("code")) or None, "name_fa": _text(get("name_fa")), "route": _text(get("route")),
-                    "atc_code": _text(get("atc")), "category": _category(get("category")), "needs_verification": not verified,
+                    "route": route[:60], "atc_code": atc[:10].upper(), "description": "" if description == "-" else description,
+                    "category": _category(get("category"), atc), "needs_verification": needs_review,
                 }
-                if defaults["code"] and GenericDrug.objects.filter(code=defaults["code"]).exclude(**key).exists():
-                    defaults.pop("code")
+                if _text(get("name_fa")):
+                    defaults["name_fa"] = _text(get("name_fa"))
+                code = _text(get("code")) or None
+                if code and not GenericDrug.objects.filter(code=code).exclude(**key).exists():
+                    defaults["code"] = code
                 _, created = GenericDrug.objects.update_or_create(**key, defaults=defaults)
                 stats["created" if created else "updated"] += 1
+                stats["needs_review"] += needs_review
     return stats
+
+
+def fill_persian_names(samples):
+    """نام فارسی فهرست نمونه را روی ردیف‌های رسمی هم‌نام می‌نشاند (فقط اگر خالی باشد)."""
+    filled = 0
+    for name, name_fa, *_ in samples:
+        # نام رسمی گاهی نمک دارو را هم دارد: Metformin Hydrochloride
+        filled += GenericDrug.objects.filter(Q(name__iexact=name) | Q(name__istartswith=name + " "), name_fa="").update(
+            name_fa=name_fa)
+    return filled
 
 
 def import_icd10(path):
@@ -178,7 +222,10 @@ def link_products_to_generics():
 
     linked = 0
     for product in Product.objects.filter(kind=ProductKind.DRUG, generic__isnull=True).exclude(generic_name=""):
-        candidates = GenericDrug.objects.filter(name__iexact=product.generic_name.strip(), is_active=True)
+        name = product.generic_name.strip()
+        candidates = GenericDrug.objects.filter(name__iexact=name, is_active=True)
+        if not candidates.exists():
+            candidates = GenericDrug.objects.filter(name__istartswith=name + " ", is_active=True)
         if product.strength:
             narrowed = candidates.filter(strength__iexact=product.strength.strip())
             candidates = narrowed if narrowed.exists() else candidates
