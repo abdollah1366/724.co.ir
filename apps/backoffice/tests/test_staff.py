@@ -86,3 +86,44 @@ class StaffPageTests(TestCase):
         self.client.force_login(staff("cashier", "صندوق‌دار"))
         self.assertEqual(self.client.get(reverse("backoffice:staff")).status_code, 403)
         self.assertEqual(self.client.get(reverse("backoffice:staff_new")).status_code, 403)
+
+    def test_manager_cannot_reset_password_of_clinical_account(self):
+        target = staff("doc2", "پزشک")
+        target.set_password(PASSWORD)
+        target.save()
+        self.assertContains(self.client.get(reverse("backoffice:staff_edit", args=[target.pk])), "فقط مدیر ارشد")
+        self.client.post(reverse("backoffice:staff_edit", args=[target.pk]), {
+            "first_name": "x", "last_name": "y", "is_active": "on", "password": "Another-pass-724!",
+        })
+        target.refresh_from_db()
+        self.assertTrue(target.check_password(PASSWORD))
+        # حسابی که همه نقش‌هایش در اختیار مدیر است، رمزش قابل تغییر است.
+        clerk = staff("clerk", "انباردار")
+        self.client.post(reverse("backoffice:staff_edit", args=[clerk.pk]), {
+            "first_name": "x", "last_name": "y", "is_active": "on", "password": "Another-pass-724!", "roles": ["انباردار"],
+        })
+        clerk.refresh_from_db()
+        self.assertTrue(clerk.check_password("Another-pass-724!"))
+
+    def test_admin_user_pages_are_superuser_only(self):
+        target = staff("clerk2", "انباردار")
+        self.assertEqual(self.client.get(reverse("admin:auth_user_change", args=[target.pk])).status_code, 200)  # فقط مشاهده
+        response = self.client.post(reverse("admin:auth_user_change", args=[target.pk]), {
+            "username": "clerk2", "is_superuser": "on", "is_staff": "on", "is_active": "on",
+        })
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(self.client.get(reverse("admin:auth_user_password_change", args=[target.pk])).status_code, 403)
+        self.assertEqual(self.client.get(reverse("admin:auth_user_change", args=[self.manager.pk])).status_code, 200)
+        self.manager.refresh_from_db()
+        target.refresh_from_db()
+        self.assertFalse(self.manager.is_superuser or target.is_superuser)
+
+
+class BackofficeScopeTests(TestCase):
+    def test_non_pharmacy_staff_do_not_see_sales_or_stock(self):
+        self.client.force_login(staff("sec", "منشی پزشک"))
+        home = self.client.get(reverse("backoffice:dashboard"))
+        self.assertEqual(home.status_code, 200)
+        self.assertNotContains(home, reverse("backoffice:stock"))
+        for name in ("alerts", "stock", "api_dashboard"):
+            self.assertEqual(self.client.get(reverse(f"backoffice:{name}")).status_code, 403, name)

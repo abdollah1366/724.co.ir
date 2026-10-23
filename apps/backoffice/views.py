@@ -30,6 +30,19 @@ from apps.sales.models import CashRegister, CashSession, SalesInvoice, SalesPaym
 from apps.shop.models import Order, Product, ProductPackage
 
 FINANCE_PERM = "accounting.view_financial_reports"
+STOCK_PERM = "inventory.view_stockbalance"
+# هر کدام از این مجوزها یعنی کارمند داروخانه/انبار است و آمار فروش و موجودی را می‌بیند.
+PHARMACY_PERMS = (STOCK_PERM, "sales.view_salesinvoice", "sales.use_pos")
+
+
+def is_pharmacy_staff(user):
+    return any(user.has_perm(p) for p in PHARMACY_PERMS)
+
+
+def _require(user, *perms):
+    # کارمند بدون مجوز داروخانه (مثلاً نویسنده وبلاگ یا منشی پزشک) آمار فروش و انبار را نمی‌بیند.
+    if not any(user.has_perm(p) for p in perms):
+        raise PermissionDenied
 
 
 def _month_start(today):
@@ -73,6 +86,8 @@ def dashboard_data(user):
 
 @staff_member_required
 def dashboard(request):
+    if not is_pharmacy_staff(request.user):
+        return render(request, "backoffice/home.html")
     context = dashboard_data(request.user)
     context["recent_sales"] = SalesInvoice.objects.filter(status=DocStatus.POSTED).order_by("-posted_at")[:8]
     context["recent_receipts"] = GoodsReceipt.objects.filter(status=DocStatus.POSTED).select_related("supplier").order_by("-posted_at")[:5]
@@ -85,11 +100,13 @@ def dashboard(request):
 
 @staff_member_required
 def alerts_view(request):
+    _require(request.user, STOCK_PERM)
     return render(request, "backoffice/alerts.html", {"alerts": alerts.all_alerts()})
 
 
 @staff_member_required
 def stock_report(request):
+    _require(request.user, STOCK_PERM)
     balances = StockBalance.objects.filter(quantity__gt=0).select_related("product", "warehouse", "location", "batch")
     q = request.GET.get("q", "").strip()[:100]
     if q:
@@ -105,6 +122,7 @@ def stock_report(request):
 
 @staff_member_required
 def kardex(request, pk):
+    _require(request.user, STOCK_PERM)
     product = get_object_or_404(Product, pk=pk)
     moves = StockMove.objects.filter(product=product).select_related("warehouse", "batch", "user").order_by("id")
     return render(request, "backoffice/kardex.html", {"product": product, "moves": moves,
@@ -339,6 +357,7 @@ def _product_json(product, factor=1):
 
 @staff_member_required
 def api_product_lookup(request):
+    _require(request.user, *PHARMACY_PERMS, "shop.view_product")
     product, factor = find_product(request.GET.get("code", ""))
     if product is None:
         return JsonResponse({"error": "not_found"}, status=404)
@@ -347,6 +366,7 @@ def api_product_lookup(request):
 
 @staff_member_required
 def api_product_stock(request, pk):
+    _require(request.user, *PHARMACY_PERMS)
     product = get_object_or_404(Product, pk=pk)
     balances = StockBalance.objects.filter(product=product, quantity__gt=0).select_related("warehouse", "location", "batch")
     return JsonResponse({
@@ -363,6 +383,7 @@ def api_product_stock(request, pk):
 
 @staff_member_required
 def api_dashboard(request):
+    _require(request.user, *PHARMACY_PERMS)
     data = dashboard_data(request.user)
     data.pop("open_sessions")
     data["today"] = data["today"].isoformat()

@@ -4,8 +4,10 @@
 <section class="container section">
   <nav class="bo-nav" aria-label="پیشخوان">
     <a href="{% url 'backoffice:dashboard' %}">داشبورد</a>
-    <a href="{% url 'backoffice:alerts' %}">هشدارها</a>
-    <a href="{% url 'backoffice:stock' %}">موجودی</a>
+    {% if perms.inventory.view_stockbalance %}
+      <a href="{% url 'backoffice:alerts' %}">هشدارها</a>
+      <a href="{% url 'backoffice:stock' %}">موجودی</a>
+    {% endif %}
     {% if perms.sales.use_pos %}<a href="{% url 'backoffice:pos' %}">صندوق فروش</a>{% endif %}
     {% if perms.ehr.dispense_prescription %}<a href="{% url 'ehr:pharmacy_queue' %}">نسخه‌های درمانگاه</a>{% endif %}
     {% if perms.accounting.view_financial_reports %}

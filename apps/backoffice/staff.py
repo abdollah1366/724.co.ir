@@ -107,6 +107,11 @@ def staff_edit(request, pk=None):
     grantable = grantable_roles(request.user)
     form = StaffForm(request.POST or None, instance=user, grantable=grantable)
     kept = [] if grantable is None or user is None else [g for g in user.groups.values_list("name", flat=True) if g not in grantable]
+    if kept:
+        # رمز حسابی که نقشی بالاتر از دسترسی ویرایشگر دارد (مثلاً پزشک) را فقط مدیر ارشد عوض می‌کند؛
+        # وگرنه مدیر کل با ورود به آن حساب به پرونده بالینی می‌رسید.
+        form.fields["password"].disabled = True
+        form.fields["password"].help_text = "رمز این حساب را فقط مدیر ارشد سامانه می‌تواند عوض کند."
     if request.method == "POST" and form.is_valid():
         data = form.cleaned_data
         if user and user.pk == request.user.pk and not data["is_active"]:
