@@ -90,6 +90,17 @@
       <p>فشار: {{ summary.last.bp.label|default:"—" }} · HbA1c: {{ summary.last.hba1c.label|default:"—" }} · قند ناشتا: {{ summary.last.fbs.label|default:"—" }}</p>
     </div>
 
+    <div class="card">
+      <h2>نسخه‌ها</h2>
+      {% for rx in prescriptions %}
+        <div class="ehr-row"><a href="{% url 'ehr:prescription' rx.pk %}">{{ rx }}</a> · {{ rx.dispense_status }}
+          <ul>{% for item in rx.items.all %}<li>{{ item.label }} × {{ item.quantity|fa_digits }}</li>{% endfor %}</ul></div>
+      {% empty %}<p class="muted">نسخه‌ای ندارد.</p>{% endfor %}
+      {% if writable and perms.ehr.add_prescription %}
+      <form method="post" action="{% url 'ehr:prescription_new' patient.pk %}">{% csrf_token %}<input type="hidden" name="encounter" value="{{ encounter.pk }}"><button class="btn btn-small">نوشتن نسخه</button></form>
+      {% endif %}
+    </div>
+
     {% if referral_form %}
     <div class="card">
       <h2>ارجاع</h2>

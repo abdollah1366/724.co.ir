@@ -1,0 +1,43 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}نسخه {{ prescription }}{% endblock %}
+{% block ehr_content %}
+<div class="card ehr-header">
+  <h1>نسخه {{ prescription }} · <a href="{% url 'ehr:chart' patient.pk %}">{{ patient.full_name }}</a></h1>
+  <p>{{ prescription.prescriber.full_name }} · {{ prescription.get_status_display }}{% if prescription.status == "issued" %} · {{ prescription.dispense_status }} · اعتبار تا {{ prescription.valid_until|jalali:"%Y/%m/%d" }}{% endif %}
+    {% if prescription.encounter %} · <a href="{% url 'ehr:encounter' prescription.encounter_id %}">ویزیت مرتبط</a>{% endif %}</p>
+  {% if allergies %}<p><strong>حساسیت:</strong> {% for a in allergies %}<span class="badge {% if a.severity == 'severe' %}status-cancelled{% else %}badge-warn{% endif %}">{{ a.substance }}</span> {% endfor %}</p>{% endif %}
+  {% if prescription.status == "issued" %}<a class="btn btn-small btn-outline no-print" href="{% url 'ehr:prescription_print' prescription.pk %}" target="_blank">چاپ نسخه</a>{% endif %}
+</div>
+
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>دارو / تجهیزات</th><th class="num">تعداد</th><th>دستور مصرف</th><th>موجودی داروخانه درمانگاه</th><th>تحویل‌شده</th><th></th></tr></thead>
+  <tbody>{% for row in items %}{% with item=row.item %}
+    <tr><td>{{ item.label }}{% if item.generic.needs_verification %} <span class="muted" title="ردیف نمونه؛ با فهرست رسمی تطبیق داده نشده">*</span>{% endif %}
+        {% for level, text in row.alerts %}<div class="alert alert-{% if level == 'danger' %}error{% else %}warn{% endif %}">{{ text }}</div>{% endfor %}</td>
+      <td class="num">{{ item.quantity|fa_digits }}</td><td>{{ item.sig }}</td>
+      <td>{% for s in row.stock %}<div><a href="{% url 'ehr:drug_info' 'p' s.product.pk %}">{{ s.product.name }}</a>: {% if s.stock %}{{ s.stock|fa_digits }} عدد · {{ s.price|rial }}{% else %}<span class="badge badge-warn">ناموجود</span>{% endif %}</div>
+          {% empty %}<span class="muted">در داروخانه درمانگاه تعریف نشده</span>{% endfor %}
+          {% if item.generic %}<a class="muted" href="{% url 'ehr:drug_info' 'g' item.generic_id %}">اطلاعات دارو</a>{% endif %}</td>
+      <td>{% if prescription.status == "issued" %}{{ item.dispensed_quantity|fa_digits }}{% endif %}</td>
+      <td>{% if editable %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="delete_item"><input type="hidden" name="item" value="{{ item.pk }}"><button class="link">حذف</button></form>{% endif %}</td></tr>
+  {% endwith %}{% empty %}<tr><td colspan="6" class="muted">هنوز دارویی اضافه نشده.</td></tr>{% endfor %}</tbody>
+</table></div>
+
+{% if editable %}
+<form class="card" method="post">{% csrf_token %}<input type="hidden" name="action" value="add">
+  <h2>افزودن دارو</h2>
+  {% include "includes/form.html" with form=item_form %}
+  <button class="btn btn-small">افزودن</button>
+</form>
+{% if current_meds %}<div class="card"><h2>داروهای فعلی بیمار</h2>{% for m in current_meds %}<div class="ehr-row">{{ m.label }} <span class="muted">{{ m.prescription.number }}</span></div>{% endfor %}</div>{% endif %}
+<form class="card" method="post">{% csrf_token %}<input type="hidden" name="action" value="issue">
+  {% include "includes/form.html" with form=meta_form %}
+  <button class="btn">صدور نسخه و ارسال به داروخانه</button>
+</form>
+{% elif cancel_form and prescription.status == "issued" %}
+<form class="card no-print" method="post" action="{% url 'ehr:prescription_cancel' prescription.pk %}">{% csrf_token %}
+  {% include "includes/form.html" with form=cancel_form %}<button class="btn btn-small btn-danger">لغو نسخه</button>
+</form>
+{% endif %}
+{% endblock %}

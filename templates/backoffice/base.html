@@ -7,6 +7,7 @@
     <a href="{% url 'backoffice:alerts' %}">هشدارها</a>
     <a href="{% url 'backoffice:stock' %}">موجودی</a>
     {% if perms.sales.use_pos %}<a href="{% url 'backoffice:pos' %}">صندوق فروش</a>{% endif %}
+    {% if perms.ehr.dispense_prescription %}<a href="{% url 'ehr:pharmacy_queue' %}">نسخه‌های درمانگاه</a>{% endif %}
     {% if perms.accounting.view_financial_reports %}
       <a href="{% url 'backoffice:pnl' %}">سود و زیان</a>
       <a href="{% url 'backoffice:trial_balance' %}">تراز آزمایشی</a>

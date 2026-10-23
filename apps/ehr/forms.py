@@ -7,7 +7,7 @@ from django.utils import timezone
 from apps.core.validators import normalize_digits
 from apps.lab.forms import DigitsMixin
 
-from .models import Allergy, EncounterService, ServiceCode, Diagnosis, Encounter, HistoryEntry, ICD10Code, Patient, Problem, Referral, VitalSigns
+from .models import Allergy, DrugCounseling, EncounterService, GenericDrug, Prescription, ServiceCode, Diagnosis, Encounter, HistoryEntry, ICD10Code, Patient, Problem, Referral, VitalSigns
 
 
 def parse_jalali(value, allow_future=True):
@@ -227,3 +227,57 @@ class EncounterServiceForm(forms.ModelForm):
             raise forms.ValidationError("این کد در کدینگ خدمات سلامت نیست.")
         self.instance.service_code = service
         return service
+
+
+class PrescriptionItemForm(DigitsMixin, forms.Form):
+    """دارو با جست‌وجو انتخاب می‌شود: G12 یعنی ژنریک شماره ۱۲ و P5 یعنی کالای شماره ۵ داروخانه."""
+
+    digit_fields = ("quantity", "duration_days")
+    drug = forms.CharField(
+        label="دارو / تجهیزات", max_length=300,
+        widget=forms.TextInput(attrs={"list": "drug-options", "data-drug-search": "1", "autocomplete": "off"}),
+        help_text="نام ژنریک یا تجاری را تایپ و از فهرست انتخاب کنید.",
+    )
+    quantity = forms.IntegerField(label="تعداد", min_value=1)
+    dose = forms.CharField(label="مقدار هر نوبت", max_length=60, required=False)
+    frequency = forms.CharField(label="دفعات مصرف", max_length=80, required=False)
+    duration_days = forms.IntegerField(label="مدت مصرف (روز)", min_value=1, max_value=365, required=False)
+    instructions = forms.CharField(label="دستور مصرف", max_length=300, required=False)
+    override = forms.BooleanField(label="با وجود هشدار حساسیت ثبت شود (مسئولیت با پزشک)", required=False)
+
+    def __init__(self, data=None, *args, **kwargs):
+        super().__init__(self._normalize(data), *args, **kwargs)
+
+    def clean_drug(self):
+        from apps.shop.models import Product
+
+        value = self.cleaned_data["drug"].strip().split(" ")[0]
+        kind, _, pk = value[:1].upper(), None, value[1:]
+        if not pk.isdigit():
+            raise forms.ValidationError("دارو را از فهرست پیشنهادی انتخاب کنید.")
+        if kind == "G":
+            generic = GenericDrug.objects.filter(pk=pk, is_active=True).first()
+            if generic:
+                return {"generic": generic}
+        if kind == "P":
+            product = Product.objects.filter(pk=pk, is_active=True).first()
+            if product:
+                return {"product": product, "generic": product.generic}
+        raise forms.ValidationError("دارو پیدا نشد.")
+
+
+class PrescriptionMetaForm(forms.ModelForm):
+    class Meta:
+        model = Prescription
+        fields = ["note", "insurance_tracking_code"]
+
+
+class CounselingForm(forms.ModelForm):
+    class Meta:
+        model = DrugCounseling
+        fields = ["topics", "notes"]
+        widgets = {"notes": forms.Textarea(attrs={"rows": 3})}
+
+
+class ReasonForm(forms.Form):
+    reason = forms.CharField(label="علت", min_length=5, max_length=300)

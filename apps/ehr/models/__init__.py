@@ -4,3 +4,4 @@ from .clinical import (  # noqa: F401
     VitalSigns,
 )
 from .patients import BloodGroup, Patient, RecordAccess, Sex  # noqa: F401
+from .prescriptions import DrugCounseling, Prescription, PrescriptionItem  # noqa: F401

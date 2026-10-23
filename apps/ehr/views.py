@@ -16,9 +16,9 @@ from django.views.decorators.http import require_POST
 from apps.appointments.models import Appointment
 from apps.core.validators import normalize_digits
 
-from . import clinical, services
+from . import clinical, pharmacy, services
 from .forms import (
-    AddendumForm, AllergyForm, DiagnosisForm, EmergencyAccessForm, EncounterForm, EncounterServiceForm, HistoryForm, PatientForm, ProblemForm,
+    AddendumForm, AllergyForm, CounselingForm, DiagnosisForm, EmergencyAccessForm, EncounterForm, EncounterServiceForm, HistoryForm, PatientForm, ProblemForm,
     ReferralForm, VitalsForm,
 )
 from .models import (
@@ -95,6 +95,7 @@ def chart(request, pk):
         "sparks": {key: clinical.sparkline(summary[key]) for key in ("bp", "weight", "hba1c", "glucose")},
         "problem_form": ProblemForm(prefix="problem"), "allergy_form": AllergyForm(prefix="allergy"),
         "history_form": HistoryForm(prefix="history"), "is_provider": services.provider_for(request.user) is not None,
+        "current_meds": pharmacy.current_medications(patient), "counseling_form": CounselingForm(prefix="c"),
     })
 
 
@@ -163,6 +164,7 @@ def encounter(request, pk):
         "referral_form": ReferralForm(prefix="r") if writable else None,
         "service_form": EncounterServiceForm(prefix="s", initial={"sector": settings.EHR_TARIFF_SECTOR}) if writable else None,
         "services": encounter.services.select_related("service_code"),
+        "prescriptions": encounter.prescriptions.prefetch_related("items__generic", "items__product"),
         "addendum_form": AddendumForm() if not encounter.is_open and getattr(services.provider_for(request.user), "pk", None) == encounter.provider_id else None,
         "vitals": encounter.vitals.all(), "diagnoses": encounter.diagnoses.select_related("icd"),
         "allergies": patient.allergies.filter(is_active=True), "problems": patient.problems.filter(status="active"),

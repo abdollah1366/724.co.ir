@@ -1,0 +1,20 @@
+{% load persian %}<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>نسخه {{ prescription.number }}</title>
+<style>
+  body { font-family: Vazirmatn, Tahoma, sans-serif; margin: 24px; color: #111; }
+  .rx { max-width: 148mm; margin: auto; border: 1px solid #999; padding: 16px; }
+  h1 { font-size: 18px; margin: 0; } table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  td, th { border-bottom: 1px solid #ddd; padding: 6px; text-align: right; font-size: 14px; } .muted { color: #555; font-size: 12px; }
+  @media print { body { margin: 0; } .rx { border: 0; } button { display: none; } }
+</style></head>
+<body><div class="rx">
+  <h1>{{ SITE_NAME }} · نسخه {{ prescription.number }}</h1>
+  <p class="muted">{{ prescription.issued_at|jalali:"%Y/%m/%d" }} · اعتبار تا {{ prescription.valid_until|jalali:"%Y/%m/%d" }}</p>
+  <p>بیمار: {{ prescription.patient.full_name }} · پرونده {{ prescription.patient.file_number }} · کد ملی {{ prescription.patient.masked_identifier }}</p>
+  <table><thead><tr><th>دارو</th><th>تعداد</th><th>دستور مصرف</th></tr></thead><tbody>
+  {% for item in items %}<tr><td>{{ item.label }}</td><td>{{ item.quantity|fa_digits }}</td><td>{{ item.sig }}</td></tr>{% endfor %}
+  </tbody></table>
+  {% if prescription.note %}<p>{{ prescription.note }}</p>{% endif %}
+  <p style="margin-top:32px">{{ prescription.prescriber.full_name }} · نظام پزشکی {{ prescription.prescriber.medical_council_number|fa_digits }}<br><span class="muted">مهر و امضا</span></p>
+  <button onclick="window.print()">چاپ</button>
+</div></body></html>

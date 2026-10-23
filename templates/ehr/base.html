@@ -6,6 +6,7 @@
     {% if perms.ehr.view_patient %}<a href="{% url 'ehr:search' %}">جست‌وجوی بیمار</a>{% endif %}
     {% if perms.ehr.add_patient %}<a href="{% url 'ehr:patient_new' %}">پرونده جدید</a>{% endif %}
     {% if perms.ehr.view_clinical_record %}<a href="{% url 'ehr:my_patients' %}">بیماران امروز من</a>{% endif %}
+    {% if perms.ehr.dispense_prescription %}<a href="{% url 'ehr:pharmacy_queue' %}">نسخه‌های داروخانه</a>{% endif %}
     {% if perms.ehr.view_all_records %}<a href="{% url 'ehr:registry' %}">پایش بیماران مزمن</a>{% endif %}
     {% if perms.ehr.view_recordaccess %}<a href="{% url 'ehr:access_log' %}">گزارش مشاهده پرونده‌ها</a>{% endif %}
   </nav>
@@ -13,6 +14,7 @@
 </section>
 <datalist id="icd-options"></datalist>
 <datalist id="service-options"></datalist>
+<datalist id="drug-options"></datalist>
 <script>
 // جست‌وجوی کد ICD-10 و کد خدمت هنگام تایپ
 function bindSearch(selector, url, listId) {
@@ -39,5 +41,25 @@ document.querySelectorAll(selector).forEach(function (input) {
 }
 bindSearch("[data-icd-search]", "{% url 'ehr:icd_search' %}", "icd-options");
 bindSearch("[data-service-search]", "{% url 'ehr:service_search' %}", "service-options");
+{% if perms.ehr.add_prescription %}
+document.querySelectorAll("[data-drug-search]").forEach(function (input) {
+  var timer;
+  input.addEventListener("input", function () {
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      if (input.value.length < 2 || /^[GP]\d+/.test(input.value)) return;
+      fetch("{% url 'ehr:drug_search' %}?q=" + encodeURIComponent(input.value)).then(function (r) { return r.json(); }).then(function (data) {
+        var list = document.getElementById("drug-options");
+        list.innerHTML = "";
+        data.results.forEach(function (item) {
+          var option = document.createElement("option");
+          option.value = item.value + " " + item.label;
+          list.appendChild(option);
+        });
+      });
+    }, 250);
+  });
+});
+{% endif %}
 </script>
 {% endblock %}

@@ -39,10 +39,12 @@ ROLES = {
             "inventory.stockmove": (VIEW,), "sales.salesinvoice": ("add", "change", "view"), "sales.salesreturn": ("add", "change", "view"),
             "shop.order": ("view", "change"), "shop.pharmacyquestion": ("view", "change"),
             "inventory.inventorydocument": ("add", "change", "view"), "inventory.inventorydocumentline": ("add", "change", "delete", "view"),
+            "ehr.prescription": (VIEW,), "ehr.prescriptionitem": (VIEW,), "ehr.drugcounseling": ("add", VIEW),
+            "ehr.genericdrug": EDIT,
         },
         "extra": [
             "sales.approve_prescription", "sales.post_salesinvoice", "sales.post_salesreturn", "sales.use_pos",
-            "inventory.change_batch_status", "inventory.post_inventorydocument",
+            "inventory.change_batch_status", "inventory.post_inventorydocument", "ehr.dispense_prescription",
         ],
     },
     "انباردار": {
@@ -159,6 +161,7 @@ EHR_DOCTOR = {
     "ehr.vitalsigns": ("add", VIEW), "ehr.diagnosis": EDIT, "ehr.problem": ("add", "change", VIEW),
     "ehr.allergy": ("add", "change", VIEW), "ehr.historyentry": ("add", "change", VIEW), "ehr.referral": ("add", "change", VIEW),
     "ehr.encounterservice": EDIT, "ehr.servicecode": (VIEW,), "ehr.genericdrug": (VIEW,),
+    "ehr.prescription": ("add", "change", VIEW), "ehr.prescriptionitem": EDIT, "ehr.drugcounseling": ("add", VIEW),
 }
 EHR_NURSE = {
     **EHR_CLINICAL, "ehr.encounter": (VIEW,), "ehr.vitalsigns": ("add", VIEW), "ehr.diagnosis": (VIEW,),

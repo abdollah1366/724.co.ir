@@ -20,6 +20,9 @@
   {% elif is_provider and perms.ehr.add_encounter %}
   <form method="post" action="{% url 'ehr:encounter_start' patient.pk %}">{% csrf_token %}<button class="btn">شروع ویزیت جدید</button></form>
   {% endif %}
+  {% if is_provider and perms.ehr.add_prescription %}
+  <form method="post" action="{% url 'ehr:prescription_new' patient.pk %}">{% csrf_token %}<button class="btn btn-outline">نسخه جدید</button></form>
+  {% endif %}
 </div>
 
 <section id="summary" class="ehr-summary">
@@ -66,6 +69,16 @@
       <tr><th>وزن (kg)</th><td class="num">{{ summary.last.weight.label|default:"—" }}{% if summary.bmi %} · BMI {{ summary.bmi }}{% endif %}</td><td></td>
         <td>{% if sparks.weight %}<svg class="spark" viewBox="0 0 220 48" aria-label="روند وزن"><polyline points="{{ sparks.weight }}"/></svg>{% endif %}</td></tr>
     </table>
+  </div>
+
+  <div class="card">
+    <h2>داروهای فعلی</h2>
+    {% for item in current_meds %}
+      <div class="ehr-row">{{ item.label }}{% if item.sig %} <span class="muted">— {{ item.sig }}</span>{% endif %} <a class="muted" href="{% url 'ehr:prescription' item.prescription_id %}">{{ item.prescription.number }}</a></div>
+    {% empty %}<p class="muted">داروی فعالی از نسخه‌های درمانگاه نیست.</p>{% endfor %}
+    {% if perms.ehr.add_drugcounseling %}<details><summary>ثبت مشاوره دارویی</summary>
+      <form method="post" action="{% url 'ehr:chart_counseling' patient.pk %}">{% csrf_token %}{% include "includes/form.html" with form=counseling_form %}<button class="btn btn-small">ثبت</button></form>
+    </details>{% endif %}
   </div>
 
   <div class="card">

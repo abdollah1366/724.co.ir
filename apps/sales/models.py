@@ -143,6 +143,10 @@ class SalesInvoiceLine(DocumentLine):
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="+", verbose_name="کالا")
     quantity = models.PositiveIntegerField("تعداد (واحد پایه)")
     unit_price = models.PositiveBigIntegerField("قیمت واحد (ریال)")
+    prescription_item = models.ForeignKey(
+        "ehr.PrescriptionItem", on_delete=models.PROTECT, null=True, blank=True, related_name="sale_lines",
+        verbose_name="ردیف نسخه درمانگاه",
+    )
     line_discount = models.PositiveBigIntegerField("تخفیف ردیف (ریال)", default=0)
     tax = models.PositiveBigIntegerField("مالیات (ریال)", default=0, editable=False)
     cost_total = models.BigIntegerField("بهای تمام‌شده (ریال)", default=0, editable=False)

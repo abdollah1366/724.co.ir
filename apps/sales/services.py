@@ -98,6 +98,25 @@ def add_line(invoice, product, quantity=1, unit_price=None):
     return line
 
 
+def _validate_clinic_prescription(invoice, lines):
+    """ردیف‌های متصل به نسخه درمانگاه: نسخه معتبر، همان بیمار و بیشتر از مقدار باقی‌مانده تحویل نشود."""
+    for line in lines:
+        item = line.prescription_item
+        if item is None:
+            continue
+        prescription = item.prescription
+        if not prescription.is_valid:
+            raise DocumentError(f"نسخه {prescription} معتبر نیست (لغو یا منقضی شده).")
+        if invoice.patient_id != prescription.patient_id:
+            raise DocumentError("بیمار فاکتور با بیمار نسخه یکی نیست.")
+        if item.product_id and item.product_id != line.product_id:
+            raise DocumentError(f"پزشک کالای مشخص «{item.product.name}» را نوشته است.")
+        if not item.product_id and line.product.generic_id != item.generic_id:
+            raise DocumentError(f"«{line.product.name}» با داروی ژنریک نسخه یکی نیست.")
+        if line.quantity > item.remaining:
+            raise DocumentError(f"تعداد «{line.product.name}» از مقدار باقی‌مانده نسخه ({item.remaining}) بیشتر است.")
+
+
 def validate_sale(invoice):
     compute_taxes(invoice)
     lines = list(invoice.lines.select_related("product"))
@@ -116,6 +135,7 @@ def validate_sale(invoice):
             raise DocumentError(f"حداکثر تعداد مجاز «{product.name}» در هر فروش {product.max_qty_per_sale} است.")
         if online and (product.requires_prescription or product.is_controlled):
             raise DocumentError(f"«{product.name}» نیازمند نسخه است و فروش آنلاین آن مجاز نیست.")
+    _validate_clinic_prescription(invoice, lines)
     needs_rx = any(line.product.requires_prescription for line in lines)
     if needs_rx or invoice.insurance_amount:
         if not invoice.prescription_number.strip() or not invoice.prescriber_council_no.strip():

@@ -161,6 +161,7 @@ class Event:
 KINDS = {
     "encounter": "ویزیت و شرح حال",
     "vitals": "علائم حیاتی",
+    "prescription": "نسخه و مشاوره دارویی",
     "appointment": "نوبت",
     "lab": "آزمایش",
     "drug": "دارو",
@@ -189,6 +190,21 @@ def _encounter_events(patient):
         yield Event("encounter", KINDS["encounter"], e.started_at, f"{e.get_kind_display()} {e.provider.full_name}",
                     status=e.get_status_display(), by=e.provider.full_name, lines=lines,
                     url=reverse("ehr:encounter", args=[e.pk]))
+
+
+def _prescription_events(patient):
+    from django.urls import reverse
+
+    prescriptions = patient.prescriptions.exclude(status="draft").select_related("prescriber").prefetch_related(
+        "items__generic", "items__product")
+    for rx in prescriptions:
+        lines = [f"{item.label} × {item.quantity}" + (f" — {item.sig}" if item.sig else "") for item in rx.items.all()]
+        status = rx.get_status_display() if rx.status == "cancelled" else rx.dispense_status
+        yield Event("prescription", KINDS["prescription"], rx.issued_at or rx.created_at, f"نسخه {rx.number}",
+                    status=status, by=rx.prescriber.full_name, lines=lines, url=reverse("ehr:prescription", args=[rx.pk]))
+    for c in patient.counselings.select_related("user"):
+        yield Event("prescription", "مشاوره دارویی", c.created_at, f"مشاوره دارویی: {c.topics}",
+                    by=c.user.get_full_name() or c.user.username, lines=[c.notes] if c.notes else [])
 
 
 def _vitals_events(patient):
@@ -264,7 +280,7 @@ def _return_events(patient):
 
 
 def timeline(patient, kind=None):
-    events = [*_encounter_events(patient), *_vitals_events(patient), *_appointment_events(patient), *_lab_events(patient), *_sales_events(patient), *_return_events(patient)]
+    events = [*_encounter_events(patient), *_prescription_events(patient), *_vitals_events(patient), *_appointment_events(patient), *_lab_events(patient), *_sales_events(patient), *_return_events(patient)]
     if kind:
         events = [e for e in events if e.kind == kind]
     return sorted(events, key=lambda e: e.when, reverse=True)

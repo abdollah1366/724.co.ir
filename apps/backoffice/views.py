@@ -276,9 +276,10 @@ def pos_checkout(request):
         with transaction.atomic():
             invoice.discount = data["discount"] or 0
             invoice.insurance_amount = data["insurance_amount"] or 0
-            invoice.prescription_number = data["prescription_number"]
-            invoice.prescriber_name = data["prescriber_name"]
-            invoice.prescriber_council_no = data["prescriber_council_no"]
+            # فاکتوری که از نسخه درمانگاه ساخته شده اطلاعات نسخه را از قبل دارد.
+            invoice.prescription_number = data["prescription_number"] or invoice.prescription_number
+            invoice.prescriber_name = data["prescriber_name"] or invoice.prescriber_name
+            invoice.prescriber_council_no = data["prescriber_council_no"] or invoice.prescriber_council_no
             invoice.insurer = data["insurer"]
             invoice.customer = data["customer"]
             if data["patient_national_code"]:
