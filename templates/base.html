@@ -7,6 +7,7 @@
   <meta name="description" content="{% block meta_description %}ساختمان سلامت ۷۲۴: پزشک عمومی و متخصص، داروخانه، آزمایشگاه و نوبت‌دهی اینترنتی.{% endblock %}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
   <a class="skip-link" href="#main">پرش به محتوا</a>
@@ -24,6 +25,7 @@
         <a href="{% url 'lab:home' %}">آزمایشگاه</a>
         <a href="{% url 'shop:pharmacy' %}">داروخانه</a>
         <a href="{% url 'shop:equipment' %}">تجهیزات پزشکی</a>
+        <a href="{% url 'blog:list' %}">مقالات سلامت</a>
         <a href="{% url 'club' %}">باشگاه مشتریان</a>
         <a href="{% url 'shop:cart' %}" class="nav-cart">سبد خرید{% if cart_count %} <span class="count">{{ cart_count|fa_digits }}</span>{% endif %}</a>
         {% if user.is_authenticated %}
@@ -59,6 +61,7 @@
       <div class="footer-links">
         <a href="{% url 'appointments:track' %}">پیگیری نوبت</a>
         <a href="{% url 'shop:consult' %}">مشاوره دارویی</a>
+        <a href="{% url 'blog:list' %}">مقالات سلامت</a>
         <a href="{% url 'core:about' %}">درباره ما</a>
         <a href="{% url 'core:privacy' %}">حریم خصوصی</a>
         <a href="{% url 'core:contact' %}">تماس با ما</a>

@@ -16,6 +16,7 @@ def department_detail(request, slug):
         "department": department,
         "services": department.services.filter(is_active=True),
         "doctors": department.doctors.active().select_related("specialty"),
+        "posts": department.posts.published().select_related("category")[:3],
     }
     if department.kind in (Department.Kind.PHARMACY, Department.Kind.EQUIPMENT):
         kind = Product.Kind.DRUG if department.kind == Department.Kind.PHARMACY else Product.Kind.EQUIPMENT

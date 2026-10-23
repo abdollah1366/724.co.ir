@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /accounts/
+Disallow: /backoffice/
+Disallow: /ehr/
+Disallow: /lab/results/
+Disallow: /lab/my/
+Disallow: /lab/staff/
+Disallow: /cart/
+Sitemap: {{ SITE_URL }}/sitemap.xml

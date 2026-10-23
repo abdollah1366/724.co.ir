@@ -1,0 +1,7 @@
+{% load persian %}<article class="card post-card">
+  {% if post.cover %}<a href="{{ post.get_absolute_url }}" class="post-cover"><img src="{{ post.cover.url }}" alt="{{ post.cover_alt|default:post.title }}" loading="lazy"></a>{% endif %}
+  <p class="floor-label"><a href="{{ post.category.get_absolute_url }}">{{ post.category }}</a></p>
+  <h3><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h3>
+  <p class="muted">{{ post.summary|truncatechars:160 }}</p>
+  <p class="small muted">{{ post.published_at|jalali:"%d %B %Y" }} · {{ post.reading_minutes|fa_digits }} دقیقه مطالعه</p>
+</article>

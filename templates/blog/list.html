@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}{% if current_category %}{{ current_category.name }} | {% elif current_tag %}{{ current_tag.name }} | {% endif %}مقالات سلامت | {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}{% if current_category.description %}{{ current_category.description }}{% else %}مقاله‌های آموزشی سلامت ساختمان ۷۲۴، نوشته و بازبینی‌شده توسط پزشکان و کارشناسان.{% endif %}{% endblock %}
+{% block extra_head %}<link rel="alternate" type="application/rss+xml" title="مقالات سلامت" href="{% url 'blog:feed' %}">{% endblock %}
+{% block content %}
+<section class="container section">
+  <nav class="breadcrumb"><a href="{% url 'core:home' %}">خانه</a> / {% if current_category or current_tag %}<a href="{% url 'blog:list' %}">مقالات سلامت</a>{% else %}مقالات سلامت{% endif %}</nav>
+  <h1>{% if current_category %}{{ current_category.name }}{% elif current_tag %}برچسب: {{ current_tag.name }}{% else %}مقالات سلامت{% endif %}</h1>
+  {% if current_category.description %}<p class="lead">{{ current_category.description }}</p>{% elif not current_tag %}<p class="lead">آموزش سلامت به زبان ساده؛ مقاله‌های پزشکی پیش از انتشار توسط پزشک بازبینی می‌شوند.</p>{% endif %}
+
+  <form class="filters" method="get" role="search">
+    <input type="search" name="q" value="{{ query }}" placeholder="جست‌وجو در مقاله‌ها…" aria-label="جست‌وجو در مقاله‌ها">
+    <button class="btn btn-small" type="submit">جست‌وجو</button>
+  </form>
+  <div class="chips">
+    <a class="chip{% if not current_category and not current_tag %} active{% endif %}" href="{% url 'blog:list' %}">همه</a>
+    {% for cat in categories %}<a class="chip{% if cat == current_category %} active{% endif %}" href="{{ cat.get_absolute_url }}">{{ cat.name }}</a>{% endfor %}
+  </div>
+
+  {% if featured %}
+    <article class="card post-featured">
+      {% if featured.cover %}<a href="{{ featured.get_absolute_url }}" class="post-cover"><img src="{{ featured.cover.url }}" alt="{{ featured.cover_alt|default:featured.title }}"></a>{% endif %}
+      <div>
+        <p class="floor-label">مقاله ویژه · {{ featured.category }}</p>
+        <h2><a href="{{ featured.get_absolute_url }}">{{ featured.title }}</a></h2>
+        <p>{{ featured.summary }}</p>
+        <a class="btn btn-small" href="{{ featured.get_absolute_url }}">ادامه مطلب</a>
+      </div>
+    </article>
+  {% endif %}
+
+  <div class="grid posts">
+    {% for post in page %}{% include "includes/post_card.html" %}{% empty %}
+      <p class="muted">{% if query %}مقاله‌ای با «{{ query }}» پیدا نشد.{% else %}هنوز مقاله‌ای منتشر نشده است.{% endif %}</p>
+    {% endfor %}
+  </div>
+
+  {% if page.has_other_pages %}
+    <nav class="pager" aria-label="صفحه‌ها">
+      {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}">← قبلی</a>{% endif %}
+      <span>صفحه {{ page.number|fa_digits }} از {{ page.paginator.num_pages|fa_digits }}</span>
+      {% if page.has_next %}<a href="?page={{ page.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}">بعدی →</a>{% endif %}
+    </nav>
+  {% endif %}
+</section>
+{% endblock %}

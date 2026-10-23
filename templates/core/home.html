@@ -29,6 +29,13 @@
   </div>
 </section>
 
+{% if latest_posts %}
+<section class="container section">
+  <div class="section-head"><h2>مقالات سلامت</h2><a href="{% url 'blog:list' %}">همه مقاله‌ها ←</a></div>
+  <div class="grid posts">{% for post in latest_posts %}{% include "includes/post_card.html" %}{% endfor %}</div>
+</section>
+{% endif %}
+
 <section class="container section club-banner card">
   <div>
     <h2>باشگاه مشتریان ۷۲۴</h2>
