@@ -73,3 +73,50 @@ class PointTransaction(models.Model):
 
     def __str__(self):
         return f"{self.user} {self.amount:+d} ({self.get_reason_display()})"
+
+
+class Reward(models.Model):
+    """جایزه‌ای که عضو باشگاه می‌تواند با ژتون دریافت کند."""
+
+    title = models.CharField("عنوان جایزه", max_length=150)
+    description = models.CharField("توضیح", max_length=300, blank=True)
+    cost = models.PositiveIntegerField("ژتون لازم")
+    is_active = models.BooleanField("فعال", default=True)
+    order = models.PositiveSmallIntegerField("ترتیب", default=0)
+
+    class Meta:
+        ordering = ["order", "cost"]
+        verbose_name = "جایزه"
+        verbose_name_plural = "جوایز باشگاه"
+
+    def __str__(self):
+        return self.title
+
+
+def generate_redemption_code():
+    return "R" + "".join(secrets.choice(REFERRAL_ALPHABET) for _ in range(7))
+
+
+class Redemption(models.Model):
+    """دریافت جایزه با ژتون؛ کد آن در پذیرش ارائه می‌شود."""
+
+    class Status(models.TextChoices):
+        ISSUED = "issued", "صادر شده"
+        USED = "used", "استفاده شده"
+        CANCELLED = "cancelled", "لغو شده (ژتون برگشت داده شد)"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="redemptions", verbose_name="کاربر")
+    reward = models.ForeignKey(Reward, on_delete=models.PROTECT, related_name="redemptions", verbose_name="جایزه")
+    cost = models.PositiveIntegerField("ژتون کسرشده")
+    code = models.CharField("کد جایزه", max_length=8, unique=True, default=generate_redemption_code, editable=False)
+    status = models.CharField("وضعیت", max_length=10, choices=Status.choices, default=Status.ISSUED)
+    created_at = models.DateTimeField("زمان دریافت", auto_now_add=True)
+    used_at = models.DateTimeField("زمان استفاده", null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "جایزه دریافت‌شده"
+        verbose_name_plural = "جوایز دریافت‌شده"
+
+    def __str__(self):
+        return f"{self.code} - {self.reward}"

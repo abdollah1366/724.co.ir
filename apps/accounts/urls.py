@@ -21,5 +21,6 @@ urlpatterns = [
         ),
         name="password_change",
     ),
+    path("rewards/<int:pk>/redeem/", views.redeem, name="redeem"),
     path("", views.dashboard, name="dashboard"),
 ]

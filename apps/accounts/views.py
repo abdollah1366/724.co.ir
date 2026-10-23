@@ -2,13 +2,15 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from apps.appointments.models import Appointment
 
+from . import club as club_rules
 from .forms import SignupForm
-from .models import Profile
+from .models import Profile, Reward
 
 
 def signup(request):
@@ -39,6 +41,9 @@ def dashboard(request):
         {
             "profile": profile,
             "points": profile.points,
+            "level": club_rules.level_for(request.user),
+            "rewards": Reward.objects.filter(is_active=True),
+            "redemptions": request.user.redemptions.select_related("reward")[:10],
             "transactions": request.user.point_transactions.all()[:20],
             "referral_url": profile.referral_url(request),
             "referral_count": profile.referrals.count(),
@@ -50,4 +55,22 @@ def dashboard(request):
 
 
 def club(request):
-    return render(request, "accounts/club.html", {"rules": settings.CLUB_RULES})
+    return render(
+        request,
+        "accounts/club.html",
+        {"rules": settings.CLUB_RULES, "levels": settings.CLUB_LEVELS, "rewards": Reward.objects.filter(is_active=True)},
+    )
+
+
+@login_required
+@require_POST
+def redeem(request, pk):
+    reward = get_object_or_404(Reward, pk=pk, is_active=True)
+    Profile.objects.get_or_create(user=request.user)
+    try:
+        redemption = club_rules.redeem(request.user, reward)
+    except club_rules.NotEnoughPoints:
+        messages.error(request, "ژتون شما برای این جایزه کافی نیست.")
+    else:
+        messages.success(request, f"جایزه «{reward.title}» صادر شد. کد جایزه: {redemption.code} — آن را در پذیرش ارائه دهید.")
+    return redirect("accounts:dashboard")

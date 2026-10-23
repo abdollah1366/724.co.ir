@@ -3,6 +3,7 @@ import datetime
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
+from apps.accounts.models import Reward
 from apps.clinic.models import Department, Doctor, Service, Specialty, WorkingHours
 from apps.shop.models import Category, Product, ProductKind
 
@@ -114,6 +115,7 @@ class Command(BaseCommand):
         if options["demo"]:
             self._demo_doctors()
             self._demo_products()
+            self._demo_rewards()
         self.stdout.write(self.style.SUCCESS("انجام شد."))
 
     def _demo_doctors(self):
@@ -149,3 +151,15 @@ class Command(BaseCommand):
             data["category"] = categories[data.pop("category")]
             product, created = Product.objects.get_or_create(slug=slug, defaults=data)
             self.stdout.write(f"{'+' if created else '='} {product}")
+
+    def _demo_rewards(self):
+        rewards = [
+            ("تخفیف ۵۰ هزار تومانی خرید از داروخانه (نمونه)", "قابل استفاده برای محصولات بدون نسخه", 200),
+            ("یک نوشیدنی رایگان در کافی‌شاپ ۷۲۴ (نمونه)", "", 100),
+            ("اندازه‌گیری رایگان قند و فشار خون (نمونه)", "در بخش پزشک عمومی", 150),
+        ]
+        for order, (title, description, cost) in enumerate(rewards):
+            reward, created = Reward.objects.get_or_create(
+                title=title, defaults={"description": description, "cost": cost, "order": order}
+            )
+            self.stdout.write(f"{'+' if created else '='} {reward}")

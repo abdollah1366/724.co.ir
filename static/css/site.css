@@ -181,3 +181,6 @@ a.quick:hover { background: rgba(255,255,255,.22); color: #fff; }
 .site-nav a.btn, .site-nav a.btn:hover { color: #fff; }
 .badge { white-space: nowrap; }
 .footer-links { flex-wrap: wrap; }
+.status-issued { background: #fef3c7; color: #92400e; }
+.status-used { background: var(--primary-soft); color: var(--primary-dark); }
+.reward h3 { margin-bottom: 4px; }

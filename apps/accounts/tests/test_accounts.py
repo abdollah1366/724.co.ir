@@ -151,3 +151,64 @@ class ClubPointsTests(TestCase):
     def test_club_page(self):
         response = self.client.get(reverse("club"))
         self.assertContains(response, "معرفی به دوستان")
+
+
+class RewardsAndLevelsTests(TestCase):
+    def setUp(self):
+        from apps.accounts.models import Reward
+
+        signup(self.client)
+        self.user = Profile.objects.get(mobile="09121234567").user
+        self.reward = Reward.objects.create(title="نوشیدنی رایگان", cost=100)
+
+    def give(self, amount, ref):
+        PointTransaction.objects.create(user=self.user, amount=amount, reason="appointment", reference=ref)
+
+    def test_redeem_deducts_points_and_issues_code(self):
+        from apps.accounts.models import Redemption
+
+        self.give(150, "a1")
+        self.client.post(reverse("accounts:redeem", args=[self.reward.pk]))
+        redemption = Redemption.objects.get()
+        self.assertEqual(redemption.status, "issued")
+        self.assertTrue(redemption.code.startswith("R"))
+        self.assertEqual(Profile.objects.get(user=self.user).points, 50)
+        self.assertContains(self.client.get(reverse("accounts:dashboard")), redemption.code)
+
+    def test_cannot_redeem_without_enough_points(self):
+        from apps.accounts.models import Redemption
+
+        self.give(99, "a1")
+        self.client.post(reverse("accounts:redeem", args=[self.reward.pk]))
+        self.assertFalse(Redemption.objects.exists())
+        self.assertEqual(Profile.objects.get(user=self.user).points, 99)
+
+    def test_redeem_requires_post_and_login(self):
+        self.assertEqual(self.client.get(reverse("accounts:redeem", args=[self.reward.pk])).status_code, 405)
+        self.client.logout()
+        self.assertEqual(self.client.post(reverse("accounts:redeem", args=[self.reward.pk])).status_code, 302)
+
+    def test_cancel_refunds_once_and_keeps_level(self):
+        from apps.accounts import club
+        from apps.accounts.models import Redemption
+
+        self.give(600, "a1")
+        self.client.post(reverse("accounts:redeem", args=[self.reward.pk]))
+        redemption = Redemption.objects.get()
+        self.assertTrue(club.cancel_redemption(redemption))
+        self.assertFalse(club.cancel_redemption(redemption))
+        self.assertEqual(Profile.objects.get(user=self.user).points, 600)
+        # ژتون برگشتی سطح را بالا نمی‌برد و خرج کردن ژتون سطح را پایین نمی‌آورد
+        self.assertEqual(club.level_for(self.user)["earned"], 600)
+
+    def test_levels(self):
+        from apps.accounts import club
+
+        self.assertEqual(club.level_for(self.user)["name"], "برنزی")
+        self.give(500, "a1")
+        level = club.level_for(self.user)
+        self.assertEqual(level["name"], "نقره‌ای")
+        self.assertEqual(level["to_next"], 1000)
+        self.give(1000, "a2")
+        self.assertEqual(club.level_for(self.user)["next_name"], None)
+        self.assertContains(self.client.get(reverse("accounts:dashboard")), "طلایی")
