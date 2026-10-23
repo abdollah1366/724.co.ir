@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}ثبت‌نام | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>عضویت در باشگاه مشتریان ۷۲۴</h1>
+  <p class="lead">با عضویت، برای هر ویزیت و خرید ژتون می‌گیرید و نوبت‌ها و سفارش‌هایتان را یک‌جا می‌بینید.</p>
+  <form method="post" class="form card" novalidate>
+    {% csrf_token %}
+    {% include "includes/form.html" %}
+    <button class="btn" type="submit">ثبت‌نام</button>
+  </form>
+  <p>قبلاً عضو شده‌اید؟ <a href="{% url 'accounts:login' %}">ورود</a></p>
+</section>
+{% endblock %}

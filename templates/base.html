@@ -1,4 +1,4 @@
-{% load static %}<!doctype html>
+{% load static persian %}<!doctype html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
@@ -19,11 +19,19 @@
       <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="منو">
       <label for="nav-toggle" class="nav-toggle-label" aria-hidden="true">☰</label>
       <nav class="site-nav" aria-label="منوی اصلی">
-        <a href="{% url 'core:home' %}">خانه</a>
-        <a href="{% url 'clinic:doctor_list' %}">پزشکان</a>
-        <a href="{% url 'appointments:track' %}">پیگیری نوبت</a>
-        <a href="{% url 'core:about' %}">درباره ما</a>
-        <a href="{% url 'core:contact' %}">تماس</a>
+        <a href="{% url 'clinic:department_list' %}">خدمات</a>
+        <a href="{% url 'clinic:doctor_list' %}">پزشکان و نوبت</a>
+        <a href="{% url 'shop:pharmacy' %}">داروخانه</a>
+        <a href="{% url 'shop:equipment' %}">تجهیزات پزشکی</a>
+        <a href="{% url 'club' %}">باشگاه مشتریان</a>
+        <a href="{% url 'shop:cart' %}" class="nav-cart">سبد خرید{% if cart_count %} <span class="count">{{ cart_count|fa_digits }}</span>{% endif %}</a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'accounts:dashboard' %}" class="btn btn-small">حساب من</a>
+          <form method="post" action="{% url 'accounts:logout' %}" class="inline-form">{% csrf_token %}<button type="submit" class="link-button">خروج</button></form>
+        {% else %}
+          <a href="{% url 'accounts:login' %}">ورود</a>
+          <a href="{% url 'accounts:signup' %}" class="btn btn-small">ثبت‌نام</a>
+        {% endif %}
       </nav>
     </div>
   </header>
@@ -47,6 +55,9 @@
         {% if SITE_PHONE %}<p>تلفن: <a href="tel:{{ SITE_PHONE }}">{{ SITE_PHONE }}</a></p>{% endif %}
       </div>
       <div class="footer-links">
+        <a href="{% url 'appointments:track' %}">پیگیری نوبت</a>
+        <a href="{% url 'shop:consult' %}">مشاوره دارویی</a>
+        <a href="{% url 'core:about' %}">درباره ما</a>
         <a href="{% url 'core:privacy' %}">حریم خصوصی</a>
         <a href="{% url 'core:contact' %}">تماس با ما</a>
       </div>

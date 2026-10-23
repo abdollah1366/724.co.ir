@@ -59,6 +59,8 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.clinic",
     "apps.appointments",
+    "apps.shop",
+    "apps.accounts",
 ]
 
 MIDDLEWARE = [
@@ -85,6 +87,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.core.context_processors.site_info",
+                "apps.shop.context_processors.cart",
             ],
         },
     },
@@ -154,6 +157,19 @@ SITE_ADDRESS = os.environ.get("SITE_ADDRESS", "")
 
 # نوبت‌دهی
 APPOINTMENT_BOOKING_DAYS_AHEAD = 30
+
+# ورود کاربران
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "accounts:dashboard"
+LOGOUT_REDIRECT_URL = "core:home"
+
+# قوانین باشگاه مشتریان (تعداد ژتون). مقادیر را مدیریت مجموعه تعیین می‌کند.
+CLUB_RULES = {
+    "appointment_done": 50,  # هر ویزیت یا خدمت انجام‌شده
+    "order_rial_per_point": 100_000,  # هر ۱۰ هزار تومان خرید = ۱ ژتون
+    "referral_referrer": 100,  # به معرف، وقتی دوستش اولین خدمت را گرفت
+    "referral_new_member": 50,  # به عضو جدید با کد معرف، پس از اولین خدمت
+}
 
 LOGGING = {
     "version": 1,

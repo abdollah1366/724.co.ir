@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}حساب من | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <h1>سلام {{ user.first_name|default:user.username }}</h1>
+
+  <div class="grid stats">
+    <div class="card stat">
+      <span class="stat-label">ژتون‌های شما</span>
+      <span class="stat-value">{{ points|fa_digits }}</span>
+      <a href="{% url 'club' %}" class="small">قوانین باشگاه</a>
+    </div>
+    <div class="card stat">
+      <span class="stat-label">دوستان معرفی‌شده</span>
+      <span class="stat-value">{{ referral_count|fa_digits }}</span>
+    </div>
+    <div class="card referral">
+      <span class="stat-label">کد معرف شما</span>
+      <span class="stat-value" dir="ltr">{{ profile.referral_code }}</span>
+      <input type="text" readonly value="{{ referral_url }}" dir="ltr" aria-label="لینک دعوت" onclick="this.select()">
+      <div class="share">
+        <button type="button" class="btn btn-small" onclick="navigator.clipboard && navigator.clipboard.writeText('{{ referral_url|escapejs }}'); this.textContent='کپی شد ✓';">کپی لینک دعوت</button>
+        <a class="btn btn-small btn-outline" href="https://wa.me/?text={{ 'با این لینک در باشگاه مشتریان ۷۲۴ عضو شو و ژتون هدیه بگیر: '|urlencode }}{{ referral_url|urlencode }}" target="_blank" rel="noopener">ارسال در واتس‌اپ</a>
+        <a class="btn btn-small btn-outline" href="https://t.me/share/url?url={{ referral_url|urlencode }}&text={{ 'عضویت در باشگاه مشتریان ۷۲۴'|urlencode }}" target="_blank" rel="noopener">ارسال در تلگرام</a>
+      </div>
+    </div>
+  </div>
+
+  <h2>نوبت‌های من</h2>
+  {% if appointments %}
+    <table class="table">
+      <thead><tr><th>پزشک</th><th>تاریخ</th><th>وضعیت</th></tr></thead>
+      <tbody>{% for a in appointments %}<tr><td>{{ a.doctor.full_name }}</td><td>{{ a.date|jalali }} - {{ a.time|time:"H:i"|fa_digits }}</td><td><span class="badge status-{{ a.status }}">{{ a.get_status_display }}</span></td></tr>{% endfor %}</tbody>
+    </table>
+  {% else %}<p class="muted">هنوز نوبتی ندارید. <a href="{% url 'clinic:doctor_list' %}">دریافت نوبت</a></p>{% endif %}
+
+  <h2>سفارش‌های من</h2>
+  {% if orders %}
+    <table class="table">
+      <thead><tr><th>کد</th><th>تاریخ</th><th>مبلغ</th><th>وضعیت</th></tr></thead>
+      <tbody>{% for o in orders %}<tr><td><a href="{% url 'shop:order_detail' o.code %}">{{ o.code|fa_digits }}</a></td><td>{{ o.created_at|jalali:"%d %B %Y" }}</td><td>{{ o.total|toman }}</td><td><span class="badge status-{{ o.status }}">{{ o.get_status_display }}</span></td></tr>{% endfor %}</tbody>
+    </table>
+  {% else %}<p class="muted">هنوز سفارشی ثبت نکرده‌اید.</p>{% endif %}
+
+  {% if questions %}
+    <h2>مشاوره‌های دارویی</h2>
+    {% for q in questions %}
+      <div class="card qa">
+        <p><strong>سؤال:</strong> {{ q.question }}</p>
+        {% if q.answer %}<p><strong>پاسخ داروساز:</strong> {{ q.answer|linebreaksbr }}</p>{% else %}<p class="muted">در انتظار پاسخ داروساز</p>{% endif %}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <h2>تاریخچه ژتون</h2>
+  {% if transactions %}
+    <table class="table">
+      <thead><tr><th>تاریخ</th><th>شرح</th><th>ژتون</th></tr></thead>
+      <tbody>{% for t in transactions %}<tr><td>{{ t.created_at|jalali:"%d %B %Y" }}</td><td>{{ t.get_reason_display }}{% if t.description %} — {{ t.description }}{% endif %}</td><td dir="ltr" class="{% if t.amount < 0 %}error{% else %}price{% endif %}">{% if t.amount > 0 %}+{% endif %}{{ t.amount|fa_digits }}</td></tr>{% endfor %}</tbody>
+    </table>
+  {% else %}<p class="muted">با اولین ویزیت یا خرید، ژتون‌هایتان اینجا نمایش داده می‌شود.</p>{% endif %}
+
+  <p><a href="{% url 'accounts:password_change' %}">تغییر رمز عبور</a></p>
+</section>
+{% endblock %}
