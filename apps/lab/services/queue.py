@@ -155,11 +155,11 @@ def display_data(service_codes=None, history=6):
     }
 
 
-def stats(day):
-    """میانگین انتظار و تعداد نوبت هر خدمت در یک روز (برای گزارش مدیریت)."""
+def stats(start, end=None):
+    """میانگین انتظار و تعداد نوبت هر خدمت در یک روز یا بازه (برای گزارش مدیریت)."""
     rows = []
     for service in QueueService.objects.all():
-        tickets = list(QueueTicket.objects.filter(date=day, service=service))
+        tickets = list(QueueTicket.objects.filter(date__range=(start, end or start), service=service))
         if not tickets:
             continue
         waits = [t.wait_minutes for t in tickets if t.called_at]

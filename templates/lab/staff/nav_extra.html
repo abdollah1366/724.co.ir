@@ -3,3 +3,4 @@
 {% if perms.lab.view_insuranceclaim %}<a href="{% url 'lab:staff_claims' %}">بیمه‌ها</a>{% endif %}
 {% if perms.lab.view_consultrequest %}<a href="{% url 'lab:crm_inbox' %}">مشاور و مشتریان</a>{% endif %}
 {% if perms.lab.view_labpayment %}<a href="{% url 'lab:staff_cashier' %}">صندوق</a>{% endif %}
+{% if perms.lab.view_laborder %}<a href="{% url 'lab:staff_reports' %}">گزارش‌ها</a>{% endif %}

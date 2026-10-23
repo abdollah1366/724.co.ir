@@ -58,7 +58,8 @@
     document.getElementById("now-counter").textContent = now ? now.counter : "";
     var h = document.getElementById("history"); h.innerHTML = "";
     calls.slice(now ? 1 : 0).forEach(function (c) {
-      var li = document.createElement("li"); li.textContent = faDigits(c.ticket) + " ← " + c.counter; h.appendChild(li);
+      var li = document.createElement("li"), t = document.createElement("span");
+      t.className = "t"; t.textContent = faDigits(c.ticket); li.appendChild(t); li.appendChild(document.createTextNode(" ← " + c.counter)); h.appendChild(li);
     });
     var w = document.getElementById("waiting"); w.innerHTML = "";
     data.waiting.forEach(function (s) {

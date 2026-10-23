@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import api, booking, crm, dashboard, finance, lis, portal, public, queue, staff
+from .views import api, booking, crm, dashboard, finance, lis, portal, public, queue, reports, staff
 
 app_name = "lab"
 
@@ -64,4 +64,5 @@ urlpatterns = [
     path("staff/claims/", finance.claims, name="staff_claims"),
     path("staff/claims/<int:pk>/", finance.claim_detail, name="staff_claim"),
     path("staff/cashier/", finance.cashier_report, name="staff_cashier"),
+    path("staff/reports/", reports.reports, name="staff_reports"),
 ]

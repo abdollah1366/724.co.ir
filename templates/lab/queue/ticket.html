@@ -7,7 +7,7 @@
   <div class="ticket-print">
     <div class="ticket-lab">{{ LAB_INFO.name|default:"آزمایشگاه" }}</div>
     <div class="ticket-service">{{ ticket.service.name }}</div>
-    <div class="ticket-number">{{ ticket.label|fa_digits }}</div>
+    <div class="ticket-number"><span class="ticket-label">{{ ticket.label|fa_digits }}</span></div>
     {% if ticket.priority %}<div class="ticket-note">{{ ticket.get_priority_display }}</div>{% endif %}
     <div class="ticket-note">{% if ahead %}{{ ahead|fa_digits }} نفر جلوتر از شما هستند.{% else %}به‌زودی فراخوانده می‌شوید.{% endif %}</div>
     <div class="ticket-time">{{ ticket.issued_at|jalali:"%Y/%m/%d %H:%M" }}</div>

@@ -239,7 +239,11 @@ body.screen { min-height: 100vh; margin: 0; }
 .display-now { display: grid; grid-template-columns: 1fr 1fr; align-content: center; text-align: center; background: #12313f; border-radius: 24px; padding: 24px; }
 .display-label { font-size: 2rem; color: #94a3b8; }
 .display-ticket { font-size: clamp(4rem, 12vw, 11rem); font-weight: 800; color: #fbbf24; line-height: 1.1; }
-.display-counter { font-size: clamp(2.5rem, 7vw, 6rem); font-weight: 800; align-self: center; }
+.display-counter { font-size: clamp(2rem, 5vw, 4.5rem); font-weight: 800; align-self: center; }
+.ticket-label, .display-ticket, .display-history .t { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+.display-start[hidden] { display: none; }
+.queue-grid { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.4fr); gap: 16px; align-items: start; }
+@media (max-width: 800px) { .queue-grid { grid-template-columns: 1fr; } }
 .display-now.flash { animation: queue-flash 1s ease-in-out 3; }
 @keyframes queue-flash { 50% { background: #0f766e; } }
 .display-side { background: #12313f; border-radius: 24px; padding: 20px 24px; overflow: hidden; }
