@@ -1,0 +1,10 @@
+{% extends "ehr/base.html" %}
+{% block ehr_title %}{% if patient %}مشخصات {{ patient.full_name }}{% else %}پرونده جدید{% endif %}{% endblock %}
+{% block ehr_content %}
+<h1>{% if patient %}مشخصات بیمار · {{ patient.file_number }}{% else %}پرونده جدید{% endif %}</h1>
+<p class="muted">پیش از ذخیره، مشخصات را با کارت ملی یا مدرک شناسایی بیمار تطبیق دهید. ذخیره این فرم یعنی هویت بیمار تأیید شده است.</p>
+<form class="card" method="post">{% csrf_token %}
+  {% include "includes/form.html" %}
+  <button class="btn">ذخیره</button>
+</form>
+{% endblock %}

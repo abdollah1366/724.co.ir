@@ -61,6 +61,10 @@ class Service(models.Model):
     description = models.TextField("توضیحات", blank=True)
     price = models.PositiveBigIntegerField("تعرفه (ریال)", null=True, blank=True)
     price_note = models.CharField("توضیح تعرفه", max_length=200, blank=True)
+    service_code = models.ForeignKey(
+        "ehr.ServiceCode", on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+        verbose_name="کد ملی خدمت (کتاب ارزش نسبی)",
+    )
     requires_qualified_provider = models.BooleanField(
         "نیازمند ارائه‌دهنده دارای صلاحیت",
         default=False,
@@ -96,6 +100,22 @@ class DoctorQuerySet(models.QuerySet):
         return self.filter(is_active=True)
 
 
+class ProviderType(models.TextChoices):
+    PHYSICIAN = "physician", "پزشک"
+    DENTIST = "dentist", "دندانپزشک"
+    PHYSIOTHERAPIST = "physio", "فیزیوتراپیست"
+    SPEECH_THERAPIST = "speech", "گفتاردرمانگر"
+    OCCUPATIONAL_THERAPIST = "ot", "کاردرمانگر"
+    PSYCHOLOGIST = "psychology", "روانشناس"
+    AUDIOLOGIST = "audiology", "شنوایی‌شناس"
+    NUTRITIONIST = "nutrition", "کارشناس تغذیه"
+    MIDWIFE = "midwife", "ماما"
+
+
+# فقط این گروه‌ها نسخه دارویی می‌نویسند.
+PRESCRIBER_TYPES = {ProviderType.PHYSICIAN, ProviderType.DENTIST, ProviderType.MIDWIFE}
+
+
 class Doctor(models.Model):
     first_name = models.CharField("نام", max_length=80)
     last_name = models.CharField("نام خانوادگی", max_length=80)
@@ -107,14 +127,24 @@ class Doctor(models.Model):
     department = models.ForeignKey(
         Department, on_delete=models.PROTECT, related_name="doctors", verbose_name="بخش"
     )
+    provider_type = models.CharField("نوع ارائه‌دهنده", max_length=12, choices=ProviderType.choices, default=ProviderType.PHYSICIAN)
     medical_council_number = models.CharField(
-        "شماره نظام پزشکی", max_length=20, unique=True, help_text="برای نمایش عمومی و احراز صلاحیت الزامی است."
+        "شماره نظام پزشکی / نظام روانشناسی", max_length=20, unique=True,
+        help_text="برای نمایش عمومی و احراز صلاحیت الزامی است.",
     )
     photo = models.ImageField("تصویر", upload_to="doctors/", blank=True)
     bio = models.TextField("رزومه و معرفی", blank=True)
     visit_fee = models.PositiveBigIntegerField("هزینه ویزیت (ریال)", null=True, blank=True)
     accepts_online_booking = models.BooleanField("نوبت‌دهی اینترنتی", default=True)
+    room = models.CharField("اتاق / مطب", max_length=40, blank=True, help_text="روی مانیتور صف خوانده می‌شود؛ مثل «اتاق ۳»")
+    queue_code = models.CharField(
+        "حرف صف", max_length=2, blank=True, help_text="پیشوند شماره نوبت حضوری این پزشک روی مانیتور؛ مثل M (خالی = فقط عدد)"
+    )
     is_active = models.BooleanField("فعال", default=True)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="doctor",
+        verbose_name="حساب کاربری پزشک", help_text="برای ورود پزشک به میز کار و پرونده بیمارانش.",
+    )
 
     objects = DoctorQuerySet.as_manager()
 
@@ -132,6 +162,10 @@ class Doctor(models.Model):
 
     def get_absolute_url(self):
         return reverse("clinic:doctor_detail", args=[self.slug])
+
+    @property
+    def can_prescribe(self):
+        return self.provider_type in PRESCRIBER_TYPES
 
     def available_dates(self, days=None):
         """روزهای آینده‌ای که پزشک برنامه کاری دارد."""

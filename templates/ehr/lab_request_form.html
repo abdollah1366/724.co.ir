@@ -1,0 +1,9 @@
+{% extends "ehr/base.html" %}
+{% block ehr_title %}درخواست آزمایش{% endblock %}
+{% block ehr_content %}
+<h1>درخواست آزمایش · <a href="{% url 'ehr:encounter' encounter.pk %}">{{ patient.full_name }}</a></h1>
+<form class="card ehr-checklist" method="post">{% csrf_token %}
+  {% include "includes/form.html" %}
+  <button class="btn">ثبت درخواست</button>
+</form>
+{% endblock %}

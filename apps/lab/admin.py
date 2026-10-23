@@ -78,7 +78,7 @@ class InsurancePlanAdmin(admin.ModelAdmin):
 class LabPatientAdmin(admin.ModelAdmin):
     list_display = ("full_name", "national_code", "foreign_id", "mobile", "sex", "birth_date", "user")
     search_fields = ("national_code", "foreign_id", "mobile", "last_name", "first_name")
-    readonly_fields = ("user", "created_at", "updated_at", "reminder_consent_at")
+    readonly_fields = ("user", "patient", "created_at", "updated_at", "reminder_consent_at")
 
 
 @admin.register(SamplingSchedule)

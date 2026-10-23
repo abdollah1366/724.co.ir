@@ -111,6 +111,10 @@ class LabPatient(models.Model):
         limit_choices_to={"kind": InsurancePlan.Kind.SUPPLEMENTARY},
     )
     supplementary_insurance_no = models.CharField("شماره بیمه تکمیلی", max_length=30, blank=True)
+    patient = models.OneToOneField(
+        "ehr.Patient", on_delete=models.PROTECT, null=True, blank=True, related_name="lab_patient",
+        verbose_name="پرونده سلامت", help_text="با کد ملی یا کد اتباع خودکار وصل می‌شود.",
+    )
     reminder_consent_at = models.DateTimeField(
         "رضایت به یادآوری آزمایش دوره‌ای", null=True, blank=True, help_text="خالی = پیامک یادآوری ارسال نمی‌شود"
     )

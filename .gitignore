@@ -12,3 +12,4 @@ db.sqlite3
 htmlcov/
 .DS_Store
 /backups/
+/private_media/

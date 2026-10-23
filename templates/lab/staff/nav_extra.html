@@ -1,3 +1,4 @@
+{% if perms.lab.add_laborder %}<a href="{% url 'ehr:lab_request_queue' %}">درخواست پزشکان</a>{% endif %}
 {% if perms.lab.view_labresult %}<a href="{% url 'lab:staff_worklist' %}">کارتابل جواب</a>{% endif %}
 {% if perms.lab.add_qcresult %}<a href="{% url 'lab:staff_qc' %}">کنترل کیفی</a>{% endif %}
 {% if perms.lab.view_insuranceclaim %}<a href="{% url 'lab:staff_claims' %}">بیمه‌ها</a>{% endif %}

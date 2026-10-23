@@ -1,0 +1,16 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}درخواست‌های پزشکان{% endblock %}
+{% block lab_content %}
+<h1>درخواست آزمایش پزشکان درمانگاه</h1>
+<form class="card filters" method="get"><input type="search" name="q" value="{{ query }}" placeholder="کد ملی یا شماره درخواست" aria-label="جست‌وجو"><button class="btn btn-small">جست‌وجو</button></form>
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>شماره</th><th>تاریخ</th><th>بیمار</th><th>پزشک</th><th>آزمایش‌ها</th><th></th></tr></thead>
+  <tbody>{% for r in requests %}
+    <tr><td>{{ r.number }}{% if r.is_urgent %} <span class="badge badge-warn">فوری</span>{% endif %}</td><td>{{ r.created_at|jalali:"%Y/%m/%d %H:%M" }}</td>
+    <td>{{ r.patient.full_name }} <span class="muted">{{ r.patient.masked_identifier }}</span></td><td>{{ r.doctor.full_name }}</td>
+    <td>{% for t in r.tests.all %}{{ t.name }}{% if not forloop.last %}، {% endif %}{% endfor %}{% for p in r.panels.all %} · {{ p.name }}{% endfor %}{% if r.clinical_note %}<div class="muted">{{ r.clinical_note }}</div>{% endif %}</td>
+    <td><form method="post">{% csrf_token %}<input type="hidden" name="request" value="{{ r.pk }}"><button class="btn btn-small">پذیرش</button></form></td></tr>
+  {% empty %}<tr><td colspan="6" class="muted">درخواست بازی نیست.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

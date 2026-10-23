@@ -1,0 +1,17 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}پایش بیماران مزمن{% endblock %}
+{% block ehr_content %}
+<h1>پایش بیماران مزمن</h1>
+<nav class="bo-nav" aria-label="برنامه">{% for key, label in programs %}<a href="?program={{ key }}"{% if key == program %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+<p class="muted">هدف کنترل: فشار کمتر از {{ targets.BP_TARGET.0|fa_digits }}/{{ targets.BP_TARGET.1|fa_digits }} و HbA1c کمتر از {{ targets.HBA1C_TARGET|fa_digits }}٪. بیماران کنترل‌نشده بالای فهرست هستند.</p>
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>پرونده</th><th>بیمار</th><th>آخرین فشار</th><th>آخرین HbA1c</th><th>آخرین ویزیت</th><th>وضعیت</th></tr></thead>
+  <tbody>{% for r in rows %}
+    <tr><td><a href="{% url 'ehr:chart' r.patient.pk %}">{{ r.patient.file_number }}</a></td><td>{{ r.patient.full_name }}</td>
+    <td class="num">{{ r.bp.label|default:"—" }}</td><td class="num">{{ r.hba1c.label|default:"—" }}</td>
+    <td>{% if r.last_visit %}{{ r.last_visit.started_at|jalali:"%Y/%m/%d" }}{% else %}—{% endif %}</td>
+    <td>{% if r.controlled is True %}<span class="badge">کنترل‌شده</span>{% elif r.controlled is False %}<span class="badge badge-warn">کنترل‌نشده</span>{% else %}<span class="muted">بدون اندازه‌گیری</span>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="6" class="muted">بیماری در این برنامه نیست.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

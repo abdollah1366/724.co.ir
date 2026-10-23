@@ -1,0 +1,32 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}کارکنان و نقش‌ها{% endblock %}
+{% block bo_content %}
+<h1>کارکنان و نقش‌ها</h1>
+<p class="muted">هر نفر می‌تواند چند نقش داشته باشد؛ دسترسی‌ها جمع می‌شوند. ساخت و تغییر نقش‌ها در گزارش ممیزی ثبت می‌شود.</p>
+<form class="card ehr-filter" method="get">
+  <input name="q" value="{{ query }}" placeholder="نام یا نام کاربری">
+  <select name="role"><option value="">همه نقش‌ها</option>
+    {% for area, names in areas %}<optgroup label="{{ area }}">{% for n in names %}<option value="{{ n }}"{% if n == role %} selected{% endif %}>{{ n }}</option>{% endfor %}</optgroup>{% endfor %}
+  </select>
+  <button class="btn btn-small">جست‌وجو</button>
+  {% if perms.auth.add_user %}<a class="btn btn-small" href="{% url 'backoffice:staff_new' %}">کارمند جدید</a>{% endif %}
+</form>
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>نام</th><th>نام کاربری</th><th>نقش‌ها</th><th>پزشک متناظر</th><th>وضعیت</th><th></th></tr></thead>
+  <tbody>{% for u in users %}
+    <tr><td>{{ u.get_full_name|default:"—" }}</td><td dir="ltr">{{ u.username }}</td>
+      <td>{% if u.is_superuser %}<span class="badge badge-warn">مدیر ارشد سامانه</span> {% endif %}{% for g in u.groups.all %}<span class="badge">{{ g.name }}</span> {% empty %}{% if not u.is_superuser %}<span class="muted">بدون نقش</span>{% endif %}{% endfor %}</td>
+      <td>{{ u.doctor.full_name|default:"" }}</td>
+      <td>{% if u.is_active %}فعال{% else %}<span class="muted">غیرفعال</span>{% endif %}</td>
+      <td>{% if can_edit %}{% if request.user.is_superuser or not u.is_superuser %}<a href="{% url 'backoffice:staff_edit' u.pk %}">ویرایش</a>{% endif %}{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="6" class="muted">کارمندی پیدا نشد.</td></tr>{% endfor %}</tbody>
+</table></div>
+
+<h2>شرح نقش‌ها</h2>
+{% for area, rows in guide %}
+<div class="card"><h3>{{ area }}</h3>
+  {% for n, count, text in rows %}<div class="ehr-row"><strong>{{ n }}</strong> ({{ count|fa_digits }} نفر): {{ text }}</div>{% endfor %}
+</div>
+{% endfor %}
+{% endblock %}
