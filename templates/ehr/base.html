@@ -6,8 +6,33 @@
     {% if perms.ehr.view_patient %}<a href="{% url 'ehr:search' %}">جست‌وجوی بیمار</a>{% endif %}
     {% if perms.ehr.add_patient %}<a href="{% url 'ehr:patient_new' %}">پرونده جدید</a>{% endif %}
     {% if perms.ehr.view_clinical_record %}<a href="{% url 'ehr:my_patients' %}">بیماران امروز من</a>{% endif %}
+    {% if perms.ehr.view_all_records %}<a href="{% url 'ehr:registry' %}">پایش بیماران مزمن</a>{% endif %}
     {% if perms.ehr.view_recordaccess %}<a href="{% url 'ehr:access_log' %}">گزارش مشاهده پرونده‌ها</a>{% endif %}
   </nav>
   {% block ehr_content %}{% endblock %}
 </section>
+<datalist id="icd-options"></datalist>
+<script>
+// جست‌وجوی کد ICD-10 هنگام تایپ
+document.querySelectorAll("[data-icd-search]").forEach(function (input) {
+  var timer;
+  input.addEventListener("input", function () {
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      if (input.value.length < 2) return;
+      fetch("{% url 'ehr:icd_search' %}?q=" + encodeURIComponent(input.value)).then(function (r) { return r.json(); }).then(function (data) {
+        var list = document.getElementById("icd-options");
+        list.innerHTML = "";
+        data.results.forEach(function (item) {
+          var option = document.createElement("option");
+          option.value = item.code;
+          option.label = item.code + " " + item.title;
+          option.textContent = item.title;
+          list.appendChild(option);
+        });
+      });
+    }, 250);
+  });
+});
+</script>
 {% endblock %}

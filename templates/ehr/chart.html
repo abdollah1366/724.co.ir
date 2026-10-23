@@ -15,6 +15,72 @@
   {% if perms.ehr.change_patient %}<a class="btn btn-small btn-outline no-print" href="{% url 'ehr:patient_edit' patient.pk %}">ویرایش مشخصات</a>{% endif %}
 </div>
 
+<div class="ehr-actions no-print">
+  {% if open_encounter %}<a class="btn" href="{% url 'ehr:encounter' open_encounter.pk %}">ادامه ویزیت باز ({{ open_encounter.provider.full_name }})</a>
+  {% elif is_provider and perms.ehr.add_encounter %}
+  <form method="post" action="{% url 'ehr:encounter_start' patient.pk %}">{% csrf_token %}<button class="btn">شروع ویزیت جدید</button></form>
+  {% endif %}
+</div>
+
+<section id="summary" class="ehr-summary">
+  <div class="card">
+    <h2>حساسیت‌ها</h2>
+    {% for a in allergies %}
+      <div class="ehr-row{% if not a.is_active %} muted{% endif %}">
+        <span class="{% if a.is_active and a.severity == 'severe' %}badge status-cancelled{% elif a.is_active %}badge badge-warn{% endif %}">{{ a.substance }}</span>
+        {{ a.get_kind_display }} · {{ a.get_severity_display }}{% if a.reaction %} · {{ a.reaction }}{% endif %}{% if not a.is_active %} (غیرفعال){% endif %}
+        {% if perms.ehr.change_allergy %}<form method="post" action="{% url 'ehr:allergy_toggle' a.pk %}" class="inline">{% csrf_token %}<button class="link">{% if a.is_active %}غیرفعال{% else %}فعال{% endif %}</button></form>{% endif %}
+      </div>
+    {% empty %}<p class="muted">حساسیتی ثبت نشده.</p>{% endfor %}
+    {% if perms.ehr.add_allergy %}<details><summary>افزودن حساسیت</summary>
+      <form method="post" action="{% url 'ehr:chart_add' patient.pk 'allergy' %}">{% csrf_token %}{% include "includes/form.html" with form=allergy_form %}<button class="btn btn-small">ثبت</button></form>
+    </details>{% endif %}
+  </div>
+
+  <div class="card">
+    <h2>فهرست مشکلات</h2>
+    {% for p in problems %}
+      <div class="ehr-row{% if p.status == 'resolved' %} muted{% endif %}">
+        {% if p.icd %}<span dir="ltr">{{ p.icd.code }}</span> {% endif %}{{ p.title|default:p.icd.title_fa|default:p.icd.title }}
+        {% if p.chronic_program %}<span class="badge">{{ p.get_chronic_program_display }}</span>{% endif %}
+        {% if p.status == 'resolved' %}(برطرف‌شده){% endif %}
+        {% if perms.ehr.change_problem %}<form method="post" action="{% url 'ehr:problem_toggle' p.pk %}" class="inline">{% csrf_token %}<button class="link">{% if p.status == 'active' %}برطرف شد{% else %}فعال{% endif %}</button></form>{% endif %}
+      </div>
+    {% empty %}<p class="muted">مشکلی ثبت نشده.</p>{% endfor %}
+    {% if perms.ehr.add_problem %}<details><summary>افزودن مشکل / بیماری</summary>
+      <form method="post" action="{% url 'ehr:chart_add' patient.pk 'problem' %}">{% csrf_token %}{% include "includes/form.html" with form=problem_form %}<button class="btn btn-small">ثبت</button></form>
+    </details>{% endif %}
+  </div>
+
+  <div class="card">
+    <h2>پایش{% if summary.programs %}: {{ summary.programs|join:"، " }}{% endif %}</h2>
+    {% with v=summary.latest_vitals %}{% if v %}<p class="muted">آخرین علائم حیاتی {{ v.recorded_at|jalali:"%Y/%m/%d" }}</p>{% endif %}{% endwith %}
+    <table class="table data">
+      <tr><th>فشار خون</th><td class="num">{{ summary.last.bp.label|default:"—" }}</td><td>{% if summary.status.bp is True %}<span class="badge">کنترل‌شده</span>{% elif summary.status.bp is False %}<span class="badge badge-warn">کنترل‌نشده</span>{% endif %}</td>
+        <td>{% if sparks.bp %}<svg class="spark" viewBox="0 0 220 48" aria-label="روند فشار سیستول"><polyline points="{{ sparks.bp }}"/></svg>{% endif %}</td></tr>
+      <tr><th>HbA1c (٪)</th><td class="num">{{ summary.last.hba1c.label|default:"—" }}</td><td>{% if summary.status.hba1c is True %}<span class="badge">کنترل‌شده</span>{% elif summary.status.hba1c is False %}<span class="badge badge-warn">کنترل‌نشده</span>{% endif %}</td>
+        <td>{% if sparks.hba1c %}<svg class="spark" viewBox="0 0 220 48" aria-label="روند HbA1c"><polyline points="{{ sparks.hba1c }}"/></svg>{% endif %}</td></tr>
+      <tr><th>قند ناشتا آزمایشگاه</th><td class="num">{{ summary.last.fbs.label|default:"—" }}</td><td></td><td></td></tr>
+      <tr><th>قند گلوکومتر</th><td class="num">{{ summary.last.glucose.label|default:"—" }}</td><td></td>
+        <td>{% if sparks.glucose %}<svg class="spark" viewBox="0 0 220 48" aria-label="روند قند"><polyline points="{{ sparks.glucose }}"/></svg>{% endif %}</td></tr>
+      <tr><th>وزن (kg)</th><td class="num">{{ summary.last.weight.label|default:"—" }}{% if summary.bmi %} · BMI {{ summary.bmi }}{% endif %}</td><td></td>
+        <td>{% if sparks.weight %}<svg class="spark" viewBox="0 0 220 48" aria-label="روند وزن"><polyline points="{{ sparks.weight }}"/></svg>{% endif %}</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>سوابق</h2>
+    {% regroup history by get_kind_display as groups %}
+    {% for g in groups %}<p><strong>{{ g.grouper }}:</strong> {% for h in g.list %}{{ h.text }}{% if h.date %} ({{ h.date|jalali:"%Y" }}){% endif %}{% if not forloop.last %}، {% endif %}{% endfor %}</p>
+    {% empty %}<p class="muted">سابقه‌ای ثبت نشده.</p>{% endfor %}
+    {% if referrals %}<p><strong>ارجاع‌های باز:</strong> {% for r in referrals %}{{ r.to_provider.full_name|default:r.to_service }} ({{ r.reason }}){% if not forloop.last %}، {% endif %}{% endfor %}</p>{% endif %}
+    {% if perms.ehr.add_historyentry %}<details><summary>افزودن سابقه</summary>
+      <form method="post" action="{% url 'ehr:chart_add' patient.pk 'history' %}">{% csrf_token %}{% include "includes/form.html" with form=history_form %}<button class="btn btn-small">ثبت</button></form>
+    </details>{% endif %}
+  </div>
+</section>
+
+<h2>خط زمانی</h2>
 <nav class="bo-nav no-print" aria-label="نوع سابقه">
   <a href="?"{% if not selected %} aria-current="page"{% endif %}>همه سوابق</a>
   {% for key, label in kinds.items %}<a href="?kind={{ key }}"{% if selected == key %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
@@ -25,7 +91,7 @@
   <li class="card ehr-event ehr-{{ e.kind }}">
     <div class="ehr-event-head">
       <span class="badge">{{ e.kind_label }}</span>
-      <strong>{{ e.title }}</strong>
+      <strong>{% if e.url %}<a href="{{ e.url }}">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %}</strong>
       <span class="muted">{{ e.when|jalali:"%Y/%m/%d %H:%M" }}</span>
       {% if e.status %}<span class="muted">· {{ e.status }}</span>{% endif %}
     </div>

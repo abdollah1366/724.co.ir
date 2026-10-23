@@ -8,7 +8,10 @@
   <thead><tr><th>ساعت</th><th>بیمار</th><th>وضعیت</th><th></th></tr></thead>
   <tbody>{% for a in appointments %}
     <tr><td>{{ a.time|time:"H:i"|fa_digits }}</td><td>{{ a.patient_full_name }}</td><td>{{ a.get_status_display }}</td>
-    <td>{% if a.patient %}<a class="btn btn-small" href="{% url 'ehr:chart' a.patient.pk %}">پرونده</a>{% endif %}</td></tr>
+    <td>{% if a.patient %}<a class="btn btn-small btn-outline" href="{% url 'ehr:chart' a.patient.pk %}">پرونده</a>
+      {% if a.encounter %}<a class="btn btn-small" href="{% url 'ehr:encounter' a.encounter.pk %}">{% if a.encounter.is_open %}ادامه ویزیت{% else %}ویزیت انجام شد{% endif %}</a>
+      {% elif perms.ehr.add_encounter %}<form method="post" action="{% url 'ehr:encounter_start' a.patient.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="appointment" value="{{ a.pk }}"><button class="btn btn-small">شروع ویزیت</button></form>{% endif %}
+    {% endif %}</td></tr>
   {% empty %}<tr><td colspan="4" class="muted">امروز نوبتی ندارید.</td></tr>{% endfor %}</tbody>
 </table></div>
 {% endblock %}

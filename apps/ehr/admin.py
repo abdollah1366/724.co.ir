@@ -31,3 +31,56 @@ class RecordAccessAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+from .models import Allergy, Diagnosis, Encounter, EncounterAddendum, HistoryEntry, ICD10Code, Problem, Referral, VitalSigns  # noqa: E402
+
+
+@admin.register(ICD10Code)
+class ICD10CodeAdmin(admin.ModelAdmin):
+    list_display = ("code", "title_fa", "title", "is_active")
+    search_fields = ("code", "title", "title_fa")
+    list_filter = ("is_active",)
+
+
+class ReadOnlyClinicalAdmin(admin.ModelAdmin):
+    """داده بالینی فقط از میز کار پزشک ثبت می‌شود؛ پنل مدیریت فقط برای مشاهده و ممیزی است."""
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+class DiagnosisInline(admin.TabularInline):
+    model = Diagnosis
+    extra = 0
+    can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+class AddendumInline(DiagnosisInline):
+    model = EncounterAddendum
+
+
+@admin.register(Encounter)
+class EncounterAdmin(ReadOnlyClinicalAdmin):
+    list_display = ("started_at", "patient", "provider", "kind", "status")
+    list_filter = ("status", "kind", "provider")
+    search_fields = ("patient__file_number", "patient__national_code", "patient__last_name")
+    inlines = [DiagnosisInline, AddendumInline]
+
+
+for model in (VitalSigns, Problem, Allergy, HistoryEntry, Referral):
+    admin.site.register(model, type(f"{model.__name__}Admin", (ReadOnlyClinicalAdmin,), {
+        "list_display": ("__str__", "patient"), "search_fields": ("patient__file_number", "patient__last_name"),
+    }))

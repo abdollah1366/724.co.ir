@@ -92,8 +92,19 @@ def provider_for(user):
 def has_care_relationship(user, patient):
     doctor = provider_for(user)
     if doctor is None:
-        return False
-    return patient.appointments.filter(doctor=doctor).exclude(status="cancelled").exists()
+        # پرستار و کادر بالینی غیرپزشک: بیمارانی که امروز در درمانگاه نوبت یا ویزیت دارند.
+        if not user.has_perm("ehr.add_vitalsigns"):
+            return False
+        today = timezone.localdate()
+        return (
+            patient.appointments.filter(date=today).exclude(status="cancelled").exists()
+            or patient.encounters.filter(started_at__date=today).exists()
+        )
+    return (
+        patient.appointments.filter(doctor=doctor).exclude(status="cancelled").exists()
+        or patient.encounters.filter(provider=doctor).exists()
+        or patient.referrals.filter(to_provider=doctor).exclude(status="cancelled").exists()
+    )
 
 
 def _grants(request):
@@ -148,7 +159,9 @@ class Event:
 
 
 KINDS = {
-    "appointment": "نوبت و ویزیت",
+    "encounter": "ویزیت و شرح حال",
+    "vitals": "علائم حیاتی",
+    "appointment": "نوبت",
     "lab": "آزمایش",
     "drug": "دارو",
     "equipment": "تجهیزات پزشکی",
@@ -160,8 +173,40 @@ def _aware(date, time=None):
     return timezone.make_aware(datetime.datetime.combine(date, time or datetime.time(0, 0)))
 
 
+def _encounter_events(patient):
+    from django.urls import reverse
+
+    encounters = patient.encounters.select_related("provider").prefetch_related("diagnoses__icd", "addenda")
+    for e in encounters:
+        lines = []
+        if e.chief_complaint:
+            lines.append(f"شکایت اصلی: {e.chief_complaint}")
+        lines += [f"تشخیص: {d.label}" for d in e.diagnoses.all()]
+        if e.plan:
+            lines.append(f"برنامه: {e.plan[:200]}")
+        if e.addenda.all():
+            lines.append(f"{len(e.addenda.all())} یادداشت تکمیلی")
+        yield Event("encounter", KINDS["encounter"], e.started_at, f"{e.get_kind_display()} {e.provider.full_name}",
+                    status=e.get_status_display(), by=e.provider.full_name, lines=lines,
+                    url=reverse("ehr:encounter", args=[e.pk]))
+
+
+def _vitals_events(patient):
+    for v in patient.vitals.all():
+        parts = []
+        if v.bp:
+            parts.append(f"فشار {v.bp}")
+        for label, value in (("نبض", v.pulse), ("دما", v.temperature), ("SpO2", v.spo2), ("وزن", v.weight),
+                             ("BMI", v.bmi)):
+            if value is not None:
+                parts.append(f"{label} {value}")
+        if v.glucose:
+            parts.append(f"قند {v.glucose} ({v.get_glucose_kind_display()})")
+        yield Event("vitals", KINDS["vitals"], v.recorded_at, " · ".join(parts) or "علائم حیاتی")
+
+
 def _appointment_events(patient):
-    for a in patient.appointments.select_related("doctor__specialty"):
+    for a in patient.appointments.filter(encounter__isnull=True).select_related("doctor__specialty"):
         specialty = f" ({a.doctor.specialty})" if a.doctor.specialty_id else ""
         yield Event("appointment", KINDS["appointment"], _aware(a.date, a.time), f"نوبت {a.doctor.full_name}{specialty}",
                     status=a.get_status_display(), by=a.doctor.full_name)
@@ -219,7 +264,7 @@ def _return_events(patient):
 
 
 def timeline(patient, kind=None):
-    events = [*_appointment_events(patient), *_lab_events(patient), *_sales_events(patient), *_return_events(patient)]
+    events = [*_encounter_events(patient), *_vitals_events(patient), *_appointment_events(patient), *_lab_events(patient), *_sales_events(patient), *_return_events(patient)]
     if kind:
         events = [e for e in events if e.kind == kind]
     return sorted(events, key=lambda e: e.when, reverse=True)
