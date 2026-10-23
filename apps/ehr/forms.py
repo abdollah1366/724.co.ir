@@ -7,7 +7,8 @@ from django.utils import timezone
 from apps.core.validators import normalize_digits
 from apps.lab.forms import DigitsMixin
 
-from .models import Allergy, DrugCounseling, ExternalDocument, ExternalLabValue, LabRequest, EncounterService, GenericDrug, Prescription, ServiceCode, Diagnosis, Encounter, HistoryEntry, ICD10Code, Patient, Problem, Referral, VitalSigns
+from .models import Assessment, TherapySession, TreatmentPlan, Allergy, DrugCounseling, ExternalDocument, ExternalLabValue, LabRequest, EncounterService, GenericDrug, Prescription, ServiceCode, Diagnosis, Encounter, HistoryEntry, ICD10Code, Patient, Problem, Referral, VitalSigns
+from .models.rehab import AUDIOGRAM_FREQUENCIES
 
 
 def parse_jalali(value, allow_future=True):
@@ -350,3 +351,89 @@ class LabRequestForm(forms.ModelForm):
         self.fields["panels"].queryset = self.fields["panels"].queryset.filter(is_active=True)
         self.fields["tests"].required = False
         self.fields["panels"].required = False
+
+
+# ---------------------------------------------------------------- توانبخشی
+
+
+class TreatmentPlanForm(IcdMixin, forms.ModelForm):
+    start_date = JalaliDateField(label="تاریخ شروع (شمسی)", required=True)
+
+    class Meta:
+        model = TreatmentPlan
+        fields = ["discipline", "referral", "diagnosis", "goals", "planned_sessions", "frequency", "start_date",
+                  "share_with_physicians"]
+        widgets = {"goals": forms.Textarea(attrs={"rows": 4})}
+
+    def __init__(self, *args, patient=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._icd_field()
+        self.order_fields(["discipline", "referral", "icd_code", "diagnosis", "goals", "planned_sessions", "frequency",
+                           "start_date", "share_with_physicians"])
+        self.fields["referral"].required = False
+        self.fields["referral"].queryset = (
+            Referral.objects.filter(patient=patient).exclude(status=Referral.Status.CANCELLED) if patient else Referral.objects.none()
+        )
+
+
+class TherapySessionForm(DigitsMixin, forms.ModelForm):
+    digit_fields = ("pain_score", "code")
+    code = forms.CharField(
+        label="کد ملی خدمت", max_length=12, required=False,
+        widget=forms.TextInput(attrs={"list": "service-options", "data-service-search": "1", "dir": "ltr", "autocomplete": "off"}),
+    )
+
+    class Meta:
+        model = TherapySession
+        fields = ["attendance", "subjective", "intervention", "response", "home_program", "pain_score", "sector"]
+        widgets = {name: forms.Textarea(attrs={"rows": 2}) for name in ("subjective", "intervention", "response", "home_program")}
+
+    def __init__(self, data=None, *args, **kwargs):
+        super().__init__(self._normalize(data), *args, **kwargs)
+
+    def clean_pain_score(self):
+        score = self.cleaned_data.get("pain_score")
+        if score is not None and score > 10:
+            raise forms.ValidationError("شدت درد بین ۰ تا ۱۰ است.")
+        return score
+
+    def clean_code(self):
+        code = (self.cleaned_data.get("code") or "").split(" ")[0]
+        if not code:
+            return None
+        service = ServiceCode.objects.filter(code=code, is_active=True).first()
+        if service is None:
+            raise forms.ValidationError("این کد در کدینگ خدمات سلامت نیست.")
+        self.instance.service_code = service
+        return service
+
+
+class AssessmentForm(DigitsMixin, forms.Form):
+    """ارزیابی؛ برای ادیوگرام آستانه‌ها (dB HL) در ۶ فرکانس برای هر گوش وارد می‌شود."""
+
+    kind = forms.ChoiceField(label="نوع ارزیابی", choices=Assessment.Kind.choices)
+    score = forms.DecimalField(label="امتیاز / مقدار", required=False, max_digits=7, decimal_places=2)
+    notes = forms.CharField(label="شرح", required=False, widget=forms.Textarea(attrs={"rows": 2}))
+
+    def __init__(self, data=None, *args, kinds=None, **kwargs):
+        self.digit_fields = ("score", *self.ear_fields())
+        super().__init__(self._normalize(data), *args, **kwargs)
+        if kinds:
+            self.fields["kind"].choices = [c for c in Assessment.Kind.choices if c[0] in kinds]
+        for name, label in self.ear_fields().items():
+            self.fields[name] = forms.IntegerField(label=label, required=False,
+                                                   widget=forms.NumberInput(attrs={"class": "audiogram-input"}))
+
+    @staticmethod
+    def ear_fields():
+        return {f"{ear}_{freq}": f"{label} {freq} Hz" for ear, label in (("right", "راست"), ("left", "چپ"))
+                for freq in AUDIOGRAM_FREQUENCIES}
+
+    def audiogram_values(self):
+        return {ear: {freq: self.cleaned_data.get(f"{ear}_{freq}") for freq in AUDIOGRAM_FREQUENCIES}
+                for ear in ("right", "left")}
+
+
+class ClosePlanForm(forms.Form):
+    status = forms.ChoiceField(label="نتیجه", choices=[c for c in TreatmentPlan.Status.choices if c[0] != "active"])
+    summary = forms.CharField(label="خلاصه پایان درمان", min_length=5, widget=forms.Textarea(attrs={"rows": 3}))

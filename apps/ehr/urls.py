@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_docs, views_rx
+from . import views, views_docs, views_rehab, views_rx
 
 app_name = "ehr"
 
@@ -43,4 +43,11 @@ urlpatterns = [
     path("documents/<int:pk>/void/", views_docs.document_void, name="document_void"),
     path("document-files/<int:pk>/", views_docs.document_file, name="document_file"),
     path("pharmacy/<int:pk>/", views_rx.pharmacy_prescription, name="pharmacy_prescription"),
+    path("patients/<int:pk>/plans/new/", views_rehab.plan_new, name="plan_new"),
+    path("plans/", views_rehab.my_plans, name="my_plans"),
+    path("plans/<int:pk>/", views_rehab.plan, name="plan"),
+    path("plans/<int:pk>/session/", views_rehab.plan_session, name="plan_session"),
+    path("plans/<int:pk>/assessment/", views_rehab.plan_assessment, name="plan_assessment"),
+    path("plans/<int:pk>/close/", views_rehab.plan_close, name="plan_close"),
+    path("sessions/<int:pk>/sign/", views_rehab.session_sign, name="session_sign"),
 ]

@@ -84,7 +84,7 @@ def chart(request, pk):
         services.log_access(request, patient, kind)
     selected = request.GET.get("kind", "")
     selected = selected if selected in services.KINDS else ""
-    events = services.timeline(patient, selected or None)
+    events = services.timeline(patient, selected or None, request.user)
     summary = clinical.chronic_summary(patient)
     return render(request, "ehr/chart.html", {
         "patient": patient, "events": events, "kinds": services.KINDS, "selected": selected, "access_kind": kind,
@@ -96,6 +96,8 @@ def chart(request, pk):
         "problem_form": ProblemForm(prefix="problem"), "allergy_form": AllergyForm(prefix="allergy"),
         "history_form": HistoryForm(prefix="history"), "is_provider": services.provider_for(request.user) is not None,
         "current_meds": pharmacy.current_medications(patient), "counseling_form": CounselingForm(prefix="c"),
+        "provider": services.provider_for(request.user),
+        "plans": patient.treatment_plans.filter(status="active").select_related("therapist"),
     })
 
 

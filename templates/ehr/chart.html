@@ -22,10 +22,20 @@
   {% endif %}
   <a class="btn btn-outline" href="{% url 'ehr:patient_labs' patient.pk %}">روند آزمایش‌ها</a>
   {% if perms.ehr.add_externaldocument %}<a class="btn btn-outline" href="{% url 'ehr:document_upload' patient.pk %}">بارگذاری مدرک / اسکن</a>{% endif %}
-  {% if is_provider and perms.ehr.add_prescription %}
+  {% if provider.can_prescribe and perms.ehr.add_prescription %}
   <form method="post" action="{% url 'ehr:prescription_new' patient.pk %}">{% csrf_token %}<button class="btn btn-outline">نسخه جدید</button></form>
   {% endif %}
+  {% if provider and perms.ehr.add_treatmentplan %}<a class="btn btn-outline" href="{% url 'ehr:plan_new' patient.pk %}">برنامه درمان توانبخشی / روان</a>{% endif %}
 </div>
+{% if plans %}
+<div class="card">
+  <h2>درمان‌های توانبخشی و روان در جریان</h2>
+  {% for p in plans %}
+  <div class="ehr-row"><a href="{% url 'ehr:plan' p.pk %}">{{ p.get_discipline_display }}</a> · {{ p.therapist.full_name }}
+    · جلسه {{ p.done_sessions|fa_digits }} از {{ p.planned_sessions|fa_digits }}{% if p.is_confidential %} <span class="badge">محرمانه</span>{% endif %}</div>
+  {% endfor %}
+</div>
+{% endif %}
 
 <section id="summary" class="ehr-summary">
   <div class="card">

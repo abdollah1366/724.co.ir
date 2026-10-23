@@ -85,7 +85,7 @@ def link_appointment(appointment):
 
 
 def provider_for(user):
-    """پزشک متصل به این حساب کاربری (در مراحل بعد درمانگران توانبخشی هم اضافه می‌شوند)."""
+    """پزشک یا درمانگر (فیزیوتراپیست، روانشناس و ...) متصل به این حساب کاربری."""
     return getattr(user, "doctor", None) if user.is_authenticated else None
 
 
@@ -104,6 +104,7 @@ def has_care_relationship(user, patient):
         patient.appointments.filter(doctor=doctor).exclude(status="cancelled").exists()
         or patient.encounters.filter(provider=doctor).exists()
         or patient.referrals.filter(to_provider=doctor).exclude(status="cancelled").exists()
+        or patient.treatment_plans.filter(therapist=doctor).exists()
     )
 
 
@@ -163,6 +164,7 @@ KINDS = {
     "vitals": "علائم حیاتی",
     "prescription": "نسخه و مشاوره دارویی",
     "document": "مدارک بیرونی",
+    "rehab": "توانبخشی و روان",
     "appointment": "نوبت",
     "lab": "آزمایش",
     "drug": "دارو",
@@ -223,6 +225,32 @@ def _document_events(patient):
         names = [t.name for t in r.tests.all()] + [p.name for p in r.panels.all()]
         yield Event("lab", KINDS["lab"], r.created_at, f"درخواست آزمایش {r.number}", status=r.get_status_display(),
                     by=r.doctor.full_name, lines=[", ".join(names)])
+
+
+def _rehab_events(patient, user):
+    from django.urls import reverse
+
+    plans = patient.treatment_plans.select_related("therapist").prefetch_related("sessions", "assessments")
+    for plan in plans:
+        url = reverse("ehr:plan", args=[plan.pk])
+        readable = user is not None and plan.can_read_notes(user)
+        title = f"{plan.get_discipline_display()} · {plan.therapist.full_name}"
+        lines = [f"تشخیص: {plan.diagnosis}", f"اهداف: {plan.goals[:200]}"] if readable else ["محرمانه: فقط درمانگر برنامه متن را می‌بیند."]
+        yield Event("rehab", KINDS["rehab"], _aware(plan.start_date, datetime.time(8)), f"برنامه درمان {title}",
+                    status=plan.get_status_display(), by=plan.therapist.full_name, lines=lines, url=url)
+        for session in plan.sessions.all():
+            lines = []
+            if readable:
+                lines = [part for part in (session.intervention[:200], session.response[:200]) if part]
+                if session.pain_score is not None:
+                    lines.append(f"شدت درد {session.pain_score} از ۱۰")
+            yield Event("rehab", KINDS["rehab"], session.held_at, f"جلسه {session.number} {title}",
+                        status=session.get_attendance_display() + ("" if session.signed_at else " · امضانشده"),
+                        by=plan.therapist.full_name, lines=lines, url=url)
+        if readable:
+            for a in plan.assessments.all():
+                yield Event("rehab", KINDS["rehab"], a.assessed_at, f"{a.get_kind_display()} ({plan.get_discipline_display()})",
+                            by=plan.therapist.full_name, lines=[a.summary] if a.summary else [], url=url)
 
 
 def _vitals_events(patient):
@@ -297,8 +325,9 @@ def _return_events(patient):
                         status="برگشت داده شد", lines=lines)
 
 
-def timeline(patient, kind=None):
-    events = [*_encounter_events(patient), *_prescription_events(patient), *_document_events(patient), *_vitals_events(patient), *_appointment_events(patient), *_lab_events(patient), *_sales_events(patient), *_return_events(patient)]
+def timeline(patient, kind=None, user=None):
+    """user برای تشخیص دسترسی به یادداشت‌های محرمانه (روانشناسی) لازم است؛ بدون آن متن محرمانه نمایش داده نمی‌شود."""
+    events = [*_encounter_events(patient), *_rehab_events(patient, user), *_prescription_events(patient), *_document_events(patient), *_vitals_events(patient), *_appointment_events(patient), *_lab_events(patient), *_sales_events(patient), *_return_events(patient)]
     if kind:
         events = [e for e in events if e.kind == kind]
     return sorted(events, key=lambda e: e.when, reverse=True)

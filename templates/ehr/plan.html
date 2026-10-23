@@ -1,0 +1,108 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}{{ plan.get_discipline_display }} {{ patient.full_name }}{% endblock %}
+{% block ehr_content %}
+<div class="card ehr-header">
+  <h1>{{ plan.get_discipline_display }} · <a href="{% url 'ehr:chart' patient.pk %}">{{ patient.full_name }}</a> <small class="muted">پرونده {{ patient.file_number }}</small></h1>
+  <p>{{ plan.therapist.full_name }} ({{ plan.therapist.get_provider_type_display }}) · شروع {{ plan.start_date|jalali:"%Y/%m/%d" }}
+    · <span class="badge {% if plan.status == 'active' %}badge-warn{% endif %}">{{ plan.get_status_display }}</span>
+    · جلسه {{ plan.done_sessions|fa_digits }} از {{ plan.planned_sessions|fa_digits }}{% if plan.frequency %} · {{ plan.frequency }}{% endif %}
+    {% if plan.is_confidential %} · <span class="badge">محرمانه</span>{% endif %}</p>
+  {% if allergies %}<p><strong>حساسیت:</strong> {% for a in allergies %}<span class="badge badge-warn">{{ a.substance }}</span> {% endfor %}</p>{% endif %}
+  {% if plan.referral %}<p class="muted">ارجاع از {{ plan.referral.from_provider.full_name }}: {{ plan.referral.reason }}</p>{% endif %}
+</div>
+
+{% if not can_read %}
+<div class="alert alert-warn">یادداشت‌های این برنامه محرمانه است و فقط درمانگر برنامه و مسئول فنی متن آن را می‌بینند. فهرست جلسات و حضور بیمار نمایش داده می‌شود.</div>
+{% endif %}
+
+<div class="ehr-encounter">
+  <div>
+    {% if can_read %}
+    <div class="card ehr-soap">
+      <h2>تشخیص و اهداف</h2>
+      <p><strong>تشخیص:</strong> {{ plan.diagnosis }}{% if plan.icd %} <span dir="ltr">({{ plan.icd.code }})</span>{% endif %}</p>
+      <pre>{{ plan.goals }}</pre>
+      {% if plan.discharge_summary %}<strong>خلاصه پایان درمان</strong><pre>{{ plan.discharge_summary }}</pre>{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h2>جلسات</h2>
+      {% for s in sessions %}
+      <div class="ehr-row">
+        <strong>جلسه {{ s.number|fa_digits }}</strong> · {{ s.held_at|jalali:"%Y/%m/%d %H:%M" }} · {{ s.get_attendance_display }}
+        {% if s.signed_at %}<span class="badge">امضاشده</span>{% else %}<span class="badge badge-warn">امضانشده</span>
+          {% if is_therapist %}<form method="post" action="{% url 'ehr:session_sign' s.pk %}" class="inline">{% csrf_token %}<button class="link">امضا</button></form>{% endif %}{% endif %}
+        {% if can_read %}
+        <div class="ehr-soap">
+          {% if s.subjective %}<strong>گزارش بیمار</strong><pre>{{ s.subjective }}</pre>{% endif %}
+          {% if s.intervention %}<strong>اقدامات</strong><pre>{{ s.intervention }}</pre>{% endif %}
+          {% if s.response %}<strong>پاسخ و پیشرفت</strong><pre>{{ s.response }}</pre>{% endif %}
+          {% if s.home_program %}<strong>تمرین در منزل</strong><pre>{{ s.home_program }}</pre>{% endif %}
+          {% if s.pain_score is not None %}<p>شدت درد: {{ s.pain_score|fa_digits }} از ۱۰</p>{% endif %}
+          {% if s.service_code %}<p class="muted"><span dir="ltr">{{ s.service_code.code }}</span> {{ s.service_code.title|truncatechars:80 }}{% if s.unit_tariff %} · {{ s.unit_tariff|rial }}{% endif %}</p>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% empty %}<p class="muted">جلسه‌ای ثبت نشده.</p>{% endfor %}
+      {% if session_form %}
+      <form method="post" action="{% url 'ehr:plan_session' plan.pk %}">{% csrf_token %}
+        <h3>ثبت جلسه جدید</h3>
+        {% include "includes/form.html" with form=session_form %}
+        <div class="field field-check"><input type="checkbox" name="sign" id="sign-now" value="1"> <label for="sign-now">همین حالا امضا شود (پس از امضا قابل ویرایش نیست)</label></div>
+        <button class="btn btn-small">ثبت جلسه</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <aside>
+    {% if progress %}
+    <div class="card">
+      <h2>روند پیشرفت</h2>
+      {% for p in progress %}
+      <div class="ehr-row">{{ p.label }}: {% for r in p.readings %}{{ r.value|fa_digits }}{% if not forloop.last %}، {% endif %}{% endfor %}
+        {% if p.points %}<svg class="spark" viewBox="0 0 220 48" aria-label="{{ p.label }}"><polyline points="{{ p.points }}"/></svg>{% endif %}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h2>ارزیابی‌ها</h2>
+      {% for a in assessments %}
+      <div class="ehr-row"><strong>{{ a.get_kind_display }}</strong> · {{ a.assessed_at|jalali:"%Y/%m/%d" }}{% if a.summary %} · {{ a.summary }}{% endif %}
+        {% if a.kind == 'audiogram' %}
+        <table class="table audiogram"><thead><tr><th>dB HL</th>{% for f in frequencies %}<th>{{ f }}</th>{% endfor %}</tr></thead>
+          <tbody>{% for label, values in a.audiogram_rows %}<tr><th>{{ label }}</th>{% for v in values %}<td>{{ v|default_if_none:"—" }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+        {% endif %}
+        {% if a.notes %}<div class="ehr-soap"><pre>{{ a.notes }}</pre></div>{% endif %}</div>
+      {% empty %}<p class="muted">{% if can_read %}ارزیابی ثبت نشده.{% else %}محرمانه{% endif %}</p>{% endfor %}
+      {% if assessment_form %}
+      <form method="post" action="{% url 'ehr:plan_assessment' plan.pk %}">{% csrf_token %}
+        {% for field in assessment_form %}{% if not field.name|slice:":5" == "right" and not field.name|slice:":4" == "left" %}
+          <div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}</div>{% endif %}{% endfor %}
+        {% if plan.discipline == 'audiology' %}
+        <p class="muted">آستانه شنوایی هوایی (dB HL)</p>
+        <table class="table audiogram"><thead><tr><th></th>{% for f in frequencies %}<th>{{ f }}</th>{% endfor %}</tr></thead>
+          <tbody>
+            <tr><th>راست</th>{% for field in assessment_form %}{% if field.name|slice:":5" == "right" %}<td>{{ field }}</td>{% endif %}{% endfor %}</tr>
+            <tr><th>چپ</th>{% for field in assessment_form %}{% if field.name|slice:":4" == "left" %}<td>{{ field }}</td>{% endif %}{% endfor %}</tr>
+          </tbody></table>
+        {% endif %}
+        <p class="muted">PHQ-9 از ۰ تا ۲۷، GAD-7 از ۰ تا ۲۱ و VAS از ۰ تا ۱۰.</p>
+        <button class="btn btn-small">ثبت ارزیابی</button>
+      </form>
+      {% endif %}
+    </div>
+
+    {% if close_form %}
+    <form class="card" method="post" action="{% url 'ehr:plan_close' plan.pk %}">{% csrf_token %}
+      <h2>پایان درمان</h2>
+      {% include "includes/form.html" with form=close_form %}
+      <button class="btn btn-small btn-outline">بستن برنامه</button>
+    </form>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

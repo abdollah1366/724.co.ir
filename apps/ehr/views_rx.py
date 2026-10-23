@@ -30,6 +30,9 @@ def prescription_new(request, pk):
     if doctor is None:
         messages.error(request, "حساب شما به پزشکی وصل نیست.")
         return redirect("ehr:chart", pk=patient.pk)
+    if not doctor.can_prescribe:
+        messages.error(request, f"{doctor.get_provider_type_display()} مجاز به نسخه‌نویسی دارو نیست.")
+        return redirect("ehr:chart", pk=patient.pk)
     encounter = None
     if request.POST.get("encounter"):
         encounter = get_object_or_404(Encounter, pk=request.POST["encounter"], patient=patient, provider=doctor)

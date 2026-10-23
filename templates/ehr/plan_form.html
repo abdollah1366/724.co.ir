@@ -1,0 +1,10 @@
+{% extends "ehr/base.html" %}
+{% block ehr_title %}برنامه درمان {{ patient.full_name }}{% endblock %}
+{% block ehr_content %}
+<h1>برنامه درمان جدید · <a href="{% url 'ehr:chart' patient.pk %}">{{ patient.full_name }}</a> <small class="muted">پرونده {{ patient.file_number }}</small></h1>
+<p class="muted">برای روانشناسی و مشاوره، نمایش متن یادداشت‌ها به پزشکان معالج پیش‌فرض خاموش است؛ فقط با رضایت بیمار روشن کنید.</p>
+<form class="card" method="post">{% csrf_token %}
+  {% include "includes/form.html" %}
+  <button class="btn">ثبت برنامه درمان</button>
+</form>
+{% endblock %}

@@ -6,3 +6,4 @@ from .clinical import (  # noqa: F401
 from .patients import BloodGroup, Patient, RecordAccess, Sex  # noqa: F401
 from .prescriptions import DrugCounseling, Prescription, PrescriptionItem  # noqa: F401
 from .documents import DocumentFile, ExternalDocument, ExternalLabValue, LabRequest  # noqa: F401
+from .rehab import Assessment, Discipline, TherapySession, TreatmentPlan  # noqa: F401

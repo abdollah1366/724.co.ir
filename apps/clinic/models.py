@@ -100,6 +100,22 @@ class DoctorQuerySet(models.QuerySet):
         return self.filter(is_active=True)
 
 
+class ProviderType(models.TextChoices):
+    PHYSICIAN = "physician", "پزشک"
+    DENTIST = "dentist", "دندانپزشک"
+    PHYSIOTHERAPIST = "physio", "فیزیوتراپیست"
+    SPEECH_THERAPIST = "speech", "گفتاردرمانگر"
+    OCCUPATIONAL_THERAPIST = "ot", "کاردرمانگر"
+    PSYCHOLOGIST = "psychology", "روانشناس"
+    AUDIOLOGIST = "audiology", "شنوایی‌شناس"
+    NUTRITIONIST = "nutrition", "کارشناس تغذیه"
+    MIDWIFE = "midwife", "ماما"
+
+
+# فقط این گروه‌ها نسخه دارویی می‌نویسند.
+PRESCRIBER_TYPES = {ProviderType.PHYSICIAN, ProviderType.DENTIST, ProviderType.MIDWIFE}
+
+
 class Doctor(models.Model):
     first_name = models.CharField("نام", max_length=80)
     last_name = models.CharField("نام خانوادگی", max_length=80)
@@ -111,8 +127,10 @@ class Doctor(models.Model):
     department = models.ForeignKey(
         Department, on_delete=models.PROTECT, related_name="doctors", verbose_name="بخش"
     )
+    provider_type = models.CharField("نوع ارائه‌دهنده", max_length=12, choices=ProviderType.choices, default=ProviderType.PHYSICIAN)
     medical_council_number = models.CharField(
-        "شماره نظام پزشکی", max_length=20, unique=True, help_text="برای نمایش عمومی و احراز صلاحیت الزامی است."
+        "شماره نظام پزشکی / نظام روانشناسی", max_length=20, unique=True,
+        help_text="برای نمایش عمومی و احراز صلاحیت الزامی است.",
     )
     photo = models.ImageField("تصویر", upload_to="doctors/", blank=True)
     bio = models.TextField("رزومه و معرفی", blank=True)
@@ -140,6 +158,10 @@ class Doctor(models.Model):
 
     def get_absolute_url(self):
         return reverse("clinic:doctor_detail", args=[self.slug])
+
+    @property
+    def can_prescribe(self):
+        return self.provider_type in PRESCRIBER_TYPES
 
     def available_dates(self, days=None):
         """روزهای آینده‌ای که پزشک برنامه کاری دارد."""

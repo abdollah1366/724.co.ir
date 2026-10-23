@@ -131,3 +131,15 @@ class DocumentFileAdmin(ReadOnlyClinicalAdmin):
     # فایل‌ها فقط از نمای دارای مجوز پرونده باز می‌شوند، نه از پنل مدیریت.
     list_display = ("document", "page", "content_type", "size")
     exclude = ("file",)
+
+
+from .models import TreatmentPlan  # noqa: E402
+
+
+@admin.register(TreatmentPlan)
+class TreatmentPlanAdmin(ReadOnlyClinicalAdmin):
+    # متن جلسات (به‌ویژه روانشناسی) فقط در پرونده با کنترل دسترسی دیده می‌شود.
+    list_display = ("patient", "discipline", "therapist", "status", "start_date", "planned_sessions")
+    list_filter = ("discipline", "status")
+    search_fields = ("patient__file_number", "patient__last_name")
+    fields = ("patient", "discipline", "therapist", "status", "start_date", "planned_sessions", "share_with_physicians")

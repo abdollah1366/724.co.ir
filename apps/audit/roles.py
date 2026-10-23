@@ -164,6 +164,14 @@ EHR_DOCTOR = {
     "ehr.prescription": ("add", "change", VIEW), "ehr.prescriptionitem": EDIT, "ehr.drugcounseling": ("add", VIEW),
     "ehr.labrequest": ("add", "change", VIEW), "ehr.externaldocument": ("add", "change", VIEW), "ehr.documentfile": ("add", VIEW),
     "ehr.externallabvalue": ("add", VIEW),
+    "ehr.treatmentplan": (VIEW,), "ehr.therapysession": (VIEW,), "ehr.assessment": (VIEW,),
+}
+EHR_THERAPIST = {
+    **EHR_CLINICAL, "ehr.encounter": (VIEW,), "ehr.vitalsigns": ("add", VIEW), "ehr.diagnosis": (VIEW,),
+    "ehr.problem": (VIEW,), "ehr.allergy": ("add", VIEW), "ehr.historyentry": ("add", VIEW), "ehr.referral": ("add", VIEW),
+    "ehr.servicecode": (VIEW,), "ehr.externaldocument": ("add", VIEW), "ehr.documentfile": ("add", VIEW),
+    "ehr.externallabvalue": (VIEW,), "ehr.labrequest": (VIEW,), "ehr.prescription": (VIEW,),
+    "ehr.treatmentplan": ("add", "change", VIEW), "ehr.therapysession": ("add", VIEW), "ehr.assessment": ("add", VIEW),
 }
 EHR_NURSE = {
     **EHR_CLINICAL, "ehr.encounter": (VIEW,), "ehr.vitalsigns": ("add", VIEW), "ehr.diagnosis": (VIEW,),
@@ -175,6 +183,10 @@ EHR_NURSE = {
 ROLES.update({
     "پزشک": {"models": EHR_DOCTOR, "extra": ["ehr.view_clinical_record", "ehr.sign_encounter"]},
     "پرستار": {"models": EHR_NURSE, "extra": ["ehr.view_clinical_record"]},
+    # فیزیوتراپیست، گفتاردرمانگر، کاردرمانگر، شنوایی‌شناس و کارشناس تغذیه
+    "درمانگر توانبخشی": {"models": EHR_THERAPIST, "extra": ["ehr.view_clinical_record"]},
+    # یادداشت‌های روانشناسی به‌طور پیش‌فرض فقط برای خود درمانگر قابل خواندن است (TreatmentPlan.can_read_notes)
+    "روانشناس": {"models": EHR_THERAPIST, "extra": ["ehr.view_clinical_record"]},
     "پذیرش درمانگاه": {
         "models": {"ehr.patient": ("add", "change", VIEW), "appointments.appointment": ("add", "change", VIEW)},
         "extra": [],
@@ -184,6 +196,7 @@ ROLES.update({
             **EHR_DOCTOR, "ehr.patient": ("add", "change", VIEW), "ehr.recordaccess": (VIEW,), "audit.auditlog": (VIEW,),
             "clinic.doctor": ("change", VIEW), "ehr.icd10code": EDIT,
             "ehr.servicecode": EDIT, "ehr.rvucoefficient": EDIT, "ehr.genericdrug": EDIT,
+            "ehr.treatmentplan": ("change", VIEW),
         },
         "extra": ["ehr.view_clinical_record", "ehr.view_all_records"],
     },
