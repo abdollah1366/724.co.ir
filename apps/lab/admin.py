@@ -3,7 +3,7 @@ from django.contrib import admin, messages
 from apps.audit.admin_utils import ReadOnlyAdmin
 
 from .models import (
-    ClaimSettlement, CriticalNotification, InsuranceClaim, InsurancePlan, Instrument, LabOrder, LabPanel, LabPatient,
+    ClaimSettlement, ConsultRequest, CriticalNotification, Feedback, Interaction, RecallReminder, InsuranceClaim, InsurancePlan, Instrument, LabOrder, LabPanel, LabPatient,
     LabPayment, LabResult, QueueCounter, QueueService, QueueTicket, LabSection, LabTest, PlanTestRule, PrepInstruction, QCMaterial, QCResult, ReferenceRange,
     ResultRevision, SamplingAppointment, SamplingSchedule, ScreeningRule, Specimen, SpecimenType,
 )
@@ -190,3 +190,34 @@ class QueueCounterAdmin(admin.ModelAdmin):
 class QueueTicketAdmin(ReadOnlyAdmin):
     list_display = ("label", "date", "service", "priority", "status", "counter", "issued_at", "called_at", "finished_at")
     list_filter = ("date", "service", "status", "priority")
+
+
+# --- مشاور و مشتری ---
+class InteractionInline(admin.TabularInline):
+    model = Interaction
+    extra = 0
+    can_delete = False
+    readonly_fields = ("kind", "text", "user", "created_at")
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ConsultRequest)
+class ConsultRequestAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "topic", "full_name", "mobile", "channel", "status", "assigned_to", "due_at")
+    list_filter = ("status", "topic", "channel")
+    search_fields = ("full_name", "mobile", "tracking_code")
+    readonly_fields = ("tracking_code", "consent_at", "created_at", "resolved_at", "user")
+    inlines = [InteractionInline]
+
+
+@admin.register(Feedback)
+class FeedbackAdmin(ReadOnlyAdmin):
+    list_display = ("order", "overall", "waiting", "staff", "sampling", "wants_contact", "sent_at", "submitted_at")
+    list_filter = ("overall", "wants_contact")
+
+
+@admin.register(RecallReminder)
+class RecallReminderAdmin(ReadOnlyAdmin):
+    list_display = ("patient", "test", "due_date", "sent_at")

@@ -10,3 +10,4 @@ from .lis import (  # noqa: F401
 )
 from .portal import AccessCode  # noqa: F401
 from .queue import QueueCounter, QueueService, QueueTicket  # noqa: F401
+from .crm import ConsultRequest, Feedback, Interaction, RecallReminder  # noqa: F401

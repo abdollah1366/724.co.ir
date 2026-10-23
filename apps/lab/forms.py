@@ -9,7 +9,7 @@ from apps.core.templatetags.persian import fa_digits, jalali
 from apps.core.validators import normalize_digits, validate_mobile, validate_national_code
 
 from .models import (
-    InsurancePlan, LabOrder, LabPanel, LabPatient, LabPayment, LabTest, SamplingAppointment, SamplingSchedule,
+    ConsultRequest, Feedback, Interaction, InsurancePlan, LabOrder, LabPanel, LabPatient, LabPayment, LabTest, SamplingAppointment, SamplingSchedule,
 )
 from .services import booking
 
@@ -228,3 +228,58 @@ class PaymentForm(DigitsMixin, forms.ModelForm):
 
 class ReasonForm(forms.Form):
     reason = forms.CharField(label="علت", max_length=300)
+
+
+class ConsultForm(DigitsMixin, forms.ModelForm):
+    digit_fields = ("mobile",)
+    consent = forms.BooleanField(
+        label="اجازه می‌دهم کارشناس آزمایشگاه برای پاسخ به همین درخواست با من تماس بگیرد.",
+    )
+
+    class Meta:
+        model = ConsultRequest
+        fields = ["topic", "full_name", "mobile", "preferred_time", "message"]
+        widgets = {"message": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, data=None, *args, staff=False, **kwargs):
+        super().__init__(self._normalize(data), *args, **kwargs)
+        if staff:  # ثبت تماس تلفنی یا مراجعه حضوری توسط کارشناس
+            self.fields["consent"].label = "مشتری با تماس برای پیگیری موافق است."
+            self.fields["channel"] = forms.ChoiceField(
+                label="کانال", choices=[c for c in ConsultRequest.Channel.choices if c[0] != "web"]
+            )
+
+    def save(self, commit=True):
+        consult = super().save(commit=False)
+        consult.consent_at = timezone.now()
+        if "channel" in self.cleaned_data:
+            consult.channel = self.cleaned_data["channel"]
+        if commit:
+            consult.save()
+        return consult
+
+
+class InteractionForm(forms.Form):
+    kind = forms.ChoiceField(label="نوع", choices=Interaction.Kind.choices)
+    text = forms.CharField(label="شرح گفت‌وگو یا اقدام", max_length=2000, widget=forms.Textarea(attrs={"rows": 3}))
+    status = forms.ChoiceField(label="وضعیت جدید", choices=[("", "بدون تغییر")] + ConsultRequest.Status.choices, required=False)
+    next_follow_up = forms.DateTimeField(
+        label="پیگیری بعدی", required=False, widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        input_formats=["%Y-%m-%dT%H:%M"],
+    )
+
+
+RATING = [(i, str(i)) for i in range(5, 0, -1)]
+
+
+class FeedbackForm(forms.ModelForm):
+    overall = forms.TypedChoiceField(label="رضایت کلی از آزمایشگاه", choices=RATING, coerce=int, widget=forms.RadioSelect)
+    waiting = forms.TypedChoiceField(label="زمان انتظار", choices=RATING, coerce=int, widget=forms.RadioSelect, required=False, empty_value=None)
+    staff = forms.TypedChoiceField(label="برخورد کارکنان", choices=RATING, coerce=int, widget=forms.RadioSelect, required=False, empty_value=None)
+    sampling = forms.TypedChoiceField(label="نمونه‌گیری", choices=RATING, coerce=int, widget=forms.RadioSelect, required=False, empty_value=None)
+
+    class Meta:
+        model = Feedback
+        fields = ["overall", "waiting", "staff", "sampling", "comment", "wants_contact"]
+        labels = {"comment": "پیشنهاد یا انتقاد (اختیاری)", "wants_contact": "مایلم کارشناس با من تماس بگیرد"}
+        widgets = {"comment": forms.Textarea(attrs={"rows": 3})}

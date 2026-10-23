@@ -1,0 +1,38 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}مشاور و ارتباط با مشتری{% endblock %}
+{% block lab_content %}
+<h1>مشاور و ارتباط با مشتری</h1>
+<nav class="chips" aria-label="فیلتر">
+  <a class="chip{% if view == 'open' %} active{% endif %}" href="?view=open">باز ({{ counts.open|fa_digits }})</a>
+  <a class="chip{% if view == 'mine' %} active{% endif %}" href="?view=mine">مال من ({{ counts.mine|fa_digits }})</a>
+  <a class="chip{% if view == 'unassigned' %} active{% endif %}" href="?view=unassigned">بدون کارشناس ({{ counts.unassigned|fa_digits }})</a>
+  <a class="chip{% if view == 'overdue' %} active{% endif %}" href="?view=overdue">دیرکرد ({{ counts.overdue|fa_digits }})</a>
+  <a class="chip{% if view == 'followup' %} active{% endif %}" href="?view=followup">پیگیری امروز ({{ counts.followup|fa_digits }})</a>
+  <a class="chip{% if view == 'all' %} active{% endif %}" href="?view=all">همه</a>
+  {% if perms.lab.view_feedback %}<a class="chip" href="{% url 'lab:crm_feedback' %}">نظرسنجی‌ها</a>{% endif %}
+</nav>
+<form method="get" class="card filters">
+  <input type="hidden" name="view" value="{{ view }}">
+  <input type="search" name="q" value="{{ request.GET.q }}" placeholder="موبایل، نام یا کد پیگیری" aria-label="جست‌وجو">
+  <select name="topic" aria-label="موضوع"><option value="">همه موضوع‌ها</option>{% for k, l in topics %}<option value="{{ k }}"{% if request.GET.topic == k %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+  <button class="btn btn-small">جست‌وجو</button>
+</form>
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>ثبت</th><th>موضوع</th><th>نام</th><th>موبایل</th><th>کانال</th><th>وضعیت</th><th>کارشناس</th><th>مهلت</th></tr></thead>
+  <tbody>{% for c in items %}
+    <tr{% if c.is_overdue %} class="row-warn"{% endif %}>
+      <td>{{ c.created_at|jalali:"%m/%d %H:%M" }}</td>
+      <td><a href="{% url 'lab:crm_detail' c.pk %}">{{ c.get_topic_display }}</a></td>
+      <td>{{ c.full_name }}</td><td>{{ c.mobile|fa_digits }}</td><td>{{ c.get_channel_display }}</td><td>{{ c.get_status_display }}</td>
+      <td>{{ c.assigned_to|default:"—" }}</td>
+      <td>{{ c.due_at|jalali:"%m/%d %H:%M" }}{% if c.is_overdue %} <span class="badge">دیرکرد</span>{% endif %}</td>
+    </tr>
+  {% empty %}<tr><td colspan="8" class="muted">درخواستی نیست.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% if perms.lab.add_consultrequest %}
+<details class="card"><summary>ثبت تماس تلفنی یا مراجعه حضوری</summary>
+  <form method="post" class="form" novalidate>{% csrf_token %}{% include "includes/form.html" %}<button class="btn" type="submit">ثبت</button></form>
+</details>
+{% endif %}
+{% endblock %}

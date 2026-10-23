@@ -207,6 +207,10 @@ LAB_RULES = {
     "lookup_limit_per_hour": 20,  # سقف تلاش برای هر IP
     "approver_must_differ": env_bool("LAB_APPROVER_MUST_DIFFER", False),  # تأییدکننده ≠ ثبت‌کننده
     "require_qc_for_approval": env_bool("LAB_REQUIRE_QC", False),
+    "consult_response_hours": 24,  # مهلت پاسخ به درخواست مشاوره
+    "consult_limit_per_hour": 5,  # سقف درخواست مشاوره از هر IP
+    "feedback_valid_days": 14,
+    "recall_window_days": 60,  # یادآوری برای موعدهای قدیمی‌تر از این ارسال نمی‌شود
 }
 LAB_INFO = {
     "name": os.environ.get("LAB_NAME", "آزمایشگاه تشخیص طبی ۷۲۴"),

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}نظرسنجی آزمایشگاه | {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}نظرسنجی رضایت از خدمات آزمایشگاه{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>نظر شما درباره {{ LAB_INFO.name }}</h1>
+  {% if thanks %}<div class="card"><p>از اینکه وقت گذاشتید سپاسگزاریم. نظر شما بررسی می‌شود.</p><a class="btn" href="{% url 'lab:home' %}">بازگشت</a></div>
+  {% elif closed %}<div class="card"><p>این نظرسنجی قبلاً ثبت شده یا مهلت آن تمام شده است.</p></div>
+  {% else %}
+  <p class="muted">۵ یعنی کاملاً راضی و ۱ یعنی ناراضی.</p>
+  <form method="post" class="form card rating-form" novalidate>{% csrf_token %}{% include "includes/form.html" %}<button class="btn" type="submit">ثبت نظر</button></form>
+  {% endif %}
+</section>
+{% endblock %}

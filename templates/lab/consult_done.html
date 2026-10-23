@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}درخواست مشاوره ثبت شد | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <div class="card">
+    <h1>درخواست شما ثبت شد</h1>
+    <p>کد پیگیری: <strong>{{ code }}</strong></p>
+    <p>کارشناس ما در ساعات کاری با شما تماس می‌گیرد. اگر کار فوری دارید با شماره {{ LAB_INFO.phone|fa_digits }} تماس بگیرید.</p>
+    <a class="btn" href="{% url 'lab:home' %}">بازگشت به آزمایشگاه</a>
+  </div>
+</section>
+{% endblock %}

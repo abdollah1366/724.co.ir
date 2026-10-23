@@ -130,11 +130,20 @@ ROLES.update({
         "extra": ["lab.post_insuranceclaim", "lab.reverse_insuranceclaim", "lab.post_claimsettlement",
                   "lab.reverse_claimsettlement"],
     },
+    "مشاور آزمایشگاه": {
+        "models": {
+            "lab.consultrequest": ("add", "change", VIEW), "lab.interaction": ("add", VIEW), "lab.feedback": (VIEW,),
+            "lab.laborder": (VIEW,), "lab.labtest": (VIEW,), "lab.labpanel": (VIEW,), "lab.insuranceplan": (VIEW,),
+            "lab.samplingappointment": ("add", "change", VIEW),
+        },
+        "extra": [],
+    },
     "کیوسک نوبت": {"models": {"lab.queueticket": ("add",), "lab.queueservice": (VIEW,)}, "extra": []},
     "مدیر آزمایشگاه": {
         "models": {
             **LAB_RECEPTION, **LAB_INSURANCE, **{m: EDIT for m in LAB_CATALOG}, "lab.labpayment": (VIEW,),
             "lab.qcmaterial": EDIT, "lab.qcresult": (VIEW,), "lab.instrument": EDIT, "audit.auditlog": (VIEW,),
+            "lab.consultrequest": ("add", "change", VIEW), "lab.interaction": ("add", VIEW), "lab.feedback": (VIEW,),
         },
         "extra": [
             "lab.post_laborder", "lab.reverse_laborder", "lab.give_lab_discount", "lab.post_labpayment",

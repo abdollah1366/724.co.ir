@@ -1,0 +1,43 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}درخواست مشاوره {{ item.tracking_code }}{% endblock %}
+{% block lab_content %}
+<p><a href="{% url 'lab:crm_inbox' %}">← صندوق مشاوره</a></p>
+<h1>{{ item.get_topic_display }} · {{ item.full_name }}</h1>
+<div class="grid">
+  <div class="card">
+    <p>موبایل: <a href="tel:{{ item.mobile }}">{{ item.mobile|fa_digits }}</a> · زمان مناسب: {{ item.get_preferred_time_display }}</p>
+    <p>کانال: {{ item.get_channel_display }} · کد پیگیری: {{ item.tracking_code }} · ثبت: {{ item.created_at|jalali:"%Y/%m/%d %H:%M" }}</p>
+    <p>وضعیت: <strong>{{ item.get_status_display }}</strong> · مهلت پاسخ: {{ item.due_at|jalali:"%Y/%m/%d %H:%M" }}{% if item.is_overdue %} <span class="badge">دیرکرد</span>{% endif %}</p>
+    {% if item.next_follow_up %}<p>پیگیری بعدی: {{ item.next_follow_up|jalali:"%Y/%m/%d %H:%M" }}</p>{% endif %}
+    {% if not item.consent_at %}<p class="alert alert-info">رضایت صریح به تماس ثبت نشده است؛ فقط برای پاسخ به همین موضوع تماس بگیرید.</p>{% endif %}
+    {% if item.message %}<blockquote>{{ item.message|linebreaksbr }}</blockquote>{% endif %}
+    {% if item.topic == "result" %}<p class="alert alert-info">پرسش درباره جواب را به مسئول فنی ارجاع دهید؛ مشاور جواب را تفسیر نمی‌کند.</p>{% endif %}
+  </div>
+  <div class="card">
+    <h2 class="h3">کارشناس: {{ item.assigned_to|default:"تعیین نشده" }}</h2>
+    {% if perms.lab.change_consultrequest %}
+    <form method="post" action="{% url 'lab:crm_action' item.pk %}" class="filters">{% csrf_token %}<input type="hidden" name="action" value="assign">
+      <select name="user" aria-label="کارشناس">{% for u in consultants %}<option value="{{ u.pk }}"{% if u.pk == request.user.pk %} selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select>
+      <button class="btn btn-small">ارجاع</button>
+    </form>
+    <h2 class="h3">پذیرش مرتبط</h2>
+    {% if item.order %}<p>{% if perms.lab.view_laborder %}<a href="{% url 'lab:staff_order' item.order.pk %}">{{ item.order.number }}</a>{% else %}{{ item.order.number }}{% endif %} · {{ item.order.get_progress_display }}</p>
+    {% else %}
+    <form method="post" action="{% url 'lab:crm_action' item.pk %}" class="filters">{% csrf_token %}<input type="hidden" name="action" value="link">
+      <input name="number" placeholder="شماره پذیرش" aria-label="شماره پذیرش"><button class="btn btn-small">اتصال</button>
+    </form><p class="muted small">فقط پذیرشی که موبایلش با همین درخواست یکی است متصل می‌شود.</p>
+    {% endif %}
+    {% endif %}
+    {% if orders %}<h2 class="h3">پذیرش‌های این بیمار</h2><ul>{% for o in orders %}<li><a href="{% url 'lab:staff_order' o.pk %}">{{ o.number }}</a> · {{ o.date|jalali }} · {{ o.get_progress_display }}</li>{% endfor %}</ul>{% endif %}
+    {% if feedback and feedback.submitted_at %}<h2 class="h3">نظرسنجی</h2><p>رضایت کلی {{ feedback.overall|fa_digits }} از ۵{% if feedback.comment %}: {{ feedback.comment }}{% endif %}</p>{% endif %}
+  </div>
+</div>
+<h2>سوابق پیگیری</h2>
+<ol class="timeline">{% for i in interactions %}<li><strong>{{ i.get_kind_display }}</strong> · {{ i.user }} · {{ i.created_at|jalali:"%Y/%m/%d %H:%M" }}<br>{{ i.text|linebreaksbr }}</li>{% empty %}<li class="muted">هنوز پیگیری ثبت نشده است.</li>{% endfor %}</ol>
+{% if perms.lab.change_consultrequest %}
+<form method="post" action="{% url 'lab:crm_action' item.pk %}" class="form card" novalidate>{% csrf_token %}<input type="hidden" name="action" value="log">
+  {% include "includes/form.html" %}<button class="btn" type="submit">ثبت پیگیری</button>
+</form>
+{% endif %}
+{% endblock %}

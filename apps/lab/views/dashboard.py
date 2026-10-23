@@ -7,7 +7,7 @@ from django.utils import timezone
 from apps.accounting import services as acc
 from apps.audit.documents import DocStatus
 
-from ..models import LabOrder, LabPayment, LabResult, SamplingAppointment, Specimen
+from ..models import ConsultRequest, LabOrder, LabPayment, LabResult, QueueTicket, SamplingAppointment, Specimen
 from ..services import lis
 from .staff import staff_perm
 
@@ -36,6 +36,9 @@ def dashboard_data(user, today=None):
         .aggregate(avg=Avg("tat"))["avg"]
     )
     data["tat_hours"] = round(tat.total_seconds() / 3600, 1) if tat else None
+    data["queue_waiting"] = QueueTicket.objects.filter(date=today, status=QueueTicket.Status.WAITING).count()
+    if user.has_perm("lab.view_consultrequest"):
+        data["crm"] = {"open": ConsultRequest.objects.open().count(), "overdue": ConsultRequest.objects.overdue().count()}
     if user.has_perm("accounting.view_financial_reports"):
         today_orders = posted.filter(date=today).aggregate(
             gross=Sum("gross_amount"), basic=Sum("basic_share"), supp=Sum("supplementary_share"), discount=Sum("discount")

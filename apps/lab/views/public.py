@@ -3,6 +3,7 @@
 from django import forms
 from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 
 from apps.core.validators import normalize_digits
 
@@ -17,6 +18,11 @@ def home(request):
     return render(request, "lab/home.html", {
         "sections": LabSection.objects.filter(is_active=True, tests__is_public=True, tests__is_active=True).distinct(),
         "panels": LabPanel.objects.filter(is_active=True, is_public=True).prefetch_related("tests"),
+        "lab_links": [
+            {"url": reverse("lab:book"), "icon": "📅", "title": "نوبت نمونه‌گیری"},
+            {"url": reverse("lab:result_lookup"), "icon": "📄", "title": "دریافت جواب"},
+            {"url": reverse("lab:consult"), "icon": "💬", "title": "مشاور آزمایشگاه"},
+        ],
     })
 
 
