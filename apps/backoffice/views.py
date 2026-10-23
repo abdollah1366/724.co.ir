@@ -19,7 +19,8 @@ from django.views.decorators.http import require_POST
 from apps.accounting import services as acc
 from apps.accounting.models import Party
 from apps.audit.documents import DocStatus
-from apps.core.validators import normalize_digits
+from apps.core.validators import is_valid_national_code, normalize_digits
+from apps.ehr import services as ehr
 from apps.inventory import alerts
 from apps.inventory import services as inv
 from apps.inventory.models import StockBalance, StockMove, Warehouse
@@ -163,6 +164,16 @@ class CheckoutForm(forms.Form):
     prescription_number = forms.CharField(label="شماره / کد رهگیری نسخه", max_length=40, required=False)
     prescriber_name = forms.CharField(label="نام پزشک", max_length=120, required=False)
     prescriber_council_no = forms.CharField(label="نظام پزشکی", max_length=20, required=False)
+    patient_national_code = forms.CharField(
+        label="کد ملی بیمار (ثبت در پرونده سلامت)", max_length=10, required=False,
+        help_text="دارو یا تجهیزات تحویلی در پرونده بیمار دیده می‌شود.",
+    )
+
+    def clean_patient_national_code(self):
+        value = normalize_digits(self.cleaned_data.get("patient_national_code") or "")
+        if value and not is_valid_national_code(value):
+            raise forms.ValidationError("کد ملی بیمار معتبر نیست.")
+        return value
 
 
 def _open_session(user):
@@ -270,6 +281,8 @@ def pos_checkout(request):
             invoice.prescriber_council_no = data["prescriber_council_no"]
             invoice.insurer = data["insurer"]
             invoice.customer = data["customer"]
+            if data["patient_national_code"]:
+                invoice.patient = ehr.get_or_create_patient(data["patient_national_code"])
             invoice.save()
             invoice.payments.all().delete()
             for method, amount, ref in (

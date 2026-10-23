@@ -68,6 +68,10 @@ class SalesInvoice(PostedDocument):
         limit_choices_to={"kind": Party.Kind.INSURER},
     )
     insurance_amount = models.PositiveBigIntegerField("سهم بیمه (ریال)", default=0)
+    patient = models.ForeignKey(
+        "ehr.Patient", on_delete=models.PROTECT, null=True, blank=True, related_name="sales_invoices",
+        verbose_name="بیمار (پرونده سلامت)",
+    )
     # نسخه
     prescription_number = models.CharField("شماره / کد رهگیری نسخه", max_length=40, blank=True)
     prescriber_name = models.CharField("نام پزشک تجویزکننده", max_length=120, blank=True)

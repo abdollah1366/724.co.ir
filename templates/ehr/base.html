@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{% block ehr_title %}پرونده سلامت{% endblock %} | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <nav class="bo-nav no-print" aria-label="پرونده سلامت">
+    {% if perms.ehr.view_patient %}<a href="{% url 'ehr:search' %}">جست‌وجوی بیمار</a>{% endif %}
+    {% if perms.ehr.add_patient %}<a href="{% url 'ehr:patient_new' %}">پرونده جدید</a>{% endif %}
+    {% if perms.ehr.view_clinical_record %}<a href="{% url 'ehr:my_patients' %}">بیماران امروز من</a>{% endif %}
+    {% if perms.ehr.view_recordaccess %}<a href="{% url 'ehr:access_log' %}">گزارش مشاهده پرونده‌ها</a>{% endif %}
+  </nav>
+  {% block ehr_content %}{% endblock %}
+</section>
+{% endblock %}

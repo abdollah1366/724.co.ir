@@ -115,6 +115,10 @@ class Doctor(models.Model):
     visit_fee = models.PositiveBigIntegerField("هزینه ویزیت (ریال)", null=True, blank=True)
     accepts_online_booking = models.BooleanField("نوبت‌دهی اینترنتی", default=True)
     is_active = models.BooleanField("فعال", default=True)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="doctor",
+        verbose_name="حساب کاربری پزشک", help_text="برای ورود پزشک به میز کار و پرونده بیمارانش.",
+    )
 
     objects = DoctorQuerySet.as_manager()
 

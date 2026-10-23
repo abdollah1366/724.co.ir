@@ -153,6 +153,24 @@ ROLES.update({
     },
 })
 
+EHR_CLINICAL = {"ehr.patient": (VIEW,), "appointments.appointment": (VIEW,), "lab.labtest": (VIEW,)}
+
+ROLES.update({
+    "پزشک": {"models": EHR_CLINICAL, "extra": ["ehr.view_clinical_record"]},
+    "پرستار": {"models": EHR_CLINICAL, "extra": ["ehr.view_clinical_record"]},
+    "پذیرش درمانگاه": {
+        "models": {"ehr.patient": ("add", "change", VIEW), "appointments.appointment": ("add", "change", VIEW)},
+        "extra": [],
+    },
+    "مسئول فنی درمانگاه": {
+        "models": {
+            **EHR_CLINICAL, "ehr.patient": ("add", "change", VIEW), "ehr.recordaccess": (VIEW,), "audit.auditlog": (VIEW,),
+            "clinic.doctor": ("change", VIEW),
+        },
+        "extra": ["ehr.view_clinical_record", "ehr.view_all_records"],
+    },
+})
+
 
 def role_permissions(spec):
     names = []

@@ -1,0 +1,39 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}پرونده {{ patient.full_name }}{% endblock %}
+{% block ehr_content %}
+<div class="card ehr-header">
+  <h1>{{ patient.full_name }} <small class="muted">پرونده {{ patient.file_number }}</small></h1>
+  <p>
+    {% if patient.sex %}{{ patient.get_sex_display }} · {% endif %}
+    {% if patient.age_years is not None %}{{ patient.age_years|fa_digits }} ساله · {% endif %}
+    کد ملی {{ patient.masked_identifier }}
+    {% if patient.blood_group %} · گروه خونی <span dir="ltr">{{ patient.blood_group }}</span>{% endif %}
+    {% if not patient.is_verified %} <span class="badge badge-warn">هویت در پذیرش تأیید نشده</span>{% endif %}
+    {% if access_kind == "emergency" %} <span class="badge badge-warn">دسترسی با ذکر دلیل</span>{% endif %}
+  </p>
+  {% if perms.ehr.change_patient %}<a class="btn btn-small btn-outline no-print" href="{% url 'ehr:patient_edit' patient.pk %}">ویرایش مشخصات</a>{% endif %}
+</div>
+
+<nav class="bo-nav no-print" aria-label="نوع سابقه">
+  <a href="?"{% if not selected %} aria-current="page"{% endif %}>همه سوابق</a>
+  {% for key, label in kinds.items %}<a href="?kind={{ key }}"{% if selected == key %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+</nav>
+
+<ol class="ehr-timeline">
+{% for e in events %}
+  <li class="card ehr-event ehr-{{ e.kind }}">
+    <div class="ehr-event-head">
+      <span class="badge">{{ e.kind_label }}</span>
+      <strong>{{ e.title }}</strong>
+      <span class="muted">{{ e.when|jalali:"%Y/%m/%d %H:%M" }}</span>
+      {% if e.status %}<span class="muted">· {{ e.status }}</span>{% endif %}
+    </div>
+    {% if e.by %}<div class="muted">{{ e.by }}</div>{% endif %}
+    {% if e.lines %}<ul>{% for line in e.lines %}<li>{{ line }}</li>{% endfor %}</ul>{% endif %}
+  </li>
+{% empty %}
+  <li class="muted">سابقه‌ای ثبت نشده.</li>
+{% endfor %}
+</ol>
+{% endblock %}

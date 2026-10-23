@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "apps.sales",
     "apps.backoffice",
     "apps.lab",
+    "apps.ehr",
     "apps.audit",  # باید آخر باشد تا نقش‌ها پس از ساخت همه مجوزها تنظیم شوند
 ]
 

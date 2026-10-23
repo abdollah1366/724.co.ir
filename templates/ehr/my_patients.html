@@ -1,0 +1,14 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}بیماران امروز من{% endblock %}
+{% block ehr_content %}
+<h1>بیماران امروز {{ today|jalali:"%A %d %B" }}</h1>
+{% if not doctor %}<div class="alert alert-warn">حساب شما به هیچ پزشکی وصل نیست. مدیر باید در «پزشکان» حساب کاربری شما را انتخاب کند.</div>{% endif %}
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>ساعت</th><th>بیمار</th><th>وضعیت</th><th></th></tr></thead>
+  <tbody>{% for a in appointments %}
+    <tr><td>{{ a.time|time:"H:i"|fa_digits }}</td><td>{{ a.patient_full_name }}</td><td>{{ a.get_status_display }}</td>
+    <td>{% if a.patient %}<a class="btn btn-small" href="{% url 'ehr:chart' a.patient.pk %}">پرونده</a>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="4" class="muted">امروز نوبتی ندارید.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

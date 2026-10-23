@@ -11,7 +11,7 @@ class AppointmentAdmin(admin.ModelAdmin):
     readonly_fields = ("tracking_code", "consent_at", "created_at", "updated_at")
     date_hierarchy = "date"
     list_select_related = ("doctor",)
-    raw_id_fields = ("user",)
+    raw_id_fields = ("user", "patient")
     actions = ["mark_confirmed", "mark_done", "mark_cancelled"]
 
     def _set_status(self, queryset, status):

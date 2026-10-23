@@ -36,6 +36,10 @@ class Appointment(models.Model):
     national_code = models.CharField("کد ملی", max_length=10, validators=[validate_national_code])
     mobile = models.CharField("موبایل", max_length=11, validators=[validate_mobile])
     status = models.CharField("وضعیت", max_length=12, choices=Status.choices, default=Status.PENDING)
+    patient = models.ForeignKey(
+        "ehr.Patient", on_delete=models.PROTECT, null=True, blank=True, related_name="appointments",
+        verbose_name="پرونده بیمار", help_text="با کد ملی خودکار وصل می‌شود.",
+    )
     tracking_code = models.CharField("کد پیگیری", max_length=8, unique=True, default=generate_tracking_code, editable=False)
     consent_at = models.DateTimeField("زمان رضایت به پردازش اطلاعات")
     created_at = models.DateTimeField("زمان ثبت", auto_now_add=True)

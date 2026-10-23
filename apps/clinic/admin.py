@@ -41,4 +41,5 @@ class DoctorAdmin(admin.ModelAdmin):
     list_filter = ("department", "specialty", "is_active", "accepts_online_booking")
     search_fields = ("first_name", "last_name", "medical_council_number")
     prepopulated_fields = {"slug": ("first_name", "last_name")}
+    raw_id_fields = ("user",)
     inlines = [WorkingHoursInline]
