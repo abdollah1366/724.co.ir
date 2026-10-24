@@ -1,0 +1,47 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}داشبورد مدیریتی{% endblock %}
+{% block bo_content %}
+<h1>داشبورد مدیریتی</h1>
+<p class="muted">{{ today|jalali }} — اعداد به ریال و لحظه‌ای از اسناد ثبت‌شده محاسبه می‌شوند.</p>
+
+{% if finance %}
+<div class="grid stats">
+  <div class="card stat"><span class="stat-label">فروش خالص امروز</span><span class="stat-value">{{ finance.sales_today|rial }}</span><span class="muted small">{{ sales_today_count|fa_digits }} فاکتور</span></div>
+  <div class="card stat"><span class="stat-label">سود ناخالص امروز</span><span class="stat-value">{{ finance.gross_profit_today|rial }}</span></div>
+  <div class="card stat"><span class="stat-label">فروش خالص این ماه</span><span class="stat-value">{{ finance.sales_month|rial }}</span><span class="muted small">سود ناخالص {{ finance.gross_profit_month|rial }} — سود خالص {{ finance.net_profit_month|rial }}</span></div>
+  <div class="card stat"><span class="stat-label">ارزش موجودی کالا</span><span class="stat-value">{{ finance.inventory_value|rial }}</span><span class="muted small">کاردکس: {{ finance.inventory_ledger_value|rial }}</span></div>
+  <div class="card stat"><span class="stat-label">صندوق / بانک</span><span class="stat-value">{{ finance.cash|rial }}</span><span class="muted small">بانک {{ finance.bank|rial }}</span></div>
+  <div class="card stat"><span class="stat-label">طلب از مشتری و بیمه</span><span class="stat-value">{{ finance.receivable|rial }}</span><span class="muted small">بدهی به تأمین‌کنندگان و سایر: {{ finance.payable|rial }}</span></div>
+</div>
+{% else %}
+<p class="muted">فروش امروز: {{ sales_today_count|fa_digits }} فاکتور.</p>
+{% endif %}
+
+<h2>هشدارها</h2>
+<div class="grid stats">
+  <a class="card stat" href="{% url 'backoffice:alerts' %}#low"><span class="stat-label">کمبود موجودی</span><span class="alert-count">{{ alert_counts.low_stock|fa_digits }}</span></a>
+  <a class="card stat" href="{% url 'backoffice:alerts' %}#near"><span class="stat-label">نزدیک به انقضا</span><span class="alert-count">{{ alert_counts.near_expiry|fa_digits }}</span></a>
+  <a class="card stat" href="{% url 'backoffice:alerts' %}#expired"><span class="stat-label">منقضی‌شده</span><span class="alert-count">{{ alert_counts.expired|fa_digits }}</span></a>
+  <a class="card stat" href="{% url 'backoffice:alerts' %}#blocked"><span class="stat-label">فراخوان / قرنطینه / توقیف</span><span class="alert-count">{{ alert_counts.blocked|fa_digits }}</span></a>
+  <a class="card stat" href="{% url 'backoffice:alerts' %}#nonsellable"><span class="stat-label">غیرقابل فروش</span><span class="alert-count">{{ alert_counts.non_sellable|fa_digits }}</span></a>
+  <a class="card stat" href="{% url 'backoffice:alerts' %}#data"><span class="stat-label">نقص اطلاعات</span><span class="alert-count">{{ alert_counts.data_issues|fa_digits }}</span></a>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>آخرین فروش‌ها</h3>
+    <ul>{% for inv in recent_sales %}<li><a href="{% url 'backoffice:pos_invoice' inv.pk %}">{{ inv.number }}</a> — {{ inv.get_channel_display }} — {{ inv.total|rial }}</li>{% empty %}<li class="muted">فروشی ثبت نشده.</li>{% endfor %}</ul>
+  </div>
+  <div class="card">
+    <h3>پرفروش‌های این ماه</h3>
+    <ul>{% for row in top_products %}<li>{{ row.product__name }}: {{ row.qty|fa_digits }}</li>{% empty %}<li class="muted">—</li>{% endfor %}</ul>
+  </div>
+  <div class="card">
+    <h3>آخرین رسیدهای خرید</h3>
+    <ul>{% for r in recent_receipts %}<li>{{ r.number }} — {{ r.supplier }}</li>{% empty %}<li class="muted">—</li>{% endfor %}</ul>
+    <p>سفارش آنلاین باز: <strong>{{ open_orders|fa_digits }}</strong></p>
+    <p>شیفت‌های باز: {% for s in open_sessions %}{{ s.register }} ({{ s.cashier }}){% if not forloop.last %}، {% endif %}{% empty %}ندارد{% endfor %}</p>
+  </div>
+</div>
+{% endblock %}

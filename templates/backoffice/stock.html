@@ -1,0 +1,12 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}موجودی انبار{% endblock %}
+{% block bo_content %}
+<h1>موجودی به تفکیک انبار، محل و بچ</h1>
+<form method="get" class="filters">
+  <input type="search" name="q" value="{{ q }}" placeholder="نام کالا، کد کالا یا شماره بچ">
+  <select name="warehouse"><option value="">همه انبارها</option>{% for w in warehouses %}<option value="{{ w.code }}"{% if w.code == current_warehouse %} selected{% endif %}>{{ w.name }}</option>{% endfor %}</select>
+  <button class="btn btn-small" type="submit">نمایش</button>
+</form>
+{% include "backoffice/_balances.html" with rows=balances %}
+{% endblock %}

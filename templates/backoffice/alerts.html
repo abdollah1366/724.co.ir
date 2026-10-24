@@ -1,0 +1,28 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}هشدارها{% endblock %}
+{% block bo_content %}
+<h1>هشدارهای انبار</h1>
+
+<h2 id="low">کمبود موجودی (زیر نقطه سفارش)</h2>
+<div class="table-wrap"><table class="table data"><tr><th>کالا</th><th class="num">موجودی سالم</th><th class="num">نقطه سفارش</th></tr>
+{% for p in alerts.low_stock %}<tr><td><a href="{% url 'backoffice:kardex' p.pk %}">{{ p.name }}</a></td><td class="num">{{ p.sellable_qty|fa_digits }}</td><td class="num">{{ p.reorder_point|fa_digits }}</td></tr>
+{% empty %}<tr><td colspan="3" class="muted">موردی نیست.</td></tr>{% endfor %}</table></div>
+
+<h2 id="near">نزدیک به انقضا</h2>
+{% include "backoffice/_balances.html" with rows=alerts.near_expiry %}
+<h2 id="expired">منقضی‌شده (باید امحا یا به تأمین‌کننده برگردد)</h2>
+{% include "backoffice/_balances.html" with rows=alerts.expired %}
+<h2 id="blocked">فراخوان‌شده، قرنطینه یا توقیف</h2>
+{% include "backoffice/_balances.html" with rows=alerts.blocked %}
+<h2 id="nonsellable">کالای غیرقابل فروش (انبار قرنطینه/مرجوعی یا فروش متوقف)</h2>
+{% include "backoffice/_balances.html" with rows=alerts.non_sellable %}
+
+<h2 id="data">نقص اطلاعات و اصالت</h2>
+<ul>{% for product, issue in alerts.data_issues %}<li>{{ product }}: {{ issue }}</li>{% empty %}<li class="muted">موردی نیست.</li>{% endfor %}</ul>
+
+{% if alerts.availability_drift %}
+<h2>اختلاف موجودی قابل فروش با دفتر انبار</h2>
+<ul>{% for product, current, expected in alerts.availability_drift %}<li>{{ product }}: {{ current|fa_digits }} (درست: {{ expected|fa_digits }}) — دستور <code>reconcile_stock --fix</code></li>{% endfor %}</ul>
+{% endif %}
+{% endblock %}

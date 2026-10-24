@@ -61,6 +61,12 @@ INSTALLED_APPS = [
     "apps.appointments",
     "apps.shop",
     "apps.accounts",
+    "apps.accounting",
+    "apps.inventory",
+    "apps.purchasing",
+    "apps.sales",
+    "apps.backoffice",
+    "apps.audit",  # باید آخر باشد تا نقش‌ها پس از ساخت همه مجوزها تنظیم شوند
 ]
 
 MIDDLEWARE = [
@@ -70,6 +76,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.audit.context.AuditContextMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -174,9 +181,28 @@ CLUB_RULES = {
 # سطح‌های عضویت بر اساس مجموع ژتون‌های به‌دست‌آمده: (نام، حداقل ژتون)
 CLUB_LEVELS = [("برنزی", 0), ("نقره‌ای", 500), ("طلایی", 1500)]
 
+# قواعد داروخانه و انبار
+PHARMACY_RULES = {
+    "min_shelf_life_days_on_receipt": int(os.environ.get("MIN_SHELF_LIFE_DAYS", "90")),  # کمترین عمر باقی‌مانده هنگام خرید
+    "expiry_alert_days": 90,  # هشدار نزدیک به انقضا
+    "quarantine_warehouse_code": "QRN",
+    "online_warehouse_code": os.environ.get("ONLINE_WAREHOUSE_CODE", ""),  # خالی = اولین انبار فروش
+}
+
+# پشتیبان‌گیری: python manage.py backup_db
+BACKUP_DIR = os.environ.get("BACKUP_DIR", str(BASE_DIR / "backups"))
+
+LOG_DIR = os.environ.get("LOG_DIR", "")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "formatters": {"plain": {"format": "%(asctime)s %(levelname)s %(name)s %(message)s"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "plain"}},
     "root": {"handlers": ["console"], "level": "INFO"},
 }
+if LOG_DIR:
+    LOGGING["handlers"]["file"] = {
+        "class": "logging.handlers.RotatingFileHandler", "filename": os.path.join(LOG_DIR, "724.log"),
+        "maxBytes": 10 * 1024 * 1024, "backupCount": 10, "encoding": "utf-8", "formatter": "plain",
+    }
+    LOGGING["root"]["handlers"].append("file")

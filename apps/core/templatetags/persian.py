@@ -38,3 +38,16 @@ def toman(value):
     if value in (None, ""):
         return ""
     return f"{int(value) // 10:,}".replace(",", "٬").translate(EN_TO_FA) + " تومان"
+
+
+@register.filter
+def rial(value):
+    """نمایش مبلغ ریالی با جداکننده هزارگان و ارقام فارسی (منفی با علامت)."""
+    if value in (None, ""):
+        return ""
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return value
+    text = f"{abs(number):,}".replace(",", "٬").translate(EN_TO_FA)
+    return f"−{text}" if number < 0 else text

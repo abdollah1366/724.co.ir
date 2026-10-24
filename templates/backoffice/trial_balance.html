@@ -1,0 +1,11 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}تراز آزمایشی{% endblock %}
+{% block bo_content %}
+<h1>تراز آزمایشی</h1>
+<div class="table-wrap"><table class="table data">
+<tr><th>کد</th><th>حساب</th><th class="num">بدهکار</th><th class="num">بستانکار</th><th class="num">مانده</th></tr>
+{% for r in rows %}<tr><td>{{ r.account__code }}</td><td>{{ r.account__name }}</td><td class="num">{{ r.debit|rial }}</td><td class="num">{{ r.credit|rial }}</td><td class="num">{{ r.balance|rial }}</td></tr>{% endfor %}
+<tfoot><tr><td colspan="2">جمع</td><td class="num">{{ totals.debit|rial }}</td><td class="num">{{ totals.credit|rial }}</td><td>{% if totals.debit == totals.credit %}تراز ✓{% else %}نا‌تراز ✗{% endif %}</td></tr></tfoot>
+</table></div>
+{% endblock %}
