@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from apps.appointments.models import Appointment
 from apps.clinic.models import Doctor
+from apps.core.db import lock_own_rows
 from apps.core.sms import send_sms
 from apps.core.validators import normalize_digits
 
@@ -178,7 +179,7 @@ def _close_current(doctor):
 @transaction.atomic
 def call_next(doctor):
     Doctor.objects.select_for_update().get(pk=doctor.pk)
-    ticket = waiting(doctor).select_for_update(of=("self",)).first()
+    ticket = lock_own_rows(waiting(doctor)).first()
     _close_current(doctor)
     if ticket is None:
         return None

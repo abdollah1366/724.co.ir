@@ -1,0 +1,12 @@
+# پشتیبان شبانه پایگاه داده و مدارک بیماران
+[Unit]
+Description=724 timer: backup
+
+[Timer]
+OnCalendar=*-*-* 02:30:00 Asia/Tehran
+Unit=724-task@backup.service
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

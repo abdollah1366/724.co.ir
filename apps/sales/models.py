@@ -4,6 +4,7 @@ from django.db.models import Sum
 
 from apps.accounting.models import Party, PaymentMethod
 from apps.audit.documents import DocStatus, DocumentError, DocumentLine, PostedDocument
+from apps.core.fields import unique_when
 from apps.inventory.models import Batch, Location, Warehouse
 from apps.shop.models import Order, Product
 
@@ -38,12 +39,14 @@ class CashSession(models.Model):
     expected_cash = models.BigIntegerField("نقد مورد انتظار (ریال)", null=True, blank=True, editable=False)
     difference = models.BigIntegerField("اختلاف صندوق (ریال)", null=True, blank=True, editable=False)
 
+    is_open = unique_when(models.Q(status="open"))
+
     class Meta:
         ordering = ["-opened_at"]
         verbose_name = "شیفت صندوق"
         verbose_name_plural = "شیفت‌های صندوق"
         constraints = [
-            models.UniqueConstraint(fields=["register"], condition=models.Q(status="open"), name="one_open_session_per_register")
+            models.UniqueConstraint(fields=["register", "is_open"], name="one_open_session_per_register")
         ]
 
     def __str__(self):

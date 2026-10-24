@@ -47,6 +47,8 @@ class Command(BaseCommand):
             path = self._sqlite(target, stamp)
         elif vendor == "postgresql":
             path = self._postgres(target, stamp)
+        elif vendor == "mysql":
+            path = self._mysql(target, stamp)
         else:
             raise CommandError(f"پایگاه داده {vendor} پشتیبانی نمی‌شود.")
         checksum = sha256(path)
@@ -91,6 +93,34 @@ class Command(BaseCommand):
             subprocess.run(["pg_restore", "--list", str(out)], check=True, stdout=subprocess.DEVNULL)
         except (OSError, subprocess.CalledProcessError) as exc:
             raise CommandError(f"pg_dump/pg_restore ناموفق بود: {exc}") from exc
+        return out
+
+    def _mysql(self, target, stamp):
+        """MySQL/MariaDB (هاست اشتراکی): mysqldump فشرده؛ پایان کامل فایل بررسی می‌شود."""
+        db = connection.settings_dict
+        out = target / f"db-{stamp}.sql.gz"
+        env = {**os.environ, "MYSQL_PWD": db.get("PASSWORD") or ""}
+        host = db.get("HOST") or "localhost"
+        server = ["--socket", host] if host.startswith("/") else ["-h", host, "-P", str(db.get("PORT") or 3306)]
+        cmd = ["mysqldump", "--single-transaction", "--quick", "--routines", "--default-character-set=utf8mb4",
+               *server, "-u", db.get("USER") or "", db["NAME"]]
+        try:
+            with gzip.open(out, "wb") as fout:
+                proc = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE)
+                shutil.copyfileobj(proc.stdout, fout)
+                if proc.wait() != 0:
+                    raise subprocess.CalledProcessError(proc.returncode, cmd[0])
+        except (OSError, subprocess.CalledProcessError) as exc:
+            out.unlink(missing_ok=True)
+            raise CommandError(f"mysqldump ناموفق بود: {exc}") from exc
+        # خواندن کامل، CRC فایل gzip را هم بررسی می‌کند.
+        tail = b""
+        with gzip.open(out, "rb") as fin:
+            for chunk in iter(lambda: fin.read(1024 * 1024), b""):
+                tail = (tail + chunk)[-400:]
+        if b"Dump completed" not in tail:
+            out.unlink(missing_ok=True)
+            raise CommandError("پشتیبان MySQL ناقص است.")
         return out
 
     def _private_files(self, target, stamp):

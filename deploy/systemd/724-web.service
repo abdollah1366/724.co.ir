@@ -1,0 +1,38 @@
+# وب‌سرور برنامه (Gunicorn) سامانه ۷۲۴. تعداد پردازه‌ها در /etc/724/web.env (WORKERS).
+[Unit]
+Description=724 health system (Gunicorn)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=notify
+User=app724
+Group=app724
+WorkingDirectory=/srv/724/app
+Environment=WORKERS=3
+EnvironmentFile=-/etc/724/web.env
+RuntimeDirectory=724
+RuntimeDirectoryMode=0750
+UMask=0027
+ExecStart=/srv/724/venv/bin/gunicorn config.wsgi:application \
+    --bind unix:/run/724/gunicorn.sock \
+    --workers ${WORKERS} --timeout 120 --max-requests 1000 --max-requests-jitter 100 \
+    --access-logfile - --error-logfile -
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+# محدودسازی: برنامه فقط در همین پوشه‌ها می‌نویسد.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/724/media /srv/724/private_media /var/log/724
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

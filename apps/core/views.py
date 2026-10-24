@@ -1,5 +1,7 @@
+from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import redirect, render
+from django.views.static import serve
 
 from apps.blog.models import Post
 from apps.clinic.models import Department
@@ -28,3 +30,11 @@ def contact(request):
         messages.success(request, "پیام شما ثبت شد. به‌زودی با شما تماس می‌گیریم.")
         return redirect("core:contact")
     return render(request, "core/contact.html", {"form": form})
+
+
+def public_media(request, path):
+    """تصاویر عمومی روی هاست اشتراکی (DJANGO_SERVE_MEDIA). CSP جلوی اجرای اسکریپت در فایل بارگذاری‌شده را می‌گیرد."""
+    response = serve(request, path, document_root=settings.MEDIA_ROOT)
+    response["Content-Security-Policy"] = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox"
+    response["Cache-Control"] = "public, max-age=604800"
+    return response

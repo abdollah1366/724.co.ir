@@ -5,6 +5,7 @@ from django.db import models
 from django.utils import timezone
 
 from apps.clinic.models import Doctor
+from apps.core.fields import unique_when
 from apps.core.validators import validate_mobile, validate_national_code
 
 
@@ -48,17 +49,15 @@ class Appointment(models.Model):
 
     objects = AppointmentQuerySet.as_manager()
 
+    slot_active = unique_when(~models.Q(status="cancelled"))
+
     class Meta:
         ordering = ["-date", "-time"]
         verbose_name = "نوبت"
         verbose_name_plural = "نوبت‌ها"
         constraints = [
             # یک زمان از یک پزشک فقط یک نوبت فعال می‌تواند داشته باشد.
-            models.UniqueConstraint(
-                fields=["doctor", "date", "time"],
-                condition=~models.Q(status="cancelled"),
-                name="unique_active_appointment_slot",
-            )
+            models.UniqueConstraint(fields=["doctor", "date", "time", "slot_active"], name="unique_active_appointment_slot")
         ]
         indexes = [models.Index(fields=["doctor", "date"])]
 

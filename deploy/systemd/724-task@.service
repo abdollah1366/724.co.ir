@@ -1,0 +1,19 @@
+# کارهای زمان‌بندی‌شده سامانه ۷۲۴. %i نام دستور در /srv/724/app/deploy/tasks.sh است.
+[Unit]
+Description=724 scheduled task: %i
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=app724
+Group=app724
+WorkingDirectory=/srv/724/app
+UMask=0077
+ExecStart=/srv/724/app/deploy/tasks.sh %i
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/724/media /srv/724/private_media /var/log/724 /var/backups/724

@@ -1,0 +1,12 @@
+# پیامک‌های یادآوری درمانگاه و آزمایشگاه
+[Unit]
+Description=724 timer: reminders
+
+[Timer]
+OnCalendar=*-*-* 10:00:00 Asia/Tehran
+Unit=724-task@reminders.service
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

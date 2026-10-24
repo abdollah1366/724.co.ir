@@ -5,6 +5,7 @@ from django.db import models
 from django.db.models import Sum
 from django.urls import reverse
 
+from apps.core.fields import unique_when
 from apps.core.validators import validate_mobile
 
 REFERRAL_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -58,6 +59,8 @@ class PointTransaction(models.Model):
     reference = models.CharField("شناسه مرجع", max_length=64, blank=True, editable=False)
     created_at = models.DateTimeField("زمان", auto_now_add=True)
 
+    reference_set = unique_when(~models.Q(reference=""))
+
     class Meta:
         ordering = ["-created_at"]
         verbose_name = "تراکنش ژتون"
@@ -65,9 +68,7 @@ class PointTransaction(models.Model):
         constraints = [
             # هر خدمت فقط یک بار ژتون می‌دهد.
             models.UniqueConstraint(
-                fields=["user", "reason", "reference"],
-                condition=~models.Q(reference=""),
-                name="unique_point_award_per_reference",
+                fields=["user", "reason", "reference", "reference_set"], name="unique_point_award_per_reference"
             )
         ]
 
