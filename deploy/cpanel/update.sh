@@ -20,7 +20,8 @@ git -C "$APP" checkout -q -B "$BRANCH" "origin/$BRANCH"
 echo "$(git -C "$APP" rev-parse --short "$before") -> $(git -C "$APP" rev-parse --short HEAD)"
 
 echo "==> بسته‌های پایتون و پایگاه داده"
-"$VENV/bin/pip" install -q -r "$APP/requirements-hosting.txt"
+index=$(cat "$HOME/724/.pip-index" 2>/dev/null || echo https://pypi.org/simple)
+"$VENV/bin/pip" install -q --progress-bar off --timeout 30 --index-url "$index" -r "$APP/requirements-hosting.txt"
 manage migrate --noinput
 manage createcachetable
 manage collectstatic --noinput -v 0

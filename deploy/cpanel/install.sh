@@ -13,6 +13,7 @@ DOMAIN="${DOMAIN:-724med.ir}"
 REPO_URL="${REPO_URL:-https://github.com/abdollah1366/724.co.ir.git}"
 BRANCH="${BRANCH:-main}"
 PYTHON="${PYTHON:-}"
+export UV_HTTP_TIMEOUT="${UV_HTTP_TIMEOUT:-120}"
 
 BASE=$HOME/724
 APP=$BASE/app
@@ -36,6 +37,26 @@ set_env() {
 get_env() { grep -m1 "^$1=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || true; }
 random_hex() { "$PYTHON" -c "import secrets; print(secrets.token_hex($1))"; }
 uapi_ok() { uapi --output=json "$@" 2>/dev/null | grep -q '"status":1'; }
+
+# سرورهای داخل ایران اغلب به pypi.org دسترسی ندارند یا کند هستند؛ مخزن‌های داخلی به‌ترتیب امتحان می‌شوند
+# و اولین مخزنی که کار کرد در ~/724/.pip-index ذخیره می‌شود (update.sh هم از آن استفاده می‌کند).
+PIP_INDEXES="${PIP_INDEX_URL:-} https://pypi.org/simple https://mirror-pypi.runflare.com/simple \
+https://package-mirror.liara.ir/repository/pypi/simple https://repo.hmirror.ir/python/simple"
+pip_install() {
+    local pip=$1 index saved
+    shift
+    saved=$(cat "$BASE/.pip-index" 2>/dev/null || true)
+    for index in $saved $PIP_INDEXES; do
+        echo "  دریافت بسته‌ها از $index"
+        if "$pip" install -q --progress-bar off --retries 1 --timeout 30 --index-url "$index" "$@"; then
+            mkdir -p "$BASE"
+            echo "$index" >"$BASE/.pip-index"
+            return 0
+        fi
+        warn "از $index دریافت نشد؛ مخزن بعدی امتحان می‌شود."
+    done
+    return 1
+}
 
 [ "$(id -u)" -ne 0 ] || die "این اسکریپت برای کاربر هاست است، نه root. برای سرور اختصاصی deploy/install.sh را ببینید."
 [[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || die "DOMAIN نامعتبر است: $DOMAIN"
@@ -61,7 +82,7 @@ if [ -z "$PYTHON" ]; then
         UV="$BASE/tools/bin/uv"
         if [ ! -x "$UV" ]; then
             # ابزار uv از PyPI (با پایتون فعلی سرور) و اگر نشد از سایت سازنده.
-            { python3 -m venv "$BASE/tools" && "$BASE/tools/bin/pip" install -q uv; } ||
+            { python3 -m venv "$BASE/tools" && pip_install "$BASE/tools/bin/pip" uv; } ||
                 { mkdir -p "$BASE/tools/bin" && curl -LsSf https://astral.sh/uv/install.sh |
                     env UV_INSTALL_DIR="$BASE/tools/bin" INSTALLER_NO_MODIFY_PATH=1 sh >/dev/null; } ||
                 die "دریافت ابزار نصب پایتون (uv) ناموفق بود."
@@ -87,8 +108,9 @@ chmod +x "$APP/deploy/"*.sh "$APP/deploy/cpanel/"*.sh
 
 step "محیط پایتون و بسته‌ها"
 [ -x "$VENV/bin/python" ] || "$PYTHON" -m venv "$VENV"
-"$VENV/bin/pip" install -q --upgrade pip
-"$VENV/bin/pip" install -q -r "$APP/requirements-hosting.txt"
+pip_install "$VENV/bin/pip" --upgrade pip || warn "به‌روزرسانی pip ممکن نشد؛ ادامه با نسخه فعلی."
+pip_install "$VENV/bin/pip" -r "$APP/requirements-hosting.txt" ||
+    die "دریافت بسته‌های پایتون از هیچ مخزنی ممکن نشد. آدرس مخزن PyPI را از پشتیبانی هاست بپرسید و اسکریپت را با PIP_INDEX_URL=آدرس دوباره اجرا کنید."
 
 step "پایگاه داده MySQL"
 [ -f "$ENV_FILE" ] || install -m 600 /dev/null "$ENV_FILE"
