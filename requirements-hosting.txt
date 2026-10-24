@@ -1,0 +1,4 @@
+# هاست اشتراکی cPanel با MySQL/MariaDB (راهنما: docs/HOSTING.md)
+-r requirements.txt
+PyMySQL>=1.1
+whitenoise>=6.7

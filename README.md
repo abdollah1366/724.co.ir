@@ -55,6 +55,12 @@ python manage.py runserver
 
 در VS Code می‌توانید از منوی **Run and Debug** (کلید `F5`) گزینه «اجرای سایت» یا «اجرای تست‌ها» را هم انتخاب کنید. هنگام باز کردن پروژه، مفسر Python را روی `.venv` بگذارید (`Ctrl+Shift+P` ← *Python: Select Interpreter*).
 
+## راه‌اندازی روی اینترنت
+
+- **هاست cPanel** (اشتراکی، MySQL/MariaDB): در Terminal هاست یک دستور اجرا می‌شود. راهنما: [docs/HOSTING.md](docs/HOSTING.md)
+- **سرور اختصاصی (VPS لینوکس)** با Nginx، PostgreSQL، HTTPS، دیوار آتش و پشتیبان شبانه:
+  `sudo DOMAIN=724.co.ir EMAIL=you@example.com bash deploy/install.sh`. راهنما: [docs/DEPLOY.md](docs/DEPLOY.md)
+
 ## اجرای تست‌ها
 
 ```bash

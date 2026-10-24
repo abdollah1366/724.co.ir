@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 
 from apps.audit.documents import ImmutableRecord, PostedDocument
+from apps.core.fields import unique_when
 from apps.core.validators import validate_mobile
 
 
@@ -28,14 +29,14 @@ class Party(models.Model):
     )
     is_active = models.BooleanField("فعال", default=True)
 
+    national_id_set = unique_when(~models.Q(national_id=""))
+
     class Meta:
         ordering = ["kind", "name"]
         verbose_name = "طرف حساب"
         verbose_name_plural = "طرف‌های حساب (تأمین‌کننده، مشتری، بیمه)"
         constraints = [
-            models.UniqueConstraint(
-                fields=["kind", "national_id"], condition=~models.Q(national_id=""), name="unique_party_national_id"
-            )
+            models.UniqueConstraint(fields=["kind", "national_id", "national_id_set"], name="unique_party_national_id")
         ]
 
     def __str__(self):
@@ -143,6 +144,8 @@ class Payment(PostedDocument):
     amount = models.PositiveBigIntegerField("مبلغ (ریال)")
     reference_no = models.CharField("شماره پیگیری / چک", max_length=40, blank=True)
 
+    reference_active = unique_when(~models.Q(reference_no="") & ~models.Q(status="reversed"))
+
     class Meta:
         ordering = ["-date", "-id"]
         verbose_name = "دریافت / پرداخت"
@@ -150,9 +153,7 @@ class Payment(PostedDocument):
         permissions = [("post_payment", "ثبت نهایی دریافت و پرداخت"), ("reverse_payment", "برگشت دریافت و پرداخت")]
         constraints = [
             models.UniqueConstraint(
-                fields=["direction", "method", "reference_no"],
-                condition=~models.Q(reference_no="") & ~models.Q(status="reversed"),
-                name="unique_payment_reference",
+                fields=["direction", "method", "reference_no", "reference_active"], name="unique_payment_reference"
             )
         ]
 

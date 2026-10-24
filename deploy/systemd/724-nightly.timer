@@ -1,0 +1,12 @@
+# کنترل انقضای سری‌های دارو
+[Unit]
+Description=724 timer: nightly
+
+[Timer]
+OnCalendar=*-*-* 00:30:00 Asia/Tehran
+Unit=724-task@nightly.service
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

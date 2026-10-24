@@ -3,6 +3,7 @@ from django.db.models import Sum
 
 from apps.accounting.models import Party
 from apps.audit.documents import DocumentError, DocumentLine, PostedDocument
+from apps.core.fields import unique_when
 from apps.inventory.models import Location, Warehouse
 from apps.shop.models import Product
 
@@ -140,6 +141,8 @@ class PurchaseInvoice(PostedDocument):
     discount = models.PositiveBigIntegerField("تخفیف (ریال)", default=0)
     tax = models.PositiveBigIntegerField("مالیات بر ارزش افزوده (ریال)", default=0)
 
+    invoice_active = unique_when(~models.Q(status="reversed"))
+
     class Meta:
         ordering = ["-date", "-id"]
         verbose_name = "فاکتور خرید"
@@ -147,10 +150,7 @@ class PurchaseInvoice(PostedDocument):
         permissions = [("post_purchaseinvoice", "ثبت نهایی فاکتور خرید"), ("reverse_purchaseinvoice", "برگشت فاکتور خرید")]
         constraints = [
             # جلوگیری از ثبت دوباره یک فاکتور تأمین‌کننده
-            models.UniqueConstraint(
-                fields=["supplier", "supplier_invoice_no"], condition=~models.Q(status="reversed"),
-                name="unique_supplier_invoice",
-            )
+            models.UniqueConstraint(fields=["supplier", "supplier_invoice_no", "invoice_active"], name="unique_supplier_invoice")
         ]
 
     def validate_for_post(self):

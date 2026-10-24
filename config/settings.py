@@ -74,6 +74,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "apps.core.middleware.RealIPMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
@@ -84,6 +85,14 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# هاست اشتراکی (بدون Nginx): فایل‌های ثابت را خود برنامه با WhiteNoise و تصاویر عمومی
+# را با SERVE_MEDIA سرو می‌کند. روی VPS این‌ها خاموش‌اند و Nginx سرو می‌کند.
+SERVE_STATIC = env_bool("DJANGO_SERVE_STATIC", False)
+SERVE_MEDIA = env_bool("DJANGO_SERVE_MEDIA", False)
+if SERVE_STATIC:
+    MIDDLEWARE.insert(MIDDLEWARE.index("django.middleware.security.SecurityMiddleware") + 1,
+                      "whitenoise.middleware.WhiteNoiseMiddleware")
 
 ROOT_URLCONF = "config.urls"
 
@@ -118,6 +127,26 @@ if os.environ.get("POSTGRES_DB"):
             "PORT": os.environ.get("POSTGRES_PORT", "5432"),
         }
     }
+elif os.environ.get("MYSQL_DATABASE"):
+    # هاست اشتراکی (cPanel) معمولاً فقط MySQL/MariaDB دارد. PyMySQL نیاز به کامپایل ندارد.
+    try:
+        import MySQLdb  # noqa: F401
+    except ImportError:
+        import pymysql
+
+        pymysql.install_as_MySQLdb()
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.environ["MYSQL_DATABASE"],
+            "USER": os.environ.get("MYSQL_USER", ""),
+            "PASSWORD": os.environ.get("MYSQL_PASSWORD", ""),
+            "HOST": os.environ.get("MYSQL_HOST", "localhost"),
+            "PORT": os.environ.get("MYSQL_PORT", "3306"),
+            "OPTIONS": {"charset": "utf8mb4", "init_command": "SET sql_mode='STRICT_TRANS_TABLES'"},
+            "TEST": {"CHARSET": "utf8mb4", "COLLATION": "utf8mb4_unicode_ci"},
+        }
+    }
 else:
     DATABASES = {
         "default": {
@@ -141,14 +170,23 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", BASE_DIR / "staticfiles"))
 MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 # مدارک پزشکی بیماران (اسکن و تصویر): خارج از MEDIA_ROOT و هرگز مستقیم از وب سرو نمی‌شود.
 PRIVATE_MEDIA_ROOT = Path(os.environ.get("PRIVATE_MEDIA_ROOT", BASE_DIR / "private_media"))
 FILE_UPLOAD_PERMISSIONS = 0o640
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# cache: پیش‌فرض حافظه هر پردازه. روی سرور با چند پردازه Gunicorn مقدار db بگذارید تا شمارنده‌های
+# محدودیت تلاش بین پردازه‌ها مشترک باشد (یک‌بار: python manage.py createcachetable).
+if os.environ.get("DJANGO_CACHE_BACKEND") == "db":
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "django_cache"}}
+
+# پشت Nginx: IP واقعی کاربر از سرآیند X-Real-IP خوانده می‌شود (Nginx آن را بازنویسی می‌کند).
+# فقط وقتی true باشد که Gunicorn مستقیم از اینترنت در دسترس نیست.
+BEHIND_PROXY = env_bool("DJANGO_BEHIND_PROXY", False)
 
 # امنیت
 SESSION_COOKIE_HTTPONLY = True
