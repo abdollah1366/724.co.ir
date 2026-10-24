@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sitemaps",
     "apps.core",
     "apps.clinic",
     "apps.appointments",
@@ -68,6 +69,7 @@ INSTALLED_APPS = [
     "apps.backoffice",
     "apps.lab",
     "apps.ehr",
+    "apps.blog",
     "apps.audit",  # باید آخر باشد تا نقش‌ها پس از ساخت همه مجوزها تنظیم شوند
 ]
 

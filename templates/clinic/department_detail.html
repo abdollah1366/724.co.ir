@@ -47,5 +47,10 @@
       {% for doctor in doctors %}{% include "includes/doctor_card.html" %}{% endfor %}
     </div>
   {% endif %}
+
+  {% if posts %}
+    <div class="section-head"><h2>مقالات آموزشی</h2><a href="{% url 'blog:list' %}">همه مقاله‌ها ←</a></div>
+    <div class="grid posts">{% for post in posts %}{% include "includes/post_card.html" %}{% endfor %}</div>
+  {% endif %}
 </section>
 {% endblock %}

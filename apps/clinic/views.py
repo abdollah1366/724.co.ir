@@ -16,6 +16,7 @@ def department_detail(request, slug):
         "department": department,
         "services": department.services.filter(is_active=True),
         "doctors": department.doctors.active().select_related("specialty"),
+        "posts": department.posts.published().select_related("category")[:3],
     }
     if department.kind in (Department.Kind.PHARMACY, Department.Kind.EQUIPMENT):
         kind = Product.Kind.DRUG if department.kind == Department.Kind.PHARMACY else Product.Kind.EQUIPMENT
@@ -40,7 +41,8 @@ def doctor_detail(request, slug):
     doctor = get_object_or_404(
         Doctor.objects.active().select_related("specialty", "department").prefetch_related("working_hours"), slug=slug
     )
-    return render(request, "clinic/doctor_detail.html", {"doctor": doctor})
+    posts = doctor.posts.published().select_related("category")[:6]
+    return render(request, "clinic/doctor_detail.html", {"doctor": doctor, "posts": posts})
 
 
 def search(request):
