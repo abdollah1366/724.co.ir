@@ -12,6 +12,7 @@ import shutil
 import sqlite3
 import subprocess
 import tempfile
+import zipfile
 from pathlib import Path
 
 from django.conf import settings
@@ -50,6 +51,10 @@ class Command(BaseCommand):
             raise CommandError(f"پایگاه داده {vendor} پشتیبانی نمی‌شود.")
         checksum = sha256(path)
         Path(f"{path}.sha256").write_text(f"{checksum}  {path.name}\n", encoding="utf-8")
+        files = self._private_files(target, stamp)
+        if files:
+            Path(f"{files}.sha256").write_text(f"{sha256(files)}  {files.name}\n", encoding="utf-8")
+            self.stdout.write(f"پشتیبان مدارک بیماران: {files}")
         removed = self._cleanup(target, options["keep_days"])
         log.record(AuditLog.Action.BACKUP, message=f"{path.name} ({path.stat().st_size} بایت، sha256={checksum[:16]})")
         self.stdout.write(self.style.SUCCESS(f"پشتیبان ساخته شد: {path}"))
@@ -88,10 +93,25 @@ class Command(BaseCommand):
             raise CommandError(f"pg_dump/pg_restore ناموفق بود: {exc}") from exc
         return out
 
+    def _private_files(self, target, stamp):
+        """مدارک اسکن‌شده بیماران (پوشه خصوصی) در یک فایل zip کنار پشتیبان پایگاه داده."""
+        root = Path(getattr(settings, "PRIVATE_MEDIA_ROOT", ""))
+        if not root.is_dir() or not any(p.is_file() for p in root.rglob("*")):
+            return None
+        out = target / f"files-{stamp}.zip"
+        with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
+            for path in root.rglob("*"):
+                if path.is_file():
+                    archive.write(path, path.relative_to(root))
+        with zipfile.ZipFile(out) as archive:
+            if archive.testzip() is not None:
+                raise CommandError("بررسی صحت پشتیبان مدارک ناموفق بود.")
+        return out
+
     def _cleanup(self, target, keep_days):
         cutoff = datetime.datetime.now() - datetime.timedelta(days=keep_days)
         removed = 0
-        for path in target.glob("db-*"):
+        for path in [*target.glob("db-*"), *target.glob("files-*")]:
             if datetime.datetime.fromtimestamp(path.stat().st_mtime) < cutoff:
                 path.unlink()
                 removed += 1

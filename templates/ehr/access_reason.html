@@ -1,0 +1,12 @@
+{% extends "ehr/base.html" %}
+{% block ehr_title %}دسترسی به پرونده{% endblock %}
+{% block ehr_content %}
+<h1>دسترسی به پرونده {{ patient.file_number }}</h1>
+<div class="card">
+  <p>شما با این بیمار نوبت یا رابطه درمانی ثبت‌شده ندارید. برای دیدن پرونده دلیل آن را بنویسید. دسترسی تا {{ hours }} ساعت باز می‌ماند و با نام شما در گزارش مشاهده پرونده‌ها ثبت می‌شود.</p>
+  <form method="post">{% csrf_token %}
+    {% include "includes/form.html" %}
+    <button class="btn">ثبت دلیل و مشاهده پرونده</button>
+  </form>
+</div>
+{% endblock %}

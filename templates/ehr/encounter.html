@@ -1,0 +1,130 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}{{ encounter.get_kind_display }} {{ patient.full_name }}{% endblock %}
+{% block ehr_content %}
+<div class="card ehr-header">
+  <h1>{{ encounter.get_kind_display }} · <a href="{% url 'ehr:chart' patient.pk %}">{{ patient.full_name }}</a> <small class="muted">پرونده {{ patient.file_number }}</small></h1>
+  <p>{{ encounter.provider.full_name }} · {{ encounter.started_at|jalali:"%Y/%m/%d %H:%M" }} ·
+    {% if encounter.is_open %}<span class="badge badge-warn">{{ encounter.get_status_display }}</span>{% else %}<span class="badge">امضاشده {{ encounter.signed_at|jalali:"%Y/%m/%d %H:%M" }}</span>{% endif %}
+    {% if patient.age_years is not None %} · {{ patient.age_years|fa_digits }} ساله{% endif %}{% if patient.sex %} · {{ patient.get_sex_display }}{% endif %}</p>
+  {% if allergies %}<p><strong>حساسیت:</strong> {% for a in allergies %}<span class="badge {% if a.severity == 'severe' %}status-cancelled{% else %}badge-warn{% endif %}">{{ a.substance }}</span> {% endfor %}</p>{% endif %}
+  {% if problems %}<p><strong>مشکلات فعال:</strong> {% for p in problems %}{{ p.label }}{% if not forloop.last %}، {% endif %}{% endfor %}</p>{% endif %}
+</div>
+
+<div class="ehr-encounter">
+  <div>
+    {% if writable %}
+    <form class="card" method="post">{% csrf_token %}
+      <h2>شرح حال و معاینه (SOAP)</h2>
+      {% include "includes/form.html" with form=form %}
+      <button class="btn">ذخیره</button>
+    </form>
+    {% else %}
+    <div class="card ehr-soap">
+      <h2>شرح حال و معاینه</h2>
+      {% if encounter.chief_complaint %}<p><strong>شکایت اصلی:</strong> {{ encounter.chief_complaint }}</p>{% endif %}
+      {% if encounter.subjective %}<strong>شرح حال</strong><pre>{{ encounter.subjective }}</pre>{% endif %}
+      {% if encounter.objective %}<strong>معاینه</strong><pre>{{ encounter.objective }}</pre>{% endif %}
+      {% if encounter.assessment %}<strong>ارزیابی</strong><pre>{{ encounter.assessment }}</pre>{% endif %}
+      {% if encounter.plan %}<strong>برنامه درمان</strong><pre>{{ encounter.plan }}</pre>{% endif %}
+      {% if encounter.next_visit %}<p><strong>ویزیت بعدی:</strong> {{ encounter.next_visit|jalali:"%Y/%m/%d" }}</p>{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h2>تشخیص‌ها</h2>
+      {% for d in diagnoses %}
+        <div class="ehr-row">{% if d.is_primary %}<span class="badge">اصلی</span> {% endif %}{{ d.label }}
+          {% if writable %}<form method="post" action="{% url 'ehr:diagnosis_delete' d.pk %}" class="inline">{% csrf_token %}<button class="link">حذف</button></form>{% endif %}</div>
+      {% empty %}<p class="muted">تشخیصی ثبت نشده.</p>{% endfor %}
+      {% if diagnosis_form %}
+      <form method="post" action="{% url 'ehr:encounter_diagnosis' encounter.pk %}">{% csrf_token %}
+        {% include "includes/form.html" with form=diagnosis_form %}
+        <div class="field field-check"><input type="checkbox" name="d-add_problem" id="add-problem" value="1"> <label for="add-problem">به فهرست مشکلات بیمار هم اضافه شود</label></div>
+        <button class="btn btn-small">افزودن تشخیص</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>خدمات انجام‌شده (کد ملی خدمت)</h2>
+      {% for s in services %}
+        <div class="ehr-row"><span dir="ltr">{{ s.service_code.code }}</span> {{ s.service_code.title|truncatechars:90 }} × {{ s.quantity|fa_digits }}
+          {% if s.service_code.is_cosmetic %}<span class="badge badge-warn">* زیبایی / خارج از تعهد بیمه</span>{% endif %}
+          · {% if s.total is not None %}{{ s.total|rial }}{% else %}<span class="muted">تعرفه: ضریب ریالی ثبت نشده</span>{% endif %}
+          {% if writable %}<form method="post" action="{% url 'ehr:encounter_service_delete' s.pk %}" class="inline">{% csrf_token %}<button class="link">حذف</button></form>{% endif %}</div>
+      {% empty %}<p class="muted">خدمتی ثبت نشده.</p>{% endfor %}
+      {% if service_form %}
+      <form method="post" action="{% url 'ehr:encounter_service' encounter.pk %}">{% csrf_token %}
+        {% include "includes/form.html" with form=service_form %}<button class="btn btn-small">افزودن خدمت</button>
+      </form>
+      {% endif %}
+    </div>
+
+    {% for a in encounter.addenda.all %}
+    <div class="card"><strong>یادداشت تکمیلی</strong> <span class="muted">{{ a.user.get_full_name|default:a.user.username }} · {{ a.created_at|jalali:"%Y/%m/%d %H:%M" }}</span><div class="ehr-soap"><pre>{{ a.text }}</pre></div></div>
+    {% endfor %}
+    {% if addendum_form %}
+    <form class="card" method="post" action="{% url 'ehr:encounter_addendum' encounter.pk %}">{% csrf_token %}
+      {% include "includes/form.html" with form=addendum_form %}<button class="btn btn-small">ثبت یادداشت تکمیلی</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <aside>
+    <div class="card">
+      <h2>علائم حیاتی</h2>
+      {% for v in vitals %}
+        <div class="ehr-row"><span class="muted">{{ v.recorded_at|jalali:"%H:%M" }}</span>
+          {% if v.bp %}فشار <span dir="ltr">{{ v.bp }}</span>{% endif %}{% if v.pulse %} · نبض {{ v.pulse }}{% endif %}{% if v.temperature %} · دما {{ v.temperature }}{% endif %}{% if v.spo2 %} · SpO2 {{ v.spo2 }}٪{% endif %}{% if v.weight %} · وزن {{ v.weight }}{% endif %}{% if v.bmi %} · BMI {{ v.bmi }}{% endif %}{% if v.glucose %} · قند {{ v.glucose }} ({{ v.get_glucose_kind_display }}){% endif %}</div>
+      {% empty %}<p class="muted">ثبت نشده.</p>{% endfor %}
+      {% if vitals_form and perms.ehr.add_vitalsigns %}
+      <details{% if not vitals %} open{% endif %}><summary>ثبت علائم حیاتی</summary>
+        <form method="post" action="{% url 'ehr:encounter_vitals' encounter.pk %}">{% csrf_token %}{% include "includes/form.html" with form=vitals_form %}<button class="btn btn-small">ثبت</button></form>
+      </details>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>پایش</h2>
+      <p>فشار: {{ summary.last.bp.label|default:"—" }} · HbA1c: {{ summary.last.hba1c.label|default:"—" }} · قند ناشتا: {{ summary.last.fbs.label|default:"—" }}</p>
+    </div>
+
+    <div class="card">
+      <h2>نسخه‌ها</h2>
+      {% for rx in prescriptions %}
+        <div class="ehr-row"><a href="{% url 'ehr:prescription' rx.pk %}">{{ rx }}</a> · {{ rx.dispense_status }}
+          <ul>{% for item in rx.items.all %}<li>{{ item.label }} × {{ item.quantity|fa_digits }}</li>{% endfor %}</ul></div>
+      {% empty %}<p class="muted">نسخه‌ای ندارد.</p>{% endfor %}
+      {% if writable and perms.ehr.add_prescription %}
+      <form method="post" action="{% url 'ehr:prescription_new' patient.pk %}">{% csrf_token %}<input type="hidden" name="encounter" value="{{ encounter.pk }}"><button class="btn btn-small">نوشتن نسخه</button></form>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>درخواست آزمایش</h2>
+      {% for r in lab_requests %}<div class="ehr-row">{{ r.number }} · {{ r.get_status_display }}<div class="muted">{% for t in r.tests.all %}{{ t.name }}{% if not forloop.last %}، {% endif %}{% endfor %}</div></div>
+      {% empty %}<p class="muted">درخواستی ندارد.</p>{% endfor %}
+      {% if writable and perms.ehr.add_labrequest %}<a class="btn btn-small" href="{% url 'ehr:lab_request_new' encounter.pk %}">درخواست آزمایش</a>{% endif %}
+      <a class="btn btn-small btn-outline" href="{% url 'ehr:patient_labs' patient.pk %}">روند جواب‌ها</a>
+    </div>
+
+    {% if referral_form %}
+    <div class="card">
+      <h2>ارجاع</h2>
+      {% for r in encounter.referrals.all %}<div class="ehr-row">{{ r.to_provider.full_name|default:r.to_service }} · {{ r.reason }}</div>{% endfor %}
+      <details><summary>ارجاع جدید</summary>
+        <form method="post" action="{% url 'ehr:encounter_referral' encounter.pk %}">{% csrf_token %}{% include "includes/form.html" with form=referral_form %}<button class="btn btn-small">ثبت ارجاع</button></form>
+      </details>
+    </div>
+    {% endif %}
+
+    {% if writable and perms.ehr.sign_encounter %}
+    <form class="card" method="post" action="{% url 'ehr:encounter_sign' encounter.pk %}" onsubmit="return confirm('پس از امضا ویزیت قفل می‌شود و فقط یادداشت تکمیلی می‌توان اضافه کرد. ادامه می‌دهید؟');">{% csrf_token %}
+      <p class="muted">پیش از امضا، تغییرات شرح حال را ذخیره کنید.</p>
+      <button class="btn">امضا و پایان ویزیت</button>
+    </form>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "ehr/base.html" %}
+{% block ehr_title %}بارگذاری مدرک{% endblock %}
+{% block ehr_content %}
+<h1>بارگذاری مدرک بیرونی · <a href="{% url 'ehr:chart' patient.pk %}">{{ patient.full_name }}</a></h1>
+<form class="card" method="post" enctype="multipart/form-data">{% csrf_token %}
+  {% include "includes/form.html" %}
+  <h2>مقادیر عددی (اختیاری)</h2>
+  <p class="muted">برای آزمایش‌هایی مثل HbA1c یا قند ناشتا مقدار را وارد کنید تا در نمودار روند و پایش بیماری مزمن بیاید.</p>
+  {{ values.management_form }}
+  <div class="table-wrap"><table class="table data"><thead><tr><th>آزمایش</th><th>مقدار</th><th>واحد</th></tr></thead><tbody>
+    {% for f in values %}<tr><td>{{ f.test }}</td><td>{{ f.value }}</td><td>{{ f.unit }}</td></tr>{% if f.errors %}<tr><td colspan="3" class="error">{{ f.errors }}</td></tr>{% endif %}{% endfor %}
+  </tbody></table></div>
+  <button class="btn">بارگذاری</button>
+</form>
+{% endblock %}

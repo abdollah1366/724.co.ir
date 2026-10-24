@@ -1,0 +1,23 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}اطلاعات دارو{% endblock %}
+{% block ehr_content %}
+<h1>{% if generic %}{{ generic }}{% if generic.name_fa %} ({{ generic.name_fa }}){% endif %}{% else %}{{ products.0.name }}{% endif %}</h1>
+{% if generic %}<p class="muted">{{ generic.get_category_display }}{% if generic.atc_code %} · ATC <span dir="ltr">{{ generic.atc_code }}</span>{% endif %}{% if generic.code %} · کد ژنریک {{ generic.code }}{% endif %}{% if generic.default_sig %} · مصرف رایج: {{ generic.default_sig }}{% endif %}{% if generic.needs_verification %} · <span class="badge badge-warn">نیازمند تطبیق با فهرست رسمی</span>{% endif %}</p>{% endif %}
+{% for p in products %}
+<div class="card">
+  <h2>{{ p.name }} <small class="muted">{{ p.brand }}</small></h2>
+  <p>موجودی داروخانه درمانگاه: {% if p.stock %}{{ p.stock|fa_digits }} عدد{% else %}<span class="badge badge-warn">ناموجود</span>{% endif %} · قیمت {{ p.price|rial }}{% if p.requires_prescription %} · نسخه‌ای{% endif %}</p>
+  <table class="table">
+    {% if p.mechanism %}<tr><th>مکانیسم اثر</th><td>{{ p.mechanism|linebreaksbr }}</td></tr>{% endif %}
+    {% if p.indications %}<tr><th>موارد مصرف</th><td>{{ p.indications|linebreaksbr }}</td></tr>{% endif %}
+    {% if p.dosage_note %}<tr><th>نحوه مصرف</th><td>{{ p.dosage_note|linebreaksbr }}</td></tr>{% endif %}
+    {% if p.side_effects %}<tr><th>عوارض</th><td>{{ p.side_effects|linebreaksbr }}</td></tr>{% endif %}
+    {% if p.warnings %}<tr><th>هشدارها</th><td>{{ p.warnings|linebreaksbr }}</td></tr>{% endif %}
+    {% if p.interactions %}<tr><th>تداخلات</th><td>{{ p.interactions|linebreaksbr }}</td></tr>{% endif %}
+    {% if p.contraindications %}<tr><th>منع مصرف</th><td>{{ p.contraindications|linebreaksbr }}</td></tr>{% endif %}
+    {% if p.pregnancy_note %}<tr><th>بارداری و شیردهی</th><td>{{ p.pregnancy_note|linebreaksbr }}</td></tr>{% endif %}
+  </table>
+</div>
+{% empty %}<p class="muted">این دارو در داروخانه درمانگاه تعریف نشده است.</p>{% endfor %}
+{% endblock %}

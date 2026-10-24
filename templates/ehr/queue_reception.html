@@ -1,0 +1,48 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}پذیرش و صف مطب{% endblock %}
+{% block ehr_content %}
+<h1>پذیرش و صف مطب · {{ today|jalali:"%A %d %B" }}</h1>
+<p class="muted no-print">مانیتور سالن انتظار: <a href="{% url 'ehr:queue_display' %}" target="_blank">نمایشگر درمانگاه</a> ·
+  <a href="{% url 'ehr:queue_display' %}?lab=*" target="_blank">درمانگاه + آزمایشگاه</a></p>
+
+<div class="queue-grid">
+  <div>
+    <form class="card" method="post">{% csrf_token %}
+      <h2>بیمار بدون نوبت</h2>
+      <input type="hidden" name="action" value="walk_in">
+      {% include "includes/form.html" with form=form %}
+      <button class="btn">صدور شماره</button>
+    </form>
+    {% for q in queues %}
+    <div class="card">
+      <h2>{{ q.doctor.full_name }}{% if q.doctor.room %} · {{ q.doctor.room }}{% endif %}</h2>
+      <p>فعلی: <strong>{% if q.current %}{{ q.current.label|fa_digits }}{% else %}—{% endif %}</strong> · در انتظار: {{ q.waiting|length|fa_digits }} نفر</p>
+      {% if perms.ehr.change_clinicticket %}
+      <form method="post" action="{% url 'ehr:queue_action' %}" class="inline">{% csrf_token %}
+        <input type="hidden" name="doctor" value="{{ q.doctor.pk }}"><input type="hidden" name="next" value="{{ request.path }}">
+        <button class="btn btn-small" name="action" value="next">فراخوان نفر بعد</button></form>
+      {% endif %}
+      {% for t in q.waiting %}<div class="ehr-row">{{ t.label|fa_digits }} · {{ t.wait_minutes|fa_digits }} دقیقه{% if t.priority %} <span class="badge badge-warn">اولویت</span>{% endif %}
+        {% if perms.ehr.change_clinicticket %}<form method="post" action="{% url 'ehr:queue_action' %}" class="inline">{% csrf_token %}
+          <input type="hidden" name="doctor" value="{{ q.doctor.pk }}"><input type="hidden" name="ticket" value="{{ t.pk }}"><input type="hidden" name="next" value="{{ request.path }}">
+          <button class="link" name="action" value="cancel">لغو</button></form>{% endif %}</div>{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <h2>نوبت‌های امروز</h2>
+    <div class="table-wrap"><table class="table data">
+      <thead><tr><th>ساعت</th><th>بیمار</th><th>پزشک</th><th>صف</th></tr></thead>
+      <tbody>{% for a in appointments %}
+        <tr><td>{{ a.time|time:"H:i"|fa_digits }}</td><td>{{ a.patient_full_name }} <span class="muted">{{ a.masked_national_code }}</span></td><td>{{ a.doctor.full_name }}</td>
+          <td>{% if a.ticket %}{{ a.ticket.label|fa_digits }} · {{ a.ticket.get_status_display }}
+            {% elif a.status != 'done' %}<form method="post" class="inline">{% csrf_token %}<input type="hidden" name="action" value="check_in"><input type="hidden" name="appointment" value="{{ a.pk }}">
+              <label class="small"><input type="checkbox" name="special" value="1"> اولویت</label> <button class="btn btn-small">حاضر شد · شماره</button></form>
+            {% else %}{{ a.get_status_display }}{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="4" class="muted">امروز نوبتی ثبت نشده.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>
+{% endblock %}

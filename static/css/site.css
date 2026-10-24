@@ -259,3 +259,39 @@ body.screen { min-height: 100vh; margin: 0; }
 .timeline li { padding: 8px 14px; margin-bottom: 6px; }
 .rating-form ul { display: flex; gap: 10px; list-style: none; padding: 0; flex-wrap: wrap; }
 .rating-form ul label { border: 1px solid var(--border); border-radius: 10px; padding: 6px 14px; cursor: pointer; }
+/* پرونده سلامت */
+.ehr-header h1 { margin: 0 0 6px; }
+.ehr-timeline { list-style: none; padding: 0; display: grid; gap: 10px; }
+.ehr-event { padding: 14px 18px; border-inline-start: 4px solid var(--primary); }
+.ehr-event ul { margin: 8px 0 0; padding-inline-start: 20px; }
+.ehr-event-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.ehr-lab { border-inline-start-color: #7c3aed; }
+.ehr-drug { border-inline-start-color: #059669; }
+.ehr-equipment { border-inline-start-color: #d97706; }
+.bo-nav a[aria-current="page"] { background: var(--primary-soft); color: var(--primary-dark); }
+.ehr-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin: 12px 0 20px; }
+.ehr-summary h2 { font-size: 1.05rem; margin: 0 0 8px; }
+.ehr-row { padding: 4px 0; border-bottom: 1px dashed var(--border); }
+.ehr-actions { display: flex; gap: 8px; margin: 12px 0; }
+form.inline { display: inline; }
+button.link { background: none; border: 0; color: var(--primary); cursor: pointer; font: inherit; font-size: .85rem; padding: 0 4px; }
+svg.spark { width: 120px; height: 28px; }
+svg.spark polyline { fill: none; stroke: var(--primary); stroke-width: 2.5; }
+.ehr-encounter { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 16px; }
+@media (max-width: 800px) { .ehr-encounter { grid-template-columns: 1fr; } }
+.ehr-soap pre { white-space: pre-wrap; font: inherit; margin: 0 0 8px; }
+.ehr-files { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.ehr-files img { width: 100%; height: auto; border-radius: 8px; }
+.ehr-files figure { margin: 0; }
+.lab-point { display: inline-block; margin: 2px 6px 2px 0; padding: 2px 8px; border-radius: 8px; background: var(--primary-soft); font-size: .85rem; }
+.lab-point.flagged { background: #fee2e2; }
+.ehr-checklist ul { list-style: none; padding: 0; columns: 2 220px; }
+.ehr-rehab { border-inline-start-color: #0891b2; }
+.audiogram { font-size: .85rem; margin-top: 6px; }
+.audiogram th, .audiogram td { padding: 2px 4px; text-align: center; }
+.audiogram-input { width: 4.2em; }
+.display-now.clinic .display-counter { font-size: clamp(1.8rem, 4vw, 3.6rem); }
+.display-room { color: #fbbf24; margin-top: 8px; }
+.queue-console .queue-now { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.queue-number { font-size: 2rem; color: var(--primary-dark); direction: ltr; unicode-bidi: isolate; }
+.ehr-filter { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }

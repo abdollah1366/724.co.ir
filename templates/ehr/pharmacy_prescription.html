@@ -1,0 +1,31 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}تحویل نسخه {{ prescription.number }}{% endblock %}
+{% block ehr_content %}
+<div class="card ehr-header">
+  <h1>نسخه {{ prescription.number }} · {{ patient.full_name }}</h1>
+  <p>{{ prescription.prescriber.full_name }} (نظام پزشکی {{ prescription.prescriber.medical_council_number|fa_digits }}) · {{ prescription.issued_at|jalali:"%Y/%m/%d" }} · {{ prescription.dispense_status }}
+    {% if not prescription.is_valid %} · <span class="badge status-cancelled">منقضی</span>{% endif %}</p>
+  {% if allergies %}<p><strong>حساسیت دارویی:</strong> {% for a in allergies %}<span class="badge status-cancelled">{{ a.substance }}</span> {% endfor %}</p>{% endif %}
+  {% if prescription.note %}<p>توضیح پزشک: {{ prescription.note }}</p>{% endif %}
+  <a class="btn btn-small btn-outline" href="{% url 'ehr:prescription_print' prescription.pk %}" target="_blank">چاپ</a>
+</div>
+<form class="card" method="post">{% csrf_token %}<input type="hidden" name="action" value="dispense">
+  <div class="table-wrap"><table class="table data">
+    <thead><tr><th>دارو</th><th>دستور مصرف</th><th class="num">تجویز</th><th class="num">باقی‌مانده</th><th>کالا (موجودی)</th><th>تعداد تحویل</th></tr></thead>
+    <tbody>{% for row in rows %}{% with item=row.item %}
+      <tr><td>{{ item.label }}</td><td>{{ item.sig }}</td><td class="num">{{ item.quantity|fa_digits }}</td><td class="num">{{ item.remaining|fa_digits }}</td>
+        <td>{% if row.products %}<select name="product-{{ item.pk }}" aria-label="کالا">{% for p in row.products %}<option value="{{ p.pk }}">{{ p.name }} ({{ p.stock|fa_digits }})</option>{% endfor %}</select>{% else %}<span class="badge badge-warn">کالای مناسب تعریف نشده</span>{% endif %}</td>
+        <td>{% if row.products and item.remaining %}<input type="number" name="qty-{{ item.pk }}" min="0" max="{{ item.remaining }}" value="{{ item.remaining }}" aria-label="تعداد">{% endif %}</td></tr>
+    {% endwith %}{% endfor %}</tbody>
+  </table></div>
+  {% if prescription.is_valid %}<button class="btn">افزودن به صندوق و تحویل</button>{% endif %}
+</form>
+<div class="card">
+  <h2>مشاوره دارویی</h2>
+  {% for c in counselings %}<div class="ehr-row">{{ c.topics }} <span class="muted">{{ c.user.get_full_name|default:c.user.username }} · {{ c.created_at|jalali:"%Y/%m/%d %H:%M" }}</span>{% if c.notes %}<div>{{ c.notes }}</div>{% endif %}</div>{% endfor %}
+  {% if perms.ehr.add_drugcounseling %}
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="counsel">{% include "includes/form.html" with form=counseling_form %}<button class="btn btn-small">ثبت مشاوره</button></form>
+  {% endif %}
+</div>
+{% endblock %}

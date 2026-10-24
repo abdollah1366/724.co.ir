@@ -1,0 +1,25 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}برنامه‌های درمان من{% endblock %}
+{% block ehr_content %}
+<h1>برنامه‌های درمان من</h1>
+{% if not therapist %}<div class="alert alert-warn">حساب شما به هیچ درمانگری وصل نیست. مدیر باید در «پزشکان و درمانگران» حساب کاربری شما را انتخاب کند.</div>{% endif %}
+{% if referrals %}
+<div class="card">
+  <h2>ارجاع‌های در انتظار</h2>
+  {% for r in referrals %}
+  <div class="ehr-row"><a href="{% url 'ehr:chart' r.patient.pk %}">{{ r.patient.full_name }}</a> · از {{ r.from_provider.full_name }} · {{ r.reason }}
+    · <span class="muted">{{ r.created_at|jalali:"%Y/%m/%d" }}</span>
+    {% if perms.ehr.add_treatmentplan %}<a class="btn btn-small" href="{% url 'ehr:plan_new' r.patient.pk %}">تشکیل برنامه درمان</a>{% endif %}</div>
+  {% endfor %}
+</div>
+{% endif %}
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>بیمار</th><th>رشته</th><th>تشخیص</th><th>جلسات</th><th>شروع</th></tr></thead>
+  <tbody>{% for p in plans %}
+    <tr><td><a href="{% url 'ehr:plan' p.pk %}">{{ p.patient.full_name }}</a></td><td>{{ p.get_discipline_display }}</td>
+      <td>{{ p.diagnosis|truncatechars:60 }}</td><td>{{ p.done_sessions|fa_digits }} از {{ p.planned_sessions|fa_digits }}</td>
+      <td>{{ p.start_date|jalali:"%Y/%m/%d" }}</td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">برنامه درمان فعالی ندارید.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

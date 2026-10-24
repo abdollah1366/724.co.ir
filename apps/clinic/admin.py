@@ -22,6 +22,7 @@ class ServiceAdmin(admin.ModelAdmin):
     list_display = ("title", "department", "price", "requires_qualified_provider", "is_active")
     list_filter = ("department", "is_active", "requires_qualified_provider")
     search_fields = ("title", "description")
+    raw_id_fields = ("service_code",)
 
 
 @admin.register(Specialty)
@@ -38,7 +39,8 @@ class WorkingHoursInline(admin.TabularInline):
 @admin.register(Doctor)
 class DoctorAdmin(admin.ModelAdmin):
     list_display = ("full_name", "specialty", "department", "medical_council_number", "accepts_online_booking", "is_active")
-    list_filter = ("department", "specialty", "is_active", "accepts_online_booking")
+    list_filter = ("provider_type", "department", "specialty", "is_active", "accepts_online_booking")
     search_fields = ("first_name", "last_name", "medical_council_number")
     prepopulated_fields = {"slug": ("first_name", "last_name")}
+    raw_id_fields = ("user",)
     inlines = [WorkingHoursInline]

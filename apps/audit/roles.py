@@ -39,10 +39,12 @@ ROLES = {
             "inventory.stockmove": (VIEW,), "sales.salesinvoice": ("add", "change", "view"), "sales.salesreturn": ("add", "change", "view"),
             "shop.order": ("view", "change"), "shop.pharmacyquestion": ("view", "change"),
             "inventory.inventorydocument": ("add", "change", "view"), "inventory.inventorydocumentline": ("add", "change", "delete", "view"),
+            "ehr.prescription": (VIEW,), "ehr.prescriptionitem": (VIEW,), "ehr.drugcounseling": ("add", VIEW),
+            "ehr.genericdrug": EDIT,
         },
         "extra": [
             "sales.approve_prescription", "sales.post_salesinvoice", "sales.post_salesreturn", "sales.use_pos",
-            "inventory.change_batch_status", "inventory.post_inventorydocument",
+            "inventory.change_batch_status", "inventory.post_inventorydocument", "ehr.dispense_prescription",
         ],
     },
     "انباردار": {
@@ -107,7 +109,7 @@ LAB_INSURANCE = {
 
 ROLES.update({
     "پذیرش آزمایشگاه": {
-        "models": LAB_RECEPTION,
+        "models": {**LAB_RECEPTION, "ehr.labrequest": ("change", VIEW)},
         "extra": ["lab.post_laborder", "lab.post_labpayment", "lab.deliver_lab_report"],
     },
     "نمونه‌گیر آزمایشگاه": {
@@ -153,6 +155,102 @@ ROLES.update({
     },
 })
 
+CLINIC_FRONT_DESK = {
+    "ehr.patient": ("add", "change", VIEW), "appointments.appointment": ("add", "change", VIEW),
+    "ehr.clinicticket": ("add", "change", VIEW), "clinic.doctor": (VIEW,),
+}
+EHR_CLINICAL = {"ehr.patient": (VIEW,), "appointments.appointment": (VIEW,), "lab.labtest": (VIEW,), "ehr.icd10code": (VIEW,)}
+EHR_DOCTOR = {
+    **EHR_CLINICAL, "ehr.encounter": ("add", "change", VIEW), "ehr.encounteraddendum": ("add", VIEW),
+    "ehr.vitalsigns": ("add", VIEW), "ehr.diagnosis": EDIT, "ehr.problem": ("add", "change", VIEW),
+    "ehr.allergy": ("add", "change", VIEW), "ehr.historyentry": ("add", "change", VIEW), "ehr.referral": ("add", "change", VIEW),
+    "ehr.encounterservice": EDIT, "ehr.servicecode": (VIEW,), "ehr.genericdrug": (VIEW,),
+    "ehr.prescription": ("add", "change", VIEW), "ehr.prescriptionitem": EDIT, "ehr.drugcounseling": ("add", VIEW),
+    "ehr.labrequest": ("add", "change", VIEW), "ehr.externaldocument": ("add", "change", VIEW), "ehr.documentfile": ("add", VIEW),
+    "ehr.externallabvalue": ("add", VIEW),
+    "ehr.treatmentplan": (VIEW,), "ehr.therapysession": (VIEW,), "ehr.assessment": (VIEW,),
+    "ehr.reminder": ("add", "change", VIEW), "ehr.clinicticket": ("change", VIEW),
+}
+EHR_THERAPIST = {
+    **EHR_CLINICAL, "ehr.encounter": (VIEW,), "ehr.vitalsigns": ("add", VIEW), "ehr.diagnosis": (VIEW,),
+    "ehr.problem": (VIEW,), "ehr.allergy": ("add", VIEW), "ehr.historyentry": ("add", VIEW), "ehr.referral": ("add", VIEW),
+    "ehr.servicecode": (VIEW,), "ehr.externaldocument": ("add", VIEW), "ehr.documentfile": ("add", VIEW),
+    "ehr.externallabvalue": (VIEW,), "ehr.labrequest": (VIEW,), "ehr.prescription": (VIEW,),
+    "ehr.treatmentplan": ("add", "change", VIEW), "ehr.therapysession": ("add", VIEW), "ehr.assessment": ("add", VIEW),
+    "ehr.reminder": ("add", "change", VIEW), "ehr.clinicticket": ("change", VIEW),
+}
+EHR_NURSE = {
+    **EHR_CLINICAL, "ehr.encounter": (VIEW,), "ehr.vitalsigns": ("add", VIEW), "ehr.diagnosis": (VIEW,),
+    "ehr.problem": (VIEW,), "ehr.allergy": ("add", VIEW), "ehr.historyentry": ("add", VIEW), "ehr.referral": (VIEW,),
+    "ehr.externaldocument": ("add", VIEW), "ehr.documentfile": ("add", VIEW), "ehr.externallabvalue": ("add", VIEW),
+    "ehr.labrequest": (VIEW,), "ehr.clinicticket": ("change", VIEW),
+}
+
+ROLES.update({
+    "پزشک": {"models": EHR_DOCTOR, "extra": ["ehr.view_clinical_record", "ehr.sign_encounter"]},
+    "پرستار": {"models": EHR_NURSE, "extra": ["ehr.view_clinical_record"]},
+    # فیزیوتراپیست، گفتاردرمانگر، کاردرمانگر، شنوایی‌شناس و کارشناس تغذیه
+    "درمانگر توانبخشی": {"models": EHR_THERAPIST, "extra": ["ehr.view_clinical_record"]},
+    # یادداشت‌های روانشناسی به‌طور پیش‌فرض فقط برای خود درمانگر قابل خواندن است (TreatmentPlan.can_read_notes)
+    "روانشناس": {"models": EHR_THERAPIST, "extra": ["ehr.view_clinical_record"]},
+    "پذیرش درمانگاه": {"models": CLINIC_FRONT_DESK, "extra": []},
+    "مسئول فنی درمانگاه": {
+        "models": {
+            **EHR_DOCTOR, "ehr.patient": ("add", "change", VIEW), "ehr.recordaccess": (VIEW,), "audit.auditlog": (VIEW,),
+            "clinic.doctor": ("change", VIEW), "ehr.icd10code": EDIT,
+            "ehr.servicecode": EDIT, "ehr.rvucoefficient": EDIT, "ehr.genericdrug": EDIT,
+            "ehr.treatmentplan": ("change", VIEW), "ehr.clinicticket": ("add", "change", VIEW),
+        },
+        "extra": ["ehr.view_clinical_record", "ehr.view_all_records"],
+    },
+})
+
+
+ROLES.update({
+    # منشی مطب: نوبت، پذیرش و صف پزشکان؛ مثل پذیرش فقط مشخصات هویتی را می‌بیند، نه سوابق بالینی.
+    "منشی پزشک": {"models": {**CLINIC_FRONT_DESK, "clinic.workinghours": (VIEW,)}, "extra": []},
+    # مدیر کل مجموعه: همه بخش‌های مالی، انبار، آزمایشگاه (بدون جواب‌ها)، نوبت‌دهی، کارکنان و گزارش‌ها.
+    # طبق الزام محرمانگی، پرونده پزشکی و جواب آزمایش بیماران را نمی‌بیند؛ گزارش درمانگاه فقط آماری است.
+})
+
+# داده‌های پزشکی که مدیر کل (طبق الزام محرمانگی) نمی‌بیند
+CLINICAL_DATA = {"lab.labresult", "lab.specimen", "lab.resultrevision", "lab.criticalnotification", "lab.qcresult"}
+CLINICAL_EXTRA = {"lab.enter_labresult", "lab.approve_labresult", "lab.amend_labresult", "lab.deliver_lab_report"}
+
+
+def _merge(names, base):
+    models, extra = {}, set()
+    for name in names:
+        for label, actions in ROLES[name]["models"].items():
+            if label not in CLINICAL_DATA:
+                models[label] = tuple(sorted(set(models.get(label, ())) | set(actions)))
+        extra |= set(ROLES[name]["extra"]) - CLINICAL_EXTRA
+    for label, actions in base["models"].items():
+        models[label] = tuple(sorted(set(models.get(label, ())) | set(actions)))
+    return {"models": models, "extra": sorted(extra | set(base["extra"]))}
+
+
+# مدیر کل مجموعه: اجتماع همه نقش‌های داروخانه، انبار، حسابداری، پذیرش و مدیریت آزمایشگاه و منشی، به‌علاوه کارکنان و
+# گزارش آماری درمانگاه؛ پرونده پزشکی و جواب آزمایش بیماران را نمی‌بیند.
+ROLES["مدیر کل"] = _merge(
+    ["مدیر داروخانه", "انباردار", "کارشناس خرید", "صندوق‌دار", "حسابدار", "مدیر آزمایشگاه", "پذیرش آزمایشگاه",
+     "کارشناس بیمه آزمایشگاه", "مشاور آزمایشگاه", "کیوسک نوبت", "منشی پزشک", "پذیرش درمانگاه"],
+    {"models": {"clinic.doctor": ("add", "change", VIEW), "clinic.department": EDIT, "clinic.service": EDIT,
+                "clinic.specialty": EDIT, "clinic.workinghours": EDIT, "auth.user": ("add", "change", VIEW),
+                "auth.group": (VIEW,), "core.smsmessage": (VIEW,), "ehr.recordaccess": (VIEW,), "ehr.rvucoefficient": EDIT,
+                "ehr.servicecode": (VIEW,), "audit.auditlog": (VIEW,)},
+     "extra": ["ehr.view_management_report"]},
+)
+
+# گروه‌بندی نقش‌ها در صفحه مدیریت کارکنان
+ROLE_AREAS = [
+    ("مدیریت", ["مدیر کل"]),
+    ("داروخانه و انبار", ["مدیر داروخانه", "داروساز مسئول فنی", "انباردار", "کارشناس خرید", "صندوق‌دار", "حسابدار"]),
+    ("درمانگاه", ["مسئول فنی درمانگاه", "پزشک", "پرستار", "درمانگر توانبخشی", "روانشناس", "منشی پزشک", "پذیرش درمانگاه"]),
+    ("آزمایشگاه", ["مدیر آزمایشگاه", "مسئول فنی آزمایشگاه", "کارشناس آزمایشگاه", "نمونه‌گیر آزمایشگاه", "پذیرش آزمایشگاه",
+                   "کارشناس بیمه آزمایشگاه", "مشاور آزمایشگاه", "کیوسک نوبت"]),
+]
+
 
 def role_permissions(spec):
     names = []
@@ -182,3 +280,29 @@ def setup_roles_after_migrate(sender, app_config=None, **kwargs):
     except Permission.DoesNotExist:
         # در اولین migrate برخی مجوزها هنوز ساخته نشده‌اند؛ اجرای بعدی یا دستور setup_roles کامل می‌کند.
         pass
+
+
+ROLE_DESCRIPTIONS = {
+    "مدیر کل": "همه بخش‌های مالی، انبار، آزمایشگاه، نوبت‌دهی، کارکنان و گزارش‌های آماری؛ بدون دسترسی به پرونده پزشکی و جواب آزمایش",
+    "مدیر داروخانه": "کالا، خرید، انبار، فروش، صندوق، حسابداری و گزارش مالی داروخانه",
+    "داروساز مسئول فنی": "تأیید فروش نسخه‌ای، تحویل نسخه درمانگاه، مشاوره دارویی، وضعیت سری ساخت",
+    "انباردار": "رسید کالا، انتقال و شمارش انبار",
+    "کارشناس خرید": "سفارش و فاکتور خرید، تأمین‌کنندگان",
+    "صندوق‌دار": "صندوق فروش و مرجوعی",
+    "حسابدار": "دریافت و پرداخت، هزینه‌ها، فاکتور خرید، گزارش‌های مالی",
+    "مسئول فنی درمانگاه": "همه پرونده‌های پزشکی، گزارش مشاهده پرونده‌ها، کاتالوگ‌ها و ضرایب تعرفه",
+    "پزشک": "پرونده بیماران خودش، ویزیت، نسخه، درخواست آزمایش، ارجاع، یادآور، صف مطب خودش",
+    "پرستار": "علائم حیاتی و حساسیت بیماران امروز، مدارک، فراخوان صف",
+    "درمانگر توانبخشی": "فیزیوتراپی، گفتاردرمانی، کاردرمانی، شنوایی‌شناسی و تغذیه: برنامه درمان، جلسه و ارزیابی؛ بدون نسخه دارو",
+    "روانشناس": "مثل درمانگر توانبخشی؛ یادداشت‌ها پیش‌فرض فقط برای خودش قابل خواندن است",
+    "منشی پزشک": "نوبت‌دهی، پذیرش و صف پزشکان، مشخصات هویتی بیمار؛ بدون سوابق پزشکی",
+    "پذیرش درمانگاه": "پذیرش بیمار، نوبت و شماره صف؛ بدون سوابق پزشکی",
+    "مدیر آزمایشگاه": "پذیرش، صندوق، بیمه، کاتالوگ و گزارش‌های آزمایشگاه",
+    "مسئول فنی آزمایشگاه": "تأیید و اصلاح جواب، کنترل کیفی، کاتالوگ و محدوده مرجع",
+    "کارشناس آزمایشگاه": "ورود جواب و کنترل کیفی",
+    "نمونه‌گیر آزمایشگاه": "نمونه‌گیری، برچسب و صف نمونه‌گیری",
+    "پذیرش آزمایشگاه": "پذیرش، دریافت وجه، نوبت و صف، تحویل جواب",
+    "کارشناس بیمه آزمایشگاه": "قرارداد، صورت‌حساب و تسویه بیمه",
+    "مشاور آزمایشگاه": "درخواست‌های مشاوره و نظرسنجی؛ بدون دسترسی به جواب‌ها",
+    "کیوسک نوبت": "فقط صدور نوبت (برای دستگاه کیوسک)",
+}

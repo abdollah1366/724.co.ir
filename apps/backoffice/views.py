@@ -19,7 +19,8 @@ from django.views.decorators.http import require_POST
 from apps.accounting import services as acc
 from apps.accounting.models import Party
 from apps.audit.documents import DocStatus
-from apps.core.validators import normalize_digits
+from apps.core.validators import is_valid_national_code, normalize_digits
+from apps.ehr import services as ehr
 from apps.inventory import alerts
 from apps.inventory import services as inv
 from apps.inventory.models import StockBalance, StockMove, Warehouse
@@ -29,6 +30,19 @@ from apps.sales.models import CashRegister, CashSession, SalesInvoice, SalesPaym
 from apps.shop.models import Order, Product, ProductPackage
 
 FINANCE_PERM = "accounting.view_financial_reports"
+STOCK_PERM = "inventory.view_stockbalance"
+# هر کدام از این مجوزها یعنی کارمند داروخانه/انبار است و آمار فروش و موجودی را می‌بیند.
+PHARMACY_PERMS = (STOCK_PERM, "sales.view_salesinvoice", "sales.use_pos")
+
+
+def is_pharmacy_staff(user):
+    return any(user.has_perm(p) for p in PHARMACY_PERMS)
+
+
+def _require(user, *perms):
+    # کارمند بدون مجوز داروخانه (مثلاً نویسنده وبلاگ یا منشی پزشک) آمار فروش و انبار را نمی‌بیند.
+    if not any(user.has_perm(p) for p in perms):
+        raise PermissionDenied
 
 
 def _month_start(today):
@@ -72,6 +86,8 @@ def dashboard_data(user):
 
 @staff_member_required
 def dashboard(request):
+    if not is_pharmacy_staff(request.user):
+        return render(request, "backoffice/home.html")
     context = dashboard_data(request.user)
     context["recent_sales"] = SalesInvoice.objects.filter(status=DocStatus.POSTED).order_by("-posted_at")[:8]
     context["recent_receipts"] = GoodsReceipt.objects.filter(status=DocStatus.POSTED).select_related("supplier").order_by("-posted_at")[:5]
@@ -84,11 +100,13 @@ def dashboard(request):
 
 @staff_member_required
 def alerts_view(request):
+    _require(request.user, STOCK_PERM)
     return render(request, "backoffice/alerts.html", {"alerts": alerts.all_alerts()})
 
 
 @staff_member_required
 def stock_report(request):
+    _require(request.user, STOCK_PERM)
     balances = StockBalance.objects.filter(quantity__gt=0).select_related("product", "warehouse", "location", "batch")
     q = request.GET.get("q", "").strip()[:100]
     if q:
@@ -104,6 +122,7 @@ def stock_report(request):
 
 @staff_member_required
 def kardex(request, pk):
+    _require(request.user, STOCK_PERM)
     product = get_object_or_404(Product, pk=pk)
     moves = StockMove.objects.filter(product=product).select_related("warehouse", "batch", "user").order_by("id")
     return render(request, "backoffice/kardex.html", {"product": product, "moves": moves,
@@ -163,6 +182,16 @@ class CheckoutForm(forms.Form):
     prescription_number = forms.CharField(label="شماره / کد رهگیری نسخه", max_length=40, required=False)
     prescriber_name = forms.CharField(label="نام پزشک", max_length=120, required=False)
     prescriber_council_no = forms.CharField(label="نظام پزشکی", max_length=20, required=False)
+    patient_national_code = forms.CharField(
+        label="کد ملی بیمار (ثبت در پرونده سلامت)", max_length=10, required=False,
+        help_text="دارو یا تجهیزات تحویلی در پرونده بیمار دیده می‌شود.",
+    )
+
+    def clean_patient_national_code(self):
+        value = normalize_digits(self.cleaned_data.get("patient_national_code") or "")
+        if value and not is_valid_national_code(value):
+            raise forms.ValidationError("کد ملی بیمار معتبر نیست.")
+        return value
 
 
 def _open_session(user):
@@ -265,11 +294,14 @@ def pos_checkout(request):
         with transaction.atomic():
             invoice.discount = data["discount"] or 0
             invoice.insurance_amount = data["insurance_amount"] or 0
-            invoice.prescription_number = data["prescription_number"]
-            invoice.prescriber_name = data["prescriber_name"]
-            invoice.prescriber_council_no = data["prescriber_council_no"]
+            # فاکتوری که از نسخه درمانگاه ساخته شده اطلاعات نسخه را از قبل دارد.
+            invoice.prescription_number = data["prescription_number"] or invoice.prescription_number
+            invoice.prescriber_name = data["prescriber_name"] or invoice.prescriber_name
+            invoice.prescriber_council_no = data["prescriber_council_no"] or invoice.prescriber_council_no
             invoice.insurer = data["insurer"]
             invoice.customer = data["customer"]
+            if data["patient_national_code"]:
+                invoice.patient = ehr.get_or_create_patient(data["patient_national_code"])
             invoice.save()
             invoice.payments.all().delete()
             for method, amount, ref in (
@@ -325,6 +357,7 @@ def _product_json(product, factor=1):
 
 @staff_member_required
 def api_product_lookup(request):
+    _require(request.user, *PHARMACY_PERMS, "shop.view_product")
     product, factor = find_product(request.GET.get("code", ""))
     if product is None:
         return JsonResponse({"error": "not_found"}, status=404)
@@ -333,6 +366,7 @@ def api_product_lookup(request):
 
 @staff_member_required
 def api_product_stock(request, pk):
+    _require(request.user, *PHARMACY_PERMS)
     product = get_object_or_404(Product, pk=pk)
     balances = StockBalance.objects.filter(product=product, quantity__gt=0).select_related("warehouse", "location", "batch")
     return JsonResponse({
@@ -349,6 +383,7 @@ def api_product_stock(request, pk):
 
 @staff_member_required
 def api_dashboard(request):
+    _require(request.user, *PHARMACY_PERMS)
     data = dashboard_data(request.user)
     data.pop("open_sessions")
     data["today"] = data["today"].isoformat()

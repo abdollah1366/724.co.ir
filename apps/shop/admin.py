@@ -56,6 +56,7 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ("name", "generic_name", "brand", "sku", "irc", "packages__barcode")
     prepopulated_fields = {"slug": ("name",)}
     readonly_fields = ("stock", "avg_cost")
+    autocomplete_fields = ("generic",)
     inlines = [ProductPackageInline, PriceHistoryInline]
     fieldsets = (
         (None, {"fields": ("kind", "name", "slug", "category", "brand", "image", "short_description", "description")}),
@@ -75,7 +76,7 @@ class ProductAdmin(admin.ModelAdmin):
             {
                 "classes": ("collapse",),
                 "fields": (
-                    "generic_name", "dosage_form", "strength", "mechanism", "indications", "dosage_note",
+                    "generic", "generic_name", "dosage_form", "strength", "mechanism", "indications", "dosage_note",
                     "side_effects", "warnings", "interactions", "contraindications", "pregnancy_note",
                 ),
             },

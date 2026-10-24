@@ -1,0 +1,21 @@
+{% extends "lab/queue/screen_base.html" %}
+{% load persian %}
+{% block title %}نوبت {{ ticket.label }}{% endblock %}
+{% block body_class %}kiosk{% endblock %}
+{% block screen %}
+<main class="kiosk-main">
+  <div class="ticket-print">
+    <div class="ticket-lab">{{ CLINIC_NAME }}</div>
+    <div class="ticket-service">{{ ticket.doctor.full_name }}{% if ticket.doctor.room %} · {{ ticket.doctor.room }}{% endif %}</div>
+    <div class="ticket-number"><span class="ticket-label">{{ ticket.label|fa_digits }}</span></div>
+    {% if ticket.priority %}<div class="ticket-note">{{ ticket.get_priority_display }}</div>{% endif %}
+    <div class="ticket-note">{% if ahead %}{{ ahead|fa_digits }} نفر جلوتر از شما هستند.{% else %}به‌زودی فراخوانده می‌شوید.{% endif %}</div>
+    <div class="ticket-time">{{ ticket.checked_in_at|jalali:"%Y/%m/%d %H:%M" }}</div>
+    <div class="ticket-note small">شماره خود را روی نمایشگر سالن انتظار دنبال کنید.</div>
+  </div>
+  <a class="btn no-print" href="{% url 'ehr:queue_reception' %}">بازگشت به پذیرش</a>
+</main>
+{% endblock %}
+{% block scripts %}
+<script>window.addEventListener("load", function () { try { window.print(); } catch (e) {} });</script>
+{% endblock %}

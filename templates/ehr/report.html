@@ -1,0 +1,47 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}گزارش مدیریتی درمانگاه{% endblock %}
+{% block ehr_content %}
+<h1>گزارش مدیریتی درمانگاه</h1>
+<form class="card no-print ehr-filter" method="get">
+  <label>از <input name="from" value="{{ start|jalali:'%Y/%m/%d' }}" dir="ltr" size="10"></label>
+  <label>تا <input name="to" value="{{ end|jalali:'%Y/%m/%d' }}" dir="ltr" size="10"></label>
+  <button class="btn btn-small">نمایش</button> <button class="btn btn-small btn-outline" type="button" onclick="window.print()">چاپ</button>
+</form>
+<p class="muted">فقط آمار تجمعی؛ هیچ نام یا مشخصات بیماری در این گزارش نیست.</p>
+
+<div class="ehr-summary">
+  <div class="card"><h2>ویزیت</h2>
+    <p>{{ report.encounters|fa_digits }} ویزیت ({{ report.signed|fa_digits }} امضاشده) · {{ report.patients|fa_digits }} بیمار</p>
+    <p>{{ report.appointments|fa_digits }} نوبت · عدم مراجعه: {{ report.no_show|fa_digits }}{% if report.no_show_rate is not None %} ({{ report.no_show_rate|fa_digits }}٪){% endif %}</p></div>
+  <div class="card"><h2>نسخه و داروخانه</h2>
+    <p>{{ report.prescriptions|fa_digits }} نسخه صادرشده · {{ report.dispensed|fa_digits }} تحویل از داروخانه درمانگاه{% if report.dispense_rate is not None %} ({{ report.dispense_rate|fa_digits }}٪){% endif %}</p></div>
+  <div class="card"><h2>یادآور و حریم خصوصی</h2>
+    {% for r in report.reminders %}<p>{{ r.label }}: {{ r.count|fa_digits }}</p>{% empty %}<p class="muted">یادآوری در این بازه نبود.</p>{% endfor %}
+    <p>دسترسی اضطراری با ثبت دلیل: {{ report.emergency_access|fa_digits }} <a href="{% url 'ehr:access_log' %}?emergency=1">جزئیات</a></p></div>
+</div>
+
+<div class="ehr-summary">
+  <div class="card"><h2>ویزیت به تفکیک پزشک</h2>
+    <table class="table data"><thead><tr><th>پزشک</th><th>ویزیت</th><th>امضاشده</th><th>بیمار</th></tr></thead><tbody>
+    {% for d in report.by_doctor %}<tr><td>{{ d.provider__title }} {{ d.provider__first_name }} {{ d.provider__last_name }}</td><td>{{ d.total|fa_digits }}</td><td>{{ d.signed|fa_digits }}</td><td>{{ d.patients|fa_digits }}</td></tr>
+    {% empty %}<tr><td colspan="4" class="muted">—</td></tr>{% endfor %}</tbody></table></div>
+  <div class="card"><h2>صف مطب</h2>
+    <table class="table data"><thead><tr><th>پزشک</th><th>نوبت حضوری</th><th>میانگین انتظار</th><th>بیشترین</th><th>حاضر نشد</th></tr></thead><tbody>
+    {% for q in report.queue %}<tr><td>{{ q.doctor }}</td><td>{{ q.total|fa_digits }}</td><td>{% if q.avg_wait is not None %}{{ q.avg_wait|fa_digits }} دقیقه{% endif %}</td><td>{% if q.max_wait is not None %}{{ q.max_wait|fa_digits }}{% endif %}</td><td>{{ q.skipped|fa_digits }}</td></tr>
+    {% empty %}<tr><td colspan="5" class="muted">—</td></tr>{% endfor %}</tbody></table></div>
+  <div class="card"><h2>توانبخشی و روان</h2>
+    <table class="table data"><thead><tr><th>رشته</th><th>جلسه</th><th>انجام شد</th><th>غیبت</th></tr></thead><tbody>
+    {% for s in report.sessions %}<tr><td>{{ s.label }}</td><td>{{ s.total|fa_digits }}</td><td>{{ s.attended|fa_digits }}</td><td>{{ s.no_show|fa_digits }}</td></tr>
+    {% empty %}<tr><td colspan="4" class="muted">—</td></tr>{% endfor %}</tbody></table></div>
+</div>
+
+<div class="ehr-summary">
+  <div class="card"><h2>تشخیص‌های پرتکرار (ICD-10)</h2>
+    {% for d in report.diagnoses %}<div class="ehr-row"><span dir="ltr">{{ d.icd__code }}</span> {{ d.icd__title_fa|default:d.icd__title }} · {{ d.count|fa_digits }}</div>{% empty %}<p class="muted">—</p>{% endfor %}</div>
+  <div class="card"><h2>خدمات پرتکرار (کد ملی)</h2>
+    {% for s in report.services %}<div class="ehr-row"><span dir="ltr">{{ s.service_code__code }}</span> {{ s.service_code__title|truncatechars:60 }} · {{ s.count|fa_digits }}{% if s.amount %} · {{ s.amount|rial }}{% endif %}</div>{% empty %}<p class="muted">—</p>{% endfor %}</div>
+  <div class="card"><h2>داروهای پرتجویز</h2>
+    {% for g in report.generics %}<div class="ehr-row" dir="ltr">{{ g.generic__name }} {{ g.generic__dosage_form }} {{ g.generic__strength }} · {{ g.count }}</div>{% empty %}<p class="muted">—</p>{% endfor %}</div>
+</div>
+{% endblock %}
