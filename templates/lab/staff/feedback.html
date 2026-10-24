@@ -1,0 +1,20 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}نظرسنجی‌ها{% endblock %}
+{% block lab_content %}
+<h1>نظرسنجی رضایت <span class="muted small">از {{ since|jalali }}</span></h1>
+<div class="grid stats">
+  <div class="card stat"><span class="stat-label">تعداد پاسخ</span><span class="stat-value">{{ summary.n|fa_digits }}</span></div>
+  <div class="card stat"><span class="stat-label">رضایت کلی (از ۵)</span><span class="stat-value">{{ summary.overall|default:"—"|fa_digits }}</span></div>
+  <div class="card stat"><span class="stat-label">زمان انتظار / کارکنان / نمونه‌گیری</span><span class="stat-value small">{{ summary.waiting|default:"—"|fa_digits }} / {{ summary.staff|default:"—"|fa_digits }} / {{ summary.sampling|default:"—"|fa_digits }}</span></div>
+  <a class="card stat" href="{% url 'lab:crm_inbox' %}?topic=complaint"><span class="stat-label">ناراضی (۱ یا ۲)</span><span class="stat-value">{{ summary.low|fa_digits }}</span></a>
+</div>
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>ثبت</th><th>پذیرش</th><th>کلی</th><th>انتظار</th><th>کارکنان</th><th>نمونه‌گیری</th><th>توضیح</th></tr></thead>
+  <tbody>{% for f in items %}<tr{% if f.overall <= 2 %} class="row-warn"{% endif %}>
+    <td>{{ f.submitted_at|jalali:"%m/%d" }}</td><td>{% if perms.lab.view_laborder %}<a href="{% url 'lab:staff_order' f.order_id %}">{{ f.order.number }}</a>{% else %}{{ f.order.number }}{% endif %}</td>
+    <td>{{ f.overall|fa_digits }}</td><td>{{ f.waiting|default:"—"|fa_digits }}</td><td>{{ f.staff|default:"—"|fa_digits }}</td><td>{{ f.sampling|default:"—"|fa_digits }}</td>
+    <td>{{ f.comment|truncatechars:80 }}{% if f.wants_contact %} <span class="badge">درخواست تماس</span>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="7" class="muted">هنوز نظری ثبت نشده است.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

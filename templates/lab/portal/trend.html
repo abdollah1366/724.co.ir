@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}روند {{ test.name }} | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <p class="breadcrumb"><a href="{% url 'lab:my_results' %}">آزمایش‌های من</a></p>
+  <h1>روند {{ test.name }}</h1>
+  {% if rr %}<p class="muted">نوار سبز: محدوده مرجع ({{ rr.display }} {{ test.unit }})</p>{% endif %}
+  <div class="card">{{ chart|default:"جواب عددی تأییدشده‌ای نیست." }}</div>
+  <table class="table data"><tbody>{% for r in results %}<tr><td>{{ r.item.order.date|jalali }}</td><td dir="ltr">{{ r.value }} {{ r.unit }}</td><td>{% if r.flag %}<strong>{{ r.get_flag_display }}</strong>{% endif %}</td></tr>{% endfor %}</tbody></table>
+  <p class="muted small">تفسیر تغییرات با پزشک معالج است.</p>
+</section>
+{% endblock %}

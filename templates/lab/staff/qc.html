@@ -1,0 +1,19 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}کنترل کیفی{% endblock %}
+{% block lab_content %}
+<h1>کنترل کیفی روزانه</h1>
+<div class="pos-grid">
+  <div class="table-wrap card"><table class="table data">
+    <thead><tr><th>آزمایش</th><th>ماده کنترل</th><th class="num">میانگین ± SD</th><th>امروز</th><th></th></tr></thead>
+    <tbody>{% for row in materials %}{% with m=row.material %}
+      <tr><td>{{ m.test.code }}</td><td>{{ m.name }} {{ m.level }} <span class="muted small">لات {{ m.lot }}</span></td>
+      <td class="num">{{ m.mean|floatformat:-2 }} ± {{ m.sd|floatformat:-2 }}</td>
+      <td>{% if row.today %}<span class="badge {% if row.today.status == 'rejected' %}status-cancelled{% elif row.today.status == 'warning' %}badge-warn{% endif %}">{{ row.today.get_status_display }} {{ row.today.violations }}</span>{% else %}<span class="muted">ثبت نشده</span>{% endif %}</td>
+      <td><a href="{% url 'lab:staff_qc_chart' m.pk %}">نمودار لوی-جنینگز</a></td></tr>
+    {% endwith %}{% empty %}<tr><td colspan="5" class="muted">ماده کنترلی در تنظیمات تعریف نشده است.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <form method="post" class="form card" novalidate>{% csrf_token %}<h2>ثبت نتیجه کنترل</h2>{% include "includes/form.html" %}<button class="btn">ثبت</button>
+    <p class="muted small">قواعد وست‌گارد: ۱-۲s هشدار؛ ۱-۳s، ۲-۲s، R-۴s، ۴-۱s و ۱۰x مردود.</p></form>
+</div>
+{% endblock %}

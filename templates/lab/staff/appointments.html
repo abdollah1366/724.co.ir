@@ -1,0 +1,23 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}نوبت‌های نمونه‌گیری{% endblock %}
+{% block lab_content %}
+<h1>نوبت‌های نمونه‌گیری {{ day|jalali }}</h1>
+<form method="get" class="card filters"><input type="date" name="date" value="{{ day|date:'Y-m-d' }}" aria-label="تاریخ"><button class="btn btn-small">نمایش</button></form>
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>ساعت</th><th>نوع</th><th>نام</th><th>موبایل</th><th>آزمایش‌ها</th><th>وضعیت</th><th></th></tr></thead>
+  <tbody>{% for a in appointments %}
+    <tr>
+      <td>{{ a.time|time:"H:i"|fa_digits }}</td><td>{{ a.get_kind_display }}</td><td>{{ a.full_name }}</td><td>{{ a.mobile|fa_digits }}</td>
+      <td>{% for t in a.tests.all %}{{ t.code }}{% if not forloop.last %}، {% endif %}{% endfor %}{% if a.address %}<br><span class="small muted">{{ a.address }}</span>{% endif %}</td>
+      <td>{{ a.get_status_display }}</td>
+      <td>{% if a.status == "pending" or a.status == "confirmed" %}
+        {% if perms.lab.add_laborder %}<a class="btn btn-small" href="{% url 'lab:staff_reception' %}?appointment={{ a.pk }}">پذیرش</a>{% endif %}
+        {% if perms.lab.change_samplingappointment %}
+        <form method="post" action="{% url 'lab:staff_appointment_status' a.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="status" value="no_show"><button class="link-button">مراجعه نکرد</button></form>
+        {% endif %}
+      {% elif a.order %}<a href="{% url 'lab:staff_order' a.order.pk %}">{{ a.order.number }}</a>{% endif %}</td>
+    </tr>
+  {% empty %}<tr><td colspan="7" class="muted">نوبتی ثبت نشده است.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

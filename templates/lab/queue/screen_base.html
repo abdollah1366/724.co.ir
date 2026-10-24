@@ -1,0 +1,16 @@
+{% load static persian %}<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>{% block title %}نوبت آزمایشگاه{% endblock %} | {{ LAB_INFO.name|default:SITE_NAME }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+</head>
+<body class="screen {% block body_class %}{% endblock %}">
+  {% if messages %}<div class="screen-messages">{% for m in messages %}<div class="alert alert-{{ m.tags }}">{{ m }}</div>{% endfor %}</div>{% endif %}
+  {% block screen %}{% endblock %}
+  {% block scripts %}{% endblock %}
+</body>
+</html>

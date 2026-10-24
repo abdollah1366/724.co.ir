@@ -1,0 +1,56 @@
+{% load persian %}<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>جواب آزمایش {{ order.number }}</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+<style>
+body{font-family:Vazirmatn,Tahoma,sans-serif;color:#111;max-width:200mm;margin:0 auto;padding:12px;font-size:13px;line-height:1.7}
+header{display:flex;justify-content:space-between;border-bottom:2px solid #0f766e;padding-bottom:6px;gap:12px;flex-wrap:wrap}
+h1{font-size:18px;margin:0;color:#0f766e} h2{font-size:14px;background:#f1f5f9;padding:2px 8px;margin:14px 0 4px}
+table{width:100%;border-collapse:collapse} th,td{padding:4px 6px;border-bottom:1px solid #e5e7eb;text-align:right;vertical-align:top}
+th{color:#555;font-weight:500} .ltr{direction:ltr;unicode-bidi:plaintext} .flag{font-weight:700;color:#b91c1c}
+.info td{border:0;padding:1px 6px} footer{margin-top:16px;border-top:1px solid #ddd;padding-top:6px;font-size:11px;color:#555}
+.warn{background:#fef3c7;padding:6px 10px;border-radius:6px} .no-print{margin:10px 0}
+@media print{.no-print{display:none}}
+</style></head><body>
+<div class="no-print"><button onclick="window.print()">چاپ / ذخیره PDF</button>{% if back_url %} <a href="{{ back_url }}">بازگشت</a>{% endif %}</div>
+<header>
+  <div><h1>{{ LAB_INFO.name }}</h1>
+    {% if LAB_INFO.license_no %}<div>شماره پروانه: {{ LAB_INFO.license_no|fa_digits }}</div>{% endif %}
+    {% if LAB_INFO.technical_director %}<div>مسئول فنی: {{ LAB_INFO.technical_director }}{% if LAB_INFO.technical_director_council_no %} (ن.پ {{ LAB_INFO.technical_director_council_no|fa_digits }}){% endif %}</div>{% endif %}
+  </div>
+  <div>
+    <div>شماره پذیرش: <span class="ltr">{{ order.number }}</span></div>
+    <div>کد اصالت: <span class="ltr">{{ order.report_code }}</span></div>
+    <div>استعلام: {{ SITE_URL }}/lab/verify/</div>
+  </div>
+</header>
+<table class="info">
+  <tr><td>بیمار: <strong>{{ order.patient.full_name }}</strong></td><td>جنس/سن: {{ order.patient.get_sex_display }} {{ order.patient.age_years|fa_digits }} سال</td><td>کد ملی: <span class="ltr">{{ order.patient.masked_identifier }}</span></td></tr>
+  <tr><td>پزشک: {{ order.referring_doctor|default:"—" }}</td><td>تاریخ پذیرش: {{ order.date|jalali:"%Y/%m/%d" }}</td><td>تاریخ گزارش: {% if last_approval %}{{ last_approval|jalali:"%Y/%m/%d %H:%M" }}{% endif %}</td></tr>
+</table>
+{% if pending %}<p class="warn">{{ pending|fa_digits }} آزمایش هنوز آماده نشده است؛ این برگه ناقص است.</p>{% endif %}
+{% if hidden %}<p class="warn">جواب {{ hidden|fa_digits }} آزمایش فقط به‌صورت حضوری و همراه با مشاوره تحویل می‌شود.</p>{% endif %}
+{% for block in sections %}
+  <h2>{{ block.section.name }}</h2>
+  <table>
+    <thead><tr><th>آزمایش</th><th>جواب</th><th>واحد</th><th>محدوده مرجع</th><th></th></tr></thead>
+    <tbody>{% for r in block.results %}
+      <tr>
+        <td>{{ r.item.test.name }} <span class="ltr" style="color:#888">{{ r.item.test.name_en }}</span></td>
+        <td class="ltr{% if r.flag %} flag{% endif %}">{{ r.value|linebreaksbr }}</td>
+        <td class="ltr">{{ r.unit }}</td><td class="ltr">{{ r.reference_text }}</td>
+        <td class="flag">{% if r.flag %}{{ r.get_flag_display }}{% endif %}{% if r.version > 1 %} <span style="color:#555;font-weight:400">(اصلاح‌شده)</span>{% endif %}</td>
+      </tr>
+      {% if r.comment %}<tr><td></td><td colspan="4" style="color:#555">{{ r.comment }}</td></tr>{% endif %}
+      {% if staff and r.revisions.all %}{% for rev in r.revisions.all %}<tr><td></td><td colspan="4" style="color:#888;font-size:11px">نسخه {{ rev.version|fa_digits }}: {{ rev.old_value }} — علت اصلاح: {{ rev.reason }}</td></tr>{% endfor %}{% endif %}
+    {% endfor %}</tbody>
+  </table>
+{% empty %}
+  <p>هنوز جوابی آماده نشده است.</p>
+{% endfor %}
+<footer>
+  تأییدکننده: {% for a in approvers %}{{ a.get_full_name|default:a.username }}{% if not forloop.last %}، {% endif %}{% endfor %}.
+  تفسیر جواب آزمایش باید توسط پزشک معالج انجام شود. اصالت این برگه را با شماره پذیرش و کد اصالت در سایت استعلام کنید.
+</footer>
+</body></html>

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}نوبت نمونه‌گیری | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <p class="breadcrumb"><a href="{% url 'lab:home' %}">آزمایشگاه</a> / نوبت نمونه‌گیری</p>
+  <h1>نوبت نمونه‌گیری</h1>
+  <div class="chips">
+    {% for value, label in kinds %}<a class="chip{% if value == kind %} active{% endif %}" href="?kind={{ value }}">{{ label }}</a>{% endfor %}
+  </div>
+  {% if kind == "home" %}<div class="alert alert-info">هزینه نمونه‌گیری در منزل جداگانه دریافت می‌شود. همه آزمایش‌ها در منزل قابل انجام نیستند.</div>{% endif %}
+  {% if not dates %}
+    <div class="alert alert-info">در حال حاضر زمان آزادی ثبت نشده است. لطفاً با آزمایشگاه تماس بگیرید.</div>
+  {% else %}
+    <h2>۱. انتخاب روز</h2>
+    <div class="chips">
+      {% for value, label in dates %}<a class="chip{% if selected_date|date:'Y-m-d' == value %} active{% endif %}" href="?kind={{ kind }}&date={{ value }}">{{ label }}</a>{% endfor %}
+    </div>
+    {% if form %}
+      <h2>۲. انتخاب ساعت و ثبت اطلاعات</h2>
+      {% if form.fields.time.choices %}
+        <form method="post" class="form card" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="kind" value="{{ kind }}">
+          <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+          {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+          <fieldset class="slots">
+            <legend>زمان‌های آزاد {{ selected_date|jalali }}</legend>
+            {% for value, label in form.fields.time.choices %}
+              <label class="slot"><input type="radio" name="time" value="{{ value }}" {% if form.time.value == value %}checked{% endif %} required> {{ label }}</label>
+            {% endfor %}
+            {% for error in form.time.errors %}<small class="error">{{ error }}</small>{% endfor %}
+          </fieldset>
+          {% for field in form %}{% if field.name != "time" %}
+            <div class="field{% if field.errors %} has-error{% endif %}{% if field.name == 'consent' %} field-check{% endif %}">
+              {% if field.name == "consent" %}{{ field }} <label for="{{ field.id_for_label }}">{{ field.label }} <a href="{% url 'core:privacy' %}" target="_blank">(مطالعه)</a></label>
+              {% elif field.name == "tests" %}<label>{{ field.label }}</label><div class="test-checklist">{% for cb in field %}<label class="check">{{ cb.tag }} {{ cb.choice_label }}</label>{% endfor %}</div>
+              {% else %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% endif %}
+              {% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}
+            </div>
+          {% endif %}{% endfor %}
+          <button class="btn" type="submit">ثبت نوبت</button>
+        </form>
+      {% else %}
+        <div class="alert alert-info">ظرفیت این روز تکمیل است. روز دیگری انتخاب کنید.</div>
+      {% endif %}
+    {% endif %}
+  {% endif %}
+  <p><a href="{% url 'lab:booking_track' %}">پیگیری یا لغو نوبت</a></p>
+</section>
+{% endblock %}

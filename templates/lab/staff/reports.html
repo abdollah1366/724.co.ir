@@ -1,0 +1,44 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}گزارش آزمایشگاه{% endblock %}
+{% block lab_content %}
+<h1>گزارش آزمایشگاه <span class="muted small">{{ start|jalali }} تا {{ end|jalali }}</span></h1>
+<form method="get" class="card filters no-print">
+  <label>از <input type="date" name="start" value="{{ start|date:'Y-m-d' }}"></label>
+  <label>تا <input type="date" name="end" value="{{ end|date:'Y-m-d' }}"></label>
+  <button class="btn btn-small">نمایش</button>
+  <button class="btn btn-small btn-outline" type="button" onclick="window.print()">چاپ</button>
+</form>
+<div class="grid stats">
+  <div class="card stat"><span class="stat-label">پذیرش ثبت‌شده</span><span class="stat-value">{{ summary.n|fa_digits }}</span></div>
+  <div class="card stat"><span class="stat-label">فوری</span><span class="stat-value">{{ summary.urgent|fa_digits }}</span></div>
+  <div class="card stat"><span class="stat-label">نمونه‌گیری در منزل</span><span class="stat-value">{{ summary.home|fa_digits }}</span></div>
+  <div class="card stat"><span class="stat-label">جواب تحویل‌شده</span><span class="stat-value">{{ summary.delivered|fa_digits }}</span></div>
+</div>
+{% if money %}
+<h2>مالی (ریال)</h2>
+<div class="table-wrap"><table class="table data">
+  <tr><th>جمع تعرفه</th><td>{{ money.gross|default:0|rial }}</td><th>سهم بیمه پایه</th><td>{{ money.basic|default:0|rial }}</td></tr>
+  <tr><th>سهم بیمه تکمیلی</th><td>{{ money.supp|default:0|rial }}</td><th>سهم بیمار</th><td>{{ money.patient|default:0|rial }}</td></tr>
+  <tr><th>تخفیف</th><td>{{ money.discount|default:0|rial }}</td><th>هزینه نمونه‌گیری در منزل</th><td>{{ money.home|default:0|rial }}</td></tr>
+</table></div>
+<h3>به تفکیک قرارداد بیمه</h3>
+<div class="table-wrap"><table class="table data"><thead><tr><th>قرارداد</th><th>پذیرش</th><th>سهم بیمه</th></tr></thead><tbody>
+{% for p in by_plan %}<tr><td>{{ p.name }}</td><td>{{ p.n|fa_digits }}</td><td>{{ p.share|default:0|rial }}</td></tr>{% empty %}<tr><td colspan="3" class="muted">پذیرش بیمه‌ای نبود.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endif %}
+<h2>زمان جواب‌دهی (ساعت، از ثبت پذیرش تا تأیید)</h2>
+<div class="table-wrap"><table class="table data"><thead><tr><th>بخش</th><th>تعداد جواب</th><th>میانگین</th><th>دیرتر از زمان اعلام‌شده</th></tr></thead><tbody>
+{% for t in tat %}<tr><td>{{ t.section }}</td><td>{{ t.n|fa_digits }}</td><td>{{ t.avg|fa_digits }}</td><td>{{ t.late|fa_digits }}</td></tr>{% empty %}<tr><td colspan="4" class="muted">جواب تأییدشده‌ای نیست.</td></tr>{% endfor %}
+</tbody></table></div>
+<h2>پرتکرارترین آزمایش‌ها</h2>
+<div class="table-wrap"><table class="table data"><thead><tr><th>کد</th><th>آزمایش</th><th>تعداد</th></tr></thead><tbody>
+{% for t in top_tests %}<tr><td>{{ t.test__code }}</td><td>{{ t.test__name }}</td><td>{{ t.n|fa_digits }}</td></tr>{% empty %}<tr><td colspan="3" class="muted">—</td></tr>{% endfor %}
+</tbody></table></div>
+<h2>صف حضوری</h2>
+<div class="table-wrap"><table class="table data"><thead><tr><th>خدمت</th><th>نوبت</th><th>انجام‌شده</th><th>حاضر نشد</th><th>میانگین انتظار (دقیقه)</th><th>بیشترین انتظار</th></tr></thead><tbody>
+{% for q in queue %}<tr><td>{{ q.service.name }}</td><td>{{ q.total|fa_digits }}</td><td>{{ q.served|fa_digits }}</td><td>{{ q.skipped|fa_digits }}</td><td>{{ q.avg_wait|default:"—"|fa_digits }}</td><td>{{ q.max_wait|default:"—"|fa_digits }}</td></tr>{% empty %}<tr><td colspan="6" class="muted">نوبتی صادر نشده است.</td></tr>{% endfor %}
+</tbody></table></div>
+<h2>رضایت مراجعان</h2>
+<p>{{ feedback.n|fa_digits }} پاسخ · رضایت کلی {{ feedback.overall|default:"—"|fa_digits }} از ۵ · ناراضی: {{ feedback.low|fa_digits }}</p>
+{% endblock %}

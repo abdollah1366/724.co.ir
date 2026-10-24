@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}جواب‌های من | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <h1>آزمایش‌های من</h1>
+  <p class="muted">{{ patient.full_name }}</p>
+  <div class="table-wrap"><table class="table data">
+    <thead><tr><th>تاریخ</th><th>شماره پذیرش</th><th>وضعیت</th><th></th></tr></thead>
+    <tbody>{% for o in orders %}
+      <tr><td>{{ o.date|jalali }}</td><td dir="ltr">{{ o.number }}</td><td><span class="badge status-{{ o.progress }}">{{ o.get_progress_display }}</span></td>
+      <td>{% if o.progress == "ready" or o.progress == "partial" or o.progress == "delivered" %}<a href="{% url 'lab:result_view' o.pk %}">مشاهده جواب</a>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="4" class="muted">آزمایشی ثبت نشده است.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if tests %}
+    <h2>نمودار روند</h2>
+    <div class="chips">{% for t in tests %}<a class="chip" href="{% url 'lab:my_trend' t.code %}">{{ t.name }}</a>{% endfor %}</div>
+  {% endif %}
+</section>
+{% endblock %}

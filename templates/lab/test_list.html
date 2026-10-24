@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}فهرست آزمایش‌ها | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <p class="breadcrumb"><a href="{% url 'lab:home' %}">آزمایشگاه</a> / فهرست آزمایش‌ها</p>
+  <h1>فهرست آزمایش‌ها</h1>
+  <form class="card filters" method="get">
+    <input type="search" name="q" value="{{ query }}" placeholder="نام، نام لاتین یا کد آزمایش" aria-label="جست‌وجو">
+    <select name="section" aria-label="بخش">
+      <option value="">همه بخش‌ها</option>
+      {% for section in sections %}<option value="{{ section.code }}"{% if section.code == current_section %} selected{% endif %}>{{ section.name }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-small" type="submit">نمایش</button>
+  </form>
+  <div class="table-wrap">
+    <table class="table data">
+      <thead><tr><th>آزمایش</th><th>نمونه</th><th>آمادگی</th><th>زمان جواب</th><th class="num">تعرفه آزاد</th></tr></thead>
+      <tbody>
+        {% for test in tests %}
+          <tr>
+            <td><a href="{{ test.get_absolute_url }}">{{ test.name }}</a> <span class="muted small" dir="ltr">{{ test.code }}</span></td>
+            <td>{{ test.specimen_type.name }}</td>
+            <td>{% if test.fasting_hours %}<span class="badge badge-warn">{{ test.fasting_hours|fa_digits }} ساعت ناشتا</span>{% else %}{% for p in test.preparations.all %}{{ p.title }}{% if not forloop.last %}، {% endif %}{% empty %}<span class="muted">ندارد</span>{% endfor %}{% endif %}</td>
+            <td>{{ test.turnaround_hours|fa_digits }} ساعت</td>
+            <td class="num">{% if test.price %}{{ test.price|toman }}{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="muted">آزمایشی پیدا نشد.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small">تعرفه‌ها آزاد است؛ سهم بیمه هنگام پذیرش بر اساس قرارداد بیمه شما محاسبه می‌شود.</p>
+</section>
+{% endblock %}

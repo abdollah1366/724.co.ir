@@ -11,6 +11,10 @@
   {% if department.is_coming_soon %}<div class="alert alert-info">این خدمت به‌زودی راه‌اندازی می‌شود.</div>{% endif %}
   {% if department.description %}<div class="prose">{{ department.description|linebreaks }}</div>{% endif %}
 
+  {% if department.kind == "lab" %}
+    <p><a class="btn" href="{% url 'lab:home' %}">ورود به بخش آزمایشگاه: فهرست آزمایش‌ها، آمادگی، نوبت و جواب</a></p>
+  {% endif %}
+
   {% if product_kind %}
     <div class="section-head">
       <h2>{% if product_kind == "drug" %}داروها{% else %}محصولات{% endif %}</h2>

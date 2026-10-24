@@ -1,0 +1,21 @@
+{% extends "lab/staff/base.html" %}
+{% load persian %}
+{% block lab_title %}گزارش صندوق{% endblock %}
+{% block lab_content %}
+<h1>گزارش صندوق آزمایشگاه {{ day|jalali }}</h1>
+<form method="get" class="card filters no-print"><input type="date" name="date" value="{{ day|date:'Y-m-d' }}" aria-label="تاریخ"><button class="btn btn-small">نمایش</button><button type="button" class="btn btn-small btn-outline" onclick="window.print()">چاپ</button></form>
+<div class="grid stats">
+  <div class="card stat"><span class="stat-label">دریافت</span><span class="stat-value">{{ received|rial }}</span></div>
+  <div class="card stat"><span class="stat-label">استرداد</span><span class="stat-value">{{ refunded|rial }}</span></div>
+  <div class="card stat"><span class="stat-label">خالص (ریال)</span><span class="stat-value">{{ net|rial }}</span></div>
+</div>
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>کاربر</th><th>روش</th><th>نوع</th><th class="num">تعداد</th><th class="num">مبلغ</th></tr></thead>
+  <tbody>{% for r in rows %}<tr><td>{{ r.created_by__username }}</td><td>{{ r.method }}</td><td>{{ r.direction }}</td><td class="num">{{ r.n|fa_digits }}</td><td class="num">{{ r.total|rial }}</td></tr>{% endfor %}</tbody>
+</table></div>
+<h2>ریز دریافت‌ها</h2>
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>شماره</th><th>پذیرش</th><th>بیمار</th><th>نوع</th><th>روش</th><th class="num">مبلغ</th><th>کاربر</th></tr></thead>
+  <tbody>{% for p in payments %}<tr><td>{{ p.number }}</td><td><a href="{% url 'lab:staff_order' p.order_id %}">{{ p.order.number }}</a></td><td>{{ p.order.patient.full_name }}</td><td>{{ p.get_direction_display }}</td><td>{{ p.get_method_display }}</td><td class="num">{{ p.amount|rial }}</td><td>{{ p.created_by }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

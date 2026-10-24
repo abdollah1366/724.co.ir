@@ -1,0 +1,7 @@
+{% load persian %}<div class="grid stats">
+  <a class="card stat" href="{% url 'lab:queue_console' %}"><span class="stat-label">منتظر در صف حضوری</span><span class="stat-value">{{ queue_waiting|fa_digits }}</span></a>
+  {% if crm %}
+  <a class="card stat" href="{% url 'lab:crm_inbox' %}"><span class="stat-label">درخواست مشاوره باز</span><span class="stat-value">{{ crm.open|fa_digits }}</span></a>
+  <a class="card stat" href="{% url 'lab:crm_inbox' %}?view=overdue"><span class="stat-label">مشاوره با دیرکرد</span><span class="stat-value">{{ crm.overdue|fa_digits }}</span></a>
+  {% endif %}
+</div>
