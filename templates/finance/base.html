@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{% block fin_title %}مالی{% endblock %} | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <nav class="bo-nav" aria-label="مالی">
+    {% if perms.accounting.view_financial_reports or perms.finance.use_cashier %}<a href="{% url 'finance:dashboard' %}">داشبورد مالی</a>{% endif %}
+    {% if perms.finance.use_cashier %}<a href="{% url 'finance:cashier' %}">صندوق درمانگاه</a>{% endif %}
+    {% if perms.finance.view_invoice %}<a href="{% url 'finance:invoices' %}">صورتحساب‌ها</a>{% endif %}
+    {% if perms.accounting.view_financial_reports %}
+      <a href="{% url 'finance:receivables' %}">مطالبات</a>
+      <a href="{% url 'finance:ledger' %}">دفتر حساب</a>
+      <a href="{% url 'finance:journal' %}">دفتر روزنامه</a>
+      <a href="{% url 'finance:center_pnl' %}">سود و زیان بخش‌ها</a>
+      <a href="{% url 'finance:cash_flow' %}">صندوق و بانک</a>
+      <a href="{% url 'finance:checks' %}">کنترل‌های مالی</a>
+    {% endif %}
+    {% if perms.core.view_outboxevent %}<a href="{% url 'finance:integration' %}">اتصال ماژول‌ها</a>{% endif %}
+    {% if perms.core.change_featureflag %}<a href="{% url 'finance:settings' %}">تنظیمات ماژول‌ها</a>{% endif %}
+    {% if user.is_staff %}<a href="{% url 'admin:index' %}">پنل مدیریت</a>{% endif %}
+  </nav>
+  {% block fin_content %}{% endblock %}
+</section>
+{% endblock %}

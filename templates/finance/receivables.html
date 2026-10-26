@@ -1,0 +1,11 @@
+{% extends "finance/base.html" %}
+{% load persian %}
+{% block fin_title %}مطالبات بیماران{% endblock %}
+{% block fin_content %}
+<h1>سنی مطالبات بیماران</h1>
+<div class="grid stats">{% for k, v in aging.buckets.items %}<div class="card stat"><span class="stat-label">{{ k|fa_digits }} روز</span><span class="stat-value">{{ v|rial }}</span></div>{% endfor %}
+<div class="card stat"><span class="stat-label">جمع</span><span class="stat-value">{{ aging.total|rial }}</span></div></div>
+<div class="table-wrap"><table class="table data"><tr><th>صورتحساب</th><th>تاریخ</th><th>بیمار</th><th class="num">مانده</th><th class="num">سن (روز)</th></tr>
+{% for r in aging.rows %}<tr><td><a href="{% url 'finance:invoice' r.invoice.pk %}">{{ r.invoice.number }}</a></td><td>{{ r.invoice.date|jalali:"%Y/%m/%d" }}</td><td>{{ r.invoice.patient_name }}</td><td class="num">{{ r.invoice.balance_due|rial }}</td><td class="num">{{ r.age|fa_digits }}</td></tr>
+{% empty %}<tr><td colspan="5" class="muted">مطالبه‌ای نیست.</td></tr>{% endfor %}</table></div>
+{% endblock %}

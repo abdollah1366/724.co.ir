@@ -1,0 +1,8 @@
+{% extends "finance/base.html" %}
+{% block fin_title %}کنترل‌های مالی{% endblock %}
+{% block fin_content %}
+<h1>کنترل‌های مغایرت مالی</h1>
+<table class="table data"><tr><th></th><th>کنترل</th><th>جزئیات</th></tr>
+{% for r in results %}<tr><td>{% if r.ok %}✓{% else %}✗{% endif %}</td><td>{{ r.name }}</td><td>{{ r.detail }}</td></tr>{% endfor %}</table>
+<p class="muted small">همین کنترل‌ها با دستور <code>python manage.py finance_reconcile</code> روی cron اجرا می‌شوند.</p>
+{% endblock %}

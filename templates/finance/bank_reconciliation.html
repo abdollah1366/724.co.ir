@@ -1,0 +1,15 @@
+{% extends "finance/base.html" %}
+{% load persian %}
+{% block fin_title %}مغایرت‌گیری بانک{% endblock %}
+{% block fin_content %}
+<h1>مغایرت‌گیری {{ rec.account }}</h1>
+<p>تا تاریخ {{ rec.statement_date|jalali }} — مانده صورت‌حساب بانک {{ rec.statement_balance|rial }} — مانده دفتر {{ summary.book_balance|rial }} — مانده تطبیق‌شده {{ summary.cleared_balance|rial }} — <strong>اختلاف {{ summary.difference|rial }}</strong> ({{ rec.get_status_display }})</p>
+{% if rec.status == "draft" %}
+<form method="post">{% csrf_token %}
+<table class="table data"><tr><th></th><th>تاریخ</th><th>سند</th><th>شرح</th><th class="num">بدهکار</th><th class="num">بستانکار</th></tr>
+{% for l in summary.uncleared %}<tr><td><input type="checkbox" name="lines" value="{{ l.pk }}"></td><td>{{ l.entry.date|jalali:"%Y/%m/%d" }}</td><td>{{ l.entry.number }}</td><td>{{ l.description }}</td><td class="num">{{ l.debit|rial }}</td><td class="num">{{ l.credit|rial }}</td></tr>
+{% empty %}<tr><td colspan="6" class="muted">آرتیکل تطبیق‌نشده‌ای نیست.</td></tr>{% endfor %}</table>
+<input name="bank_reference" placeholder="شماره پیگیری صورت‌حساب بانک (اختیاری)"> <button class="btn btn-small">تطبیق موارد انتخاب‌شده</button></form>
+<form method="post">{% csrf_token %}<input name="note" placeholder="توضیح اختلاف (اگر اختلاف صفر نیست)" value="{{ rec.note }}"> <button class="btn btn-small" name="finalize" value="1">نهایی کردن</button></form>
+{% endif %}
+{% endblock %}

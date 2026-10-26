@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}تسویه {{ settlement.number }} | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+<h1>صورت‌حساب تسویه {{ settlement.number|default:"پیش‌نویس" }}</h1>
+<p>{{ settlement.contract.provider_name }} — {{ settlement.year|fa_digits }}/{{ settlement.month|fa_digits }} — {{ settlement.get_status_display }}</p>
+<table class="table data"><tr><th>نوع</th><th>شرح</th><th>محاسبه</th><th class="num">مبنا</th><th class="num">مبلغ</th></tr>
+{% for l in lines %}<tr><td>{{ l.get_kind_display }}</td><td>{{ l.description }}</td><td class="small">{{ l.detail.formula }}</td><td class="num">{{ l.base_amount|rial }}</td><td class="num">{{ l.amount|rial }}</td></tr>{% endfor %}
+<tfoot><tr><td colspan="4">جمع قابل پرداخت</td><td class="num">{{ settlement.total|rial }}</td></tr></tfoot></table>
+<p class="muted small">اثر محاسبه: {{ settlement.calc_hash }}</p>
+</section>
+{% endblock %}

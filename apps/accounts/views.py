@@ -51,6 +51,9 @@ def dashboard(request):
             "orders": request.user.orders.all()[:10],
             "questions": request.user.pharmacy_questions.select_related("product")[:10],
             "consultations": request.user.consultations.select_related("doctor")[:10],
+            # لینک «سهم من» برای پزشکان و «فیش حقوق» برای کارکنان دارای پرونده حقوقی
+            "is_provider": hasattr(request.user, "doctor"),
+            "has_payroll": hasattr(request.user, "payroll_profile"),
         },
     )
 

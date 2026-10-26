@@ -1,0 +1,26 @@
+{% extends "finance/base.html" %}
+{% load persian %}
+{% block fin_title %}داشبورد مالی{% endblock %}
+{% block fin_content %}
+<h1>داشبورد مالی</h1>
+<p class="muted">{{ today|jalali }} — مبالغ به ریال و از اسناد ثبت‌شده.</p>
+<div class="grid stats">
+  <div class="card stat"><span class="stat-label">دریافت امروز از بیماران</span><span class="stat-value">{{ receipts_today|rial }}</span><span class="muted small">{{ receipts_count|fa_digits }} دریافت</span></div>
+  <a class="card stat" href="{% url 'finance:invoices' %}?status=draft"><span class="stat-label">صورتحساب پیش‌نویس</span><span class="alert-count">{{ draft_invoices|fa_digits }}</span></a>
+  <a class="card stat" href="{% url 'admin:finance_refund_changelist' %}?status__exact=draft"><span class="stat-label">استرداد در انتظار</span><span class="alert-count">{{ refunds_waiting|fa_digits }}</span></a>
+  {% if can_report %}
+  <div class="card stat"><span class="stat-label">مطالبات بیماران</span><span class="stat-value">{{ ar_patients|rial }}</span><span class="muted small">علی‌الحساب بیماران {{ advances|rial }}</span></div>
+  <div class="card stat"><span class="stat-label">موجودی صندوق‌ها و بانک‌ها</span><span class="stat-value">{{ cash|rial }}</span></div>
+  <div class="card stat"><span class="stat-label">بدهی به پزشکان</span><span class="stat-value">{{ providers_payable|rial }}</span><span class="muted small">{{ settlements_waiting|fa_digits }} تسویه در جریان</span></div>
+  <a class="card stat" href="{% url 'finance:integration' %}"><span class="stat-label">رویدادهای معوق / متوقف</span><span class="alert-count">{{ events.pending|add:events.failed|fa_digits }} / {{ events.dead|fa_digits }}</span><span class="muted small">{{ events.held|fa_digits }} در انتظار قابلیت خاموش</span></a>
+  {% endif %}
+</div>
+{% if can_report %}
+<h2>درآمد و هزینه بخش‌ها از ابتدای ماه</h2>
+<div class="table-wrap"><table class="table data">
+<tr><th>بخش</th><th class="num">درآمد</th><th class="num">هزینه</th><th class="num">سود</th></tr>
+{% for r in centers %}<tr><td>{{ r.name }}</td><td class="num">{{ r.revenue|rial }}</td><td class="num">{{ r.expense|rial }}</td><td class="num">{{ r.profit|rial }}</td></tr>
+{% empty %}<tr><td colspan="4" class="muted">سندی در این ماه نیست.</td></tr>{% endfor %}
+</table></div>
+{% endif %}
+{% endblock %}

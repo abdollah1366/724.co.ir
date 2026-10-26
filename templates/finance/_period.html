@@ -1,0 +1,5 @@
+{% load persian %}
+<form method="get" class="filters">{% for name, value in extra %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+<label>از <input type="date" name="start" value="{{ start|date:'Y-m-d' }}"></label>
+<label>تا <input type="date" name="end" value="{{ end|date:'Y-m-d' }}"></label>
+<button class="btn btn-small">نمایش</button> <span class="muted small">{{ start|jalali:"%Y/%m/%d" }} تا {{ end|jalali:"%Y/%m/%d" }}</span></form>

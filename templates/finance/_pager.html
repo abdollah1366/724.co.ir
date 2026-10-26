@@ -1,0 +1,3 @@
+{% if page.has_other_pages %}<p class="pager">{% if page.has_previous %}<a href="?{% for k, v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ page.previous_page_number }}">قبلی</a>{% endif %}
+ صفحه {{ page.number }} از {{ page.paginator.num_pages }}
+{% if page.has_next %}<a href="?{% for k, v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ page.next_page_number }}">بعدی</a>{% endif %}</p>{% endif %}

@@ -1,0 +1,11 @@
+# تلاش مجدد رویدادهای بین‌ماژولی ناموفق یا معوق (outbox مالی)
+[Unit]
+Description=724 timer: events
+
+[Timer]
+OnCalendar=*:0/5
+Unit=724-task@events.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

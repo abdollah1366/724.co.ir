@@ -31,7 +31,7 @@ manage check --deploy --fail-level ERROR
 echo "==> راه‌اندازی دوباره"
 install -m 644 "$APP"/deploy/systemd/724-* /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now 724-telemed.timer >/dev/null 2>&1 || true  # زمان‌بندی‌های اضافه‌شده پس از نصب اول
+systemctl enable --now 724-telemed.timer 724-events.timer 724-finance.timer >/dev/null 2>&1 || true  # زمان‌بندی‌های اضافه‌شده پس از نصب اول
 systemctl restart 724-web.service
 sleep 2
 systemctl is-active --quiet 724-web.service || { echo "سرویس بالا نیامد: journalctl -u 724-web -n 50" >&2; exit 1; }

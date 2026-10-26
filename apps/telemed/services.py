@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from apps.audit import log
 from apps.audit.models import AuditLog
+from apps.core import events
 from apps.core.sms import send_sms
 
 from . import payments
@@ -128,6 +129,20 @@ def create(patient, *, kind, data, doctor=None, scheduled_at=None, files=()):
 # ---------------------------------------------------------------- پرداخت
 
 
+def _publish_payment(payment, what):
+    """رویداد پرداخت برای مصرف‌کننده مالی (صورتحساب، دریافت، استرداد). فقط مبلغ و شناسه‌ها؛ موضوع و متن گفتگو هرگز."""
+    consultation = payment.consultation
+    patient = consultation.patient
+    events.publish(f"telemed.payment.{what}", "telemed.consultation", source_id=consultation.pk, dedupe_key=payment.pk, payload={
+        "payment_id": payment.pk, "consultation_id": consultation.pk, "code": consultation.code, "kind": consultation.kind,
+        "kind_label": consultation.get_kind_display(), "channel": consultation.channel, "doctor_id": consultation.doctor_id,
+        "doctor_name": consultation.provider_name, "patient_user_id": patient.pk,
+        "patient_name": patient.get_full_name() or f"کاربر {patient.pk}", "amount": payment.amount, "method": payment.method,
+        "gateway": payment.gateway, "reference": payment.reference,
+        "refund_reference": getattr(payment, "refund_reference", ""), "at": timezone.now().isoformat(),
+    })
+
+
 def start_payment(consultation, callback_for):
     """callback_for(authority) آدرس کامل بازگشت از درگاه را می‌سازد."""
     if consultation.status != Status.AWAITING_PAYMENT:
@@ -154,6 +169,7 @@ def _mark_paid(payment, consultation):
         payment.status = ConsultPayment.Status.REFUND_DUE
         payment.note = "پرداخت پس از انقضا/لغو مشاوره رسید"
         payment.save(update_fields=["status", "note"])
+        _publish_payment(payment, "refund_due")
 
 
 def complete_payment(authority, request):
@@ -168,8 +184,11 @@ def complete_payment(authority, request):
         payment.paid_at = timezone.now() if ok else None
         payment.save()
         if ok:
+            _publish_payment(payment, "paid")
             consultation = Consultation.objects.select_for_update().get(pk=payment.consultation_id)
             _mark_paid(payment, consultation)
+        else:
+            _publish_payment(payment, "failed")
     return payment
 
 
@@ -182,14 +201,17 @@ def record_manual_payment(consultation, user, reference="", note=""):
             consultation=consultation, amount=consultation.fee, method=ConsultPayment.Method.MANUAL,
             status=ConsultPayment.Status.PAID, reference=reference, note=note, recorded_by=user, paid_at=timezone.now(),
         )
+        _publish_payment(payment, "paid")
         _mark_paid(payment, consultation)
     return payment
 
 
 def _refund_due(consultation):
-    ConsultPayment.objects.filter(consultation=consultation, status=ConsultPayment.Status.PAID).update(
-        status=ConsultPayment.Status.REFUND_DUE
-    )
+    paid = list(ConsultPayment.objects.filter(consultation=consultation, status=ConsultPayment.Status.PAID).select_related(
+        "consultation__patient", "consultation__doctor"))
+    ConsultPayment.objects.filter(pk__in=[p.pk for p in paid]).update(status=ConsultPayment.Status.REFUND_DUE)
+    for payment in paid:
+        _publish_payment(payment, "refund_due")
 
 
 def mark_refunded(payment, user, reference=""):
@@ -200,7 +222,10 @@ def mark_refunded(payment, user, reference=""):
     payment.recorded_by = user
     if reference:
         payment.note = f"استرداد: {reference}"[:300]
-    payment.save()
+    with transaction.atomic():
+        payment.save()
+        payment.refund_reference = reference
+        _publish_payment(payment, "refunded")
 
 
 # ---------------------------------------------------------------- گفتگو

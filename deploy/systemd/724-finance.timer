@@ -1,0 +1,11 @@
+# تمدید/انقضای قراردادها و کنترل مغایرت مالی (دفتر کل با زیردفترها، کاردکس، رویدادهای ناموفق)
+[Unit]
+Description=724 timer: finance
+
+[Timer]
+OnCalendar=*-*-* 01:15:00
+Unit=724-task@finance.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,14 @@
+{% extends "finance/base.html" %}
+{% load persian %}
+{% block fin_title %}صندوق و بانک{% endblock %}
+{% block fin_content %}
+<h1>گردش صندوق‌ها و بانک‌ها</h1>
+{% include "finance/_period.html" %}
+<h3>به تفکیک حساب</h3>
+<table class="table data"><tr><th>حساب</th><th class="num">ورودی</th><th class="num">خروجی</th><th class="num">خالص</th></tr>
+{% for r in report.accounts %}<tr><td>{{ r.account__code }} {{ r.account__name }}</td><td class="num">{{ r.inflow|rial }}</td><td class="num">{{ r.outflow|rial }}</td><td class="num">{{ r.net|rial }}</td></tr>{% endfor %}
+<tfoot><tr><td>جمع</td><td class="num">{{ report.inflow|rial }}</td><td class="num">{{ report.outflow|rial }}</td><td></td></tr></tfoot></table>
+<h3>به تفکیک منشأ</h3>
+<table class="table data"><tr><th>نوع سند</th><th class="num">ورودی</th><th class="num">خروجی</th><th class="num">خالص</th></tr>
+{% for r in report.sources %}<tr><td>{{ r.entry__source_type }}</td><td class="num">{{ r.inflow|rial }}</td><td class="num">{{ r.outflow|rial }}</td><td class="num">{{ r.net|rial }}</td></tr>{% endfor %}</table>
+{% endblock %}

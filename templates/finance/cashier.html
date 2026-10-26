@@ -1,0 +1,41 @@
+{% extends "finance/base.html" %}
+{% load persian %}
+{% block fin_title %}صندوق درمانگاه{% endblock %}
+{% block fin_content %}
+<h1>صندوق درمانگاه</h1>
+<form method="get" class="filters"><input name="q" value="{{ q }}" placeholder="کد ملی، کد اتباع یا شماره پرونده" autofocus><button class="btn btn-small">جست‌وجو</button></form>
+{% if patient %}
+<div class="card">
+  <h2>{{ patient.name }} <span class="muted small">پرونده {{ patient.file_number|fa_digits }} — {{ patient.masked_id|fa_digits }}</span></h2>
+  <p>بدهی: <strong>{{ summary.due|rial }}</strong> — بستانکاری قابل استرداد: {{ summary.credit|rial }} — علی‌الحساب: {{ summary.advance|rial }}</p>
+</div>
+<div class="grid">
+<div class="card">
+  <h3>دریافت</h3>
+  <form method="post" action="{% url 'finance:cashier_receive' %}">{% csrf_token %}<input type="hidden" name="patient" value="{{ patient.id }}">
+  <table class="table data"><tr><th></th><th>صورتحساب</th><th class="num">مانده</th></tr>
+  {% for inv in open_invoices %}<tr><td><input type="checkbox" name="invoices" value="{{ inv.pk }}" checked></td><td><a href="{% url 'finance:invoice' inv.pk %}">{{ inv.number }}</a> {{ inv.date|jalali:"%Y/%m/%d" }} {{ inv.provider_name }}</td><td class="num">{{ inv.balance_due|rial }}</td></tr>
+  {% empty %}<tr><td colspan="3" class="muted">صورتحساب باز ندارد؛ مبلغ دریافتی علی‌الحساب ثبت می‌شود.</td></tr>{% endfor %}</table>
+  {{ tender_form.as_p }}
+  <p class="muted small">مبلغ از قدیمی‌ترین صورتحساب انتخاب‌شده تخصیص می‌یابد و مازاد علی‌الحساب بیمار می‌شود.</p>
+  <button class="btn">ثبت دریافت</button></form>
+</div>
+<div class="card">
+  <h3>صورتحساب جدید</h3>
+  <form method="post" action="{% url 'finance:cashier_invoice' %}">{% csrf_token %}<input type="hidden" name="patient" value="{{ patient.id }}">
+  {{ invoice_form.as_p }}<button class="btn">صدور صورتحساب</button></form>
+  {% if drafts %}<h4>پیش‌نویس‌ها (نیاز به تکمیل و ثبت نهایی)</h4><ul>{% for inv in drafts %}<li><a href="{% url 'admin:finance_invoice_change' inv.pk %}">پیش‌نویس #{{ inv.pk|fa_digits }}</a> {{ inv.get_module_display }} — {{ inv.gross|rial }}{% if inv.note %} <span class="muted small">{{ inv.note }}</span>{% endif %}</li>{% endfor %}</ul>{% endif %}
+</div>
+<div class="card">
+  <h3>استرداد</h3>
+  {% for r in pending_refunds %}<p>{{ r.amount|rial }} — {{ r.reason }} — {% if r.approved_at %}تأییدشده
+    {% if perms.finance.post_refund %}<form method="post" action="{% url 'finance:refund_pay' r.pk %}" style="display:inline">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-small">پرداخت و ثبت</button></form>{% endif %}
+    {% else %}<span class="muted">در انتظار تأیید</span>{% endif %}</p>{% endfor %}
+  <form method="post" action="{% url 'finance:cashier_refund' %}">{% csrf_token %}<input type="hidden" name="patient" value="{{ patient.id }}">
+  {{ refund_form.as_p }}<button class="btn btn-small">درخواست استرداد</button></form>
+</div>
+</div>
+<h3>آخرین دریافت‌ها</h3>
+<ul>{% for r in receipts %}<li>{{ r.number }} — {{ r.date|jalali:"%Y/%m/%d" }} — {{ r.get_status_display }}</li>{% empty %}<li class="muted">—</li>{% endfor %}</ul>
+{% endif %}
+{% endblock %}

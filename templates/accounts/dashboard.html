@@ -62,6 +62,14 @@
     <a class="btn btn-small" href="{% url 'ehr:my_record' %}">مشاهده پرونده سلامت</a>
   </div>
 
+  {% if is_provider or has_payroll %}
+  <div class="card">
+    <h2>کار من در مجموعه</h2>
+    {% if is_provider %}<a class="btn btn-small" href="{% url 'finance:my_earnings' %}">سهم و تسویه من</a>{% endif %}
+    {% if has_payroll %}<a class="btn btn-small btn-outline" href="{% url 'finance:my_payslips' %}">فیش حقوق من</a>{% endif %}
+  </div>
+  {% endif %}
+
   <div class="section-head"><h2>مشاوره‌های آنلاین من</h2><a href="{% url 'telemed:index' %}">مشاوره جدید</a></div>
   {% include "telemed/_list.html" with items=consultations patient_view=True %}
 

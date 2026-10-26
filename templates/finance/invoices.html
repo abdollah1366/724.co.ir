@@ -1,0 +1,16 @@
+{% extends "finance/base.html" %}
+{% load persian %}
+{% block fin_title %}صورتحساب‌ها{% endblock %}
+{% block fin_content %}
+<h1>صورتحساب‌های خدمات</h1>
+<form method="get" class="filters"><input name="q" value="{{ q }}" placeholder="شماره، نام یا مرجع">
+<select name="status"><option value="">همه وضعیت‌ها</option>{% for v, l in statuses %}<option value="{{ v }}"{% if v == status %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+<select name="module"><option value="">همه بخش‌ها</option>{% for v, l in modules %}<option value="{{ v }}"{% if v == module %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+<button class="btn btn-small">نمایش</button></form>
+<div class="table-wrap"><table class="table data">
+<tr><th>شماره</th><th>تاریخ</th><th>بخش</th><th>بیمار</th><th>پزشک</th><th class="num">سهم بیمار</th><th class="num">پرداختی</th><th>وضعیت</th></tr>
+{% for inv in page %}<tr><td><a href="{% url 'finance:invoice' inv.pk %}">{{ inv.number|default:"پیش‌نویس" }}</a></td><td>{{ inv.date|jalali:"%Y/%m/%d" }}</td><td>{{ inv.get_module_display }}</td><td>{{ inv.patient_name }}</td><td>{{ inv.provider_name }}</td><td class="num">{{ inv.patient_share|rial }}</td><td class="num">{{ inv.paid_amount|rial }}</td><td>{{ inv.payment_status }}</td></tr>
+{% empty %}<tr><td colspan="8" class="muted">صورتحسابی نیست.</td></tr>{% endfor %}
+</table></div>
+{% include "finance/_pager.html" %}
+{% endblock %}

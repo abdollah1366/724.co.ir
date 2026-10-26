@@ -1,0 +1,11 @@
+{% extends "finance/base.html" %}
+{% load persian %}
+{% block fin_title %}سود و زیان بخش‌ها{% endblock %}
+{% block fin_content %}
+<h1>سود و زیان به تفکیک مرکز درآمد</h1>
+{% include "finance/_period.html" %}
+<div class="table-wrap"><table class="table data"><tr><th>مرکز</th><th class="num">درآمد خالص</th><th class="num">هزینه (شامل بهای تمام‌شده)</th><th class="num">سود</th></tr>
+{% for r in rows %}<tr><td>{{ r.code }} {{ r.name }}</td><td class="num">{{ r.revenue|rial }}</td><td class="num">{{ r.expense|rial }}</td><td class="num">{{ r.profit|rial }}</td></tr>{% endfor %}
+<tfoot><tr><td>جمع</td><td class="num">{{ totals.revenue|rial }}</td><td class="num">{{ totals.expense|rial }}</td><td class="num">{{ totals.profit|rial }}</td></tr></tfoot></table></div>
+<p class="muted small">اسناد قبل از راه‌اندازی مراکز هزینه در ردیف «بدون مرکز» دیده می‌شوند.</p>
+{% endblock %}

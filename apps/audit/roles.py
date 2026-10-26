@@ -234,6 +234,106 @@ ROLES.update({
     # طبق الزام محرمانگی، پرونده پزشکی و جواب آزمایش بیماران را نمی‌بیند؛ گزارش درمانگاه فقط آماری است.
 })
 
+# ماژول یکپارچه مالی (apps/finance): هیچ‌کدام از این نقش‌ها به داده بالینی دسترسی ندارد؛ صورتحساب فقط نام و شناسه بیمار،
+# کد خدمت و مبلغ دارد. تأییدهای دومرحله‌ای (استرداد، نسخه قرارداد، تسویه، حقوق) در سرویس‌ها با شرط «نفر دوم» کنترل می‌شود،
+# پس حتی کاربری که چند نقش دارد نمی‌تواند سند خودش را تأیید کند.
+FIN_BILLING_DOCS = ["finance.invoice", "finance.invoiceline", "finance.receipt", "finance.receipttender",
+                    "finance.paymentallocation", "finance.refund"]
+FIN_CONTRACT_DOCS = ["finance.contract", "finance.contractversion", "finance.contractrule"]
+FIN_SETTLEMENT_DOCS = ["finance.providersettlement", "finance.settlementline"]
+FIN_PAYROLL_DOCS = ["finance.payitemtype", "finance.taxbracket", "finance.payrollprofile", "finance.profilepayitem",
+                    "finance.employeeloan", "finance.payrollrun", "finance.payrollline", "finance.payrollitem"]
+ACC_DOCS = ["accounting.party", "accounting.account", "accounting.costcenter", "accounting.accountingperiod",
+            "accounting.journalentry", "accounting.journalline", "accounting.payment", "accounting.expense",
+            "accounting.manualjournal", "accounting.manualjournalline", "accounting.bankreconciliation",
+            "accounting.reconciledline"]
+DRAFTABLE = ("add", "change", "delete", VIEW)  # حذف فقط برای پیش‌نویس مجاز است (PostedDocument)
+
+# صندوق درمانگاه: صدور و ثبت صورتحساب بدون تخفیف، دریافت وجه و پرداخت استرداد تأییدشده.
+CLINIC_CASHIER = {
+    "models": {"finance.invoice": ("add", "change", VIEW), "finance.invoiceline": DRAFTABLE,
+               "finance.receipt": ("add", VIEW), "finance.receipttender": ("add", VIEW),
+               "finance.paymentallocation": ("add", VIEW), "finance.refund": ("add", VIEW), "accounting.costcenter": (VIEW,)},
+    "extra": ["finance.use_cashier", "finance.post_invoice", "finance.post_receipt", "finance.post_refund"],
+}
+ROLES["صندوق‌دار"]["models"].update(CLINIC_CASHIER["models"])
+ROLES["صندوق‌دار"]["extra"] = ROLES["صندوق‌دار"]["extra"] + CLINIC_CASHIER["extra"]
+
+# پذیرش فقط وضعیت پرداخت صورتحساب بیمار را می‌بیند؛ دریافت وجه با نقش صندوق‌دار است.
+for _role in ("پذیرش درمانگاه", "منشی پزشک"):
+    ROLES[_role]["models"].update({"finance.invoice": (VIEW,), "finance.receipt": (VIEW,)})
+
+ROLES["حسابدار"]["models"].update({
+    **{m: (VIEW,) for m in FIN_BILLING_DOCS + FIN_CONTRACT_DOCS + ["finance.settlementline"]},
+    "finance.invoice": ("change", VIEW), "finance.refund": ("add", VIEW),
+    "finance.providersettlement": ("add", "change", VIEW),
+    "accounting.costcenter": (VIEW,), "accounting.accountingperiod": (VIEW,),
+    "accounting.manualjournal": DRAFTABLE, "accounting.manualjournalline": DRAFTABLE,
+    "accounting.bankreconciliation": ("add", "change", VIEW), "accounting.reconciledline": ("add", "change", "delete", VIEW),
+    "core.outboxevent": (VIEW,),
+})
+ROLES["حسابدار"]["extra"] = ROLES["حسابدار"]["extra"] + [
+    "finance.post_invoice", "finance.reverse_invoice", "finance.post_receipt", "finance.reverse_receipt",
+    "finance.calculate_settlement", "accounting.post_manualjournal",
+]
+
+ROLES.update({
+    "مدیر مالی": {
+        "models": {
+            **{m: EDIT for m in ACC_DOCS if m not in ("accounting.journalentry", "accounting.journalline")},
+            "accounting.journalentry": (VIEW,), "accounting.journalline": (VIEW,),
+            **{m: DRAFTABLE for m in FIN_BILLING_DOCS + FIN_CONTRACT_DOCS + FIN_SETTLEMENT_DOCS},
+            "finance.payitemtype": EDIT, "finance.taxbracket": EDIT, "finance.payrollrun": (VIEW,),
+            "finance.payrollline": (VIEW,), "finance.payrollitem": (VIEW,), "finance.employeeloan": (VIEW,),
+            "finance.payrollprofile": (VIEW,),
+            "core.outboxevent": (VIEW,), "core.featureflag": ("change", VIEW), "audit.auditlog": (VIEW,),
+            "telemed.consultpayment": (VIEW,),
+        },
+        "extra": [
+            "accounting.view_financial_reports", "accounting.close_accountingperiod", "accounting.post_manualjournal",
+            "accounting.reverse_manualjournal", "accounting.post_payment", "accounting.reverse_payment",
+            "accounting.post_expense", "accounting.reverse_expense",
+            "finance.use_cashier", "finance.post_invoice", "finance.reverse_invoice", "finance.give_invoice_discount",
+            "finance.post_receipt", "finance.reverse_receipt", "finance.post_refund", "finance.approve_refund",
+            "finance.reverse_refund", "finance.manage_contract_status", "finance.approve_contractversion",
+            "finance.calculate_settlement", "finance.approve_settlement_finance", "finance.post_providersettlement",
+            "finance.reverse_providersettlement", "finance.view_payroll", "finance.approve_payrollrun",
+            "finance.post_payrollrun", "finance.reverse_payrollrun", "core.retry_outboxevent",
+        ],
+    },
+    # تأییدکننده دوم پرداخت‌ها: فقط می‌بیند و تأیید می‌کند؛ سند نمی‌سازد و ثبت نهایی نمی‌کند.
+    "تأییدکننده پرداخت": {
+        "models": {"finance.refund": (VIEW,), "finance.invoice": (VIEW,), "finance.providersettlement": (VIEW,),
+                   "finance.settlementline": (VIEW,), "finance.contract": (VIEW,), "finance.contractversion": (VIEW,),
+                   "finance.contractrule": (VIEW,)},
+        "extra": ["finance.approve_refund", "finance.approve_settlement_manager", "finance.approve_contractversion"],
+    },
+    "مسئول منابع انسانی": {
+        "models": {
+            "finance.payrollprofile": ("add", "change", VIEW), "finance.profilepayitem": EDIT,
+            "finance.payitemtype": (VIEW,), "finance.taxbracket": (VIEW,), "finance.employeeloan": DRAFTABLE,
+            "finance.payrollrun": DRAFTABLE, "finance.payrollline": ("add", "change", VIEW), "finance.payrollitem": (VIEW,),
+            "finance.contract": ("add", "change", VIEW), "finance.contractversion": ("add", "change", VIEW),
+            "finance.contractrule": EDIT, "accounting.party": ("add", "change", VIEW), "accounting.costcenter": (VIEW,),
+            "accounting.account": (VIEW,),
+        },
+        "extra": ["finance.view_payroll", "finance.post_employeeloan", "finance.reverse_employeeloan"],
+    },
+    # حسابرس: فقط خواندن همه اسناد مالی، دفاتر، گزارش‌ها، صف رویدادها و گزارش ممیزی؛ هیچ تغییری نمی‌دهد.
+    "حسابرس": {
+        "models": {
+            **{m: (VIEW,) for m in ACC_DOCS + FIN_BILLING_DOCS + FIN_CONTRACT_DOCS + FIN_SETTLEMENT_DOCS + FIN_PAYROLL_DOCS},
+            "core.outboxevent": (VIEW,), "core.featureflag": (VIEW,), "audit.auditlog": (VIEW,),
+            "telemed.consultpayment": (VIEW,), "sales.salesinvoice": (VIEW,), "sales.salesreturn": (VIEW,),
+            "purchasing.purchaseinvoice": (VIEW,), "purchasing.goodsreceipt": (VIEW,), "lab.labpayment": (VIEW,),
+            "lab.claimsettlement": (VIEW,),
+        },
+        "extra": ["accounting.view_financial_reports", "finance.view_payroll"],
+    },
+})
+for _role in ("مدیر داروخانه", "مدیر آزمایشگاه"):
+    ROLES[_role]["models"].update({"accounting.costcenter": (VIEW,)})
+
 # داده‌های پزشکی که مدیر کل (طبق الزام محرمانگی) نمی‌بیند
 CLINICAL_DATA = {"lab.labresult", "lab.specimen", "lab.resultrevision", "lab.criticalnotification", "lab.qcresult"}
 CLINICAL_EXTRA = {"lab.enter_labresult", "lab.approve_labresult", "lab.amend_labresult", "lab.deliver_lab_report"}
@@ -255,7 +355,8 @@ def _merge(names, base):
 # گزارش آماری درمانگاه؛ پرونده پزشکی و جواب آزمایش بیماران را نمی‌بیند.
 ROLES["مدیر کل"] = _merge(
     ["مدیر داروخانه", "انباردار", "کارشناس خرید", "صندوق‌دار", "حسابدار", "مدیر آزمایشگاه", "پذیرش آزمایشگاه",
-     "کارشناس بیمه آزمایشگاه", "مشاور آزمایشگاه", "کیوسک نوبت", "منشی پزشک", "پذیرش درمانگاه", "مدیر وبلاگ"],
+     "کارشناس بیمه آزمایشگاه", "مشاور آزمایشگاه", "کیوسک نوبت", "منشی پزشک", "پذیرش درمانگاه", "مدیر وبلاگ",
+     "مدیر مالی", "تأییدکننده پرداخت", "مسئول منابع انسانی"],
     {"models": {"clinic.doctor": ("add", "change", VIEW), "clinic.department": EDIT, "clinic.service": EDIT,
                 "clinic.specialty": EDIT, "clinic.workinghours": EDIT, "auth.user": ("add", "change", VIEW),
                 "auth.group": (VIEW,), "core.smsmessage": (VIEW,), "ehr.recordaccess": (VIEW,), "ehr.rvucoefficient": EDIT,
@@ -274,6 +375,7 @@ ROLE_AREAS = [
     ("آزمایشگاه", ["مدیر آزمایشگاه", "مسئول فنی آزمایشگاه", "کارشناس آزمایشگاه", "نمونه‌گیر آزمایشگاه", "پذیرش آزمایشگاه",
                    "کارشناس بیمه آزمایشگاه", "مشاور آزمایشگاه", "کیوسک نوبت"]),
     ("وبلاگ و مقالات", ["مدیر وبلاگ", "بازبین علمی محتوا", "نویسنده محتوا"]),
+    ("مالی و منابع انسانی", ["مدیر مالی", "حسابدار", "صندوق‌دار", "تأییدکننده پرداخت", "مسئول منابع انسانی", "حسابرس"]),
 ]
 
 
@@ -313,8 +415,14 @@ ROLE_DESCRIPTIONS = {
     "داروساز مسئول فنی": "تأیید فروش نسخه‌ای، تحویل نسخه درمانگاه، مشاوره دارویی حضوری و آنلاین، وضعیت سری ساخت",
     "انباردار": "رسید کالا، انتقال و شمارش انبار",
     "کارشناس خرید": "سفارش و فاکتور خرید، تأمین‌کنندگان",
-    "صندوق‌دار": "صندوق فروش و مرجوعی",
-    "حسابدار": "دریافت و پرداخت، هزینه‌ها، فاکتور خرید، گزارش‌های مالی، پرداخت و استرداد مشاوره آنلاین",
+    "صندوق‌دار": "صندوق فروش داروخانه و صندوق درمانگاه: صورتحساب بدون تخفیف، دریافت وجه، پرداخت استرداد تأییدشده",
+    "حسابدار": "دریافت و پرداخت، هزینه‌ها، فاکتور خرید، سند دستی، تطبیق بانک، محاسبه تسویه، گزارش‌های مالی، "
+               "پرداخت و استرداد مشاوره آنلاین",
+    "مدیر مالی": "همه اسناد و گزارش‌های مالی، بستن دوره، تخفیف، تأیید استرداد و قرارداد، تأیید مالی تسویه، تأیید و ثبت "
+                 "حقوق، نرخ‌های حقوق، تنظیمات ماژول‌ها؛ بدون پرونده پزشکی",
+    "تأییدکننده پرداخت": "نفر دوم تأیید استرداد، نسخه قرارداد و تسویه پزشک؛ سند نمی‌سازد و ثبت نهایی نمی‌کند",
+    "مسئول منابع انسانی": "پرونده حقوقی کارکنان، قرارداد کارکنان، وام و مساعده، محاسبه حقوق (تأیید با مدیر مالی)",
+    "حسابرس": "فقط مشاهده همه اسناد، دفاتر، گزارش‌های مالی، صف رویدادها و گزارش ممیزی؛ بدون هیچ تغییر",
     "مسئول فنی درمانگاه": "همه پرونده‌های پزشکی، گزارش مشاهده پرونده‌ها، کاتالوگ‌ها و ضرایب تعرفه",
     "پزشک": "پرونده بیماران خودش، ویزیت، نسخه، درخواست آزمایش، ارجاع، یادآور، صف مطب خودش، مشاوره آنلاین بیماران خودش",
     "پرستار": "علائم حیاتی و حساسیت بیماران امروز، مدارک، فراخوان صف",
