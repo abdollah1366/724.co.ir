@@ -6,6 +6,7 @@
 """
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.accounting.models import Account, CostCenter, Party
@@ -162,6 +163,15 @@ class InvoiceLine(DocumentLine):
     @property
     def patient_share(self):
         return self.net - self.insurer_share
+
+    def clean(self):
+        # همان قواعد سرویس صورتحساب، تا فرم پنل پیش از رسیدن به محدودیت پایگاه داده خطای روشن نشان دهد.
+        if self.unit_price is None or self.quantity is None:
+            return
+        if self.discount > self.gross:
+            raise ValidationError({"discount": "تخفیف بیشتر از مبلغ ردیف است."})
+        if self.insurer_share > self.net:
+            raise ValidationError({"insurer_share": "سهم بیمه بیشتر از مبلغ پس از تخفیف است."})
 
 
 class Receipt(PatientRef, PostedDocument):

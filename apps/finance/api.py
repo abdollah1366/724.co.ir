@@ -21,7 +21,7 @@ from apps.core import events, flags
 from apps.core.models import OutboxEvent
 
 from . import adapters
-from .models import Invoice, ProviderSettlement, TenderMethod
+from .models import Invoice, ProviderSettlement, Receipt, TenderMethod
 from .services import billing
 
 VERSION = "v1"
@@ -109,6 +109,11 @@ def receipts(request):
     key = request.headers.get("Idempotency-Key", "").strip()
     if not 8 <= len(key) <= 64:
         return error("idempotency_key_required", "هدر Idempotency-Key (۸ تا ۶۴ نویسه) لازم است.", 400)
+    idempotency_key = f"api-{request.user.pk}-{key}"
+    existing = Receipt.objects.filter(idempotency_key=idempotency_key).first()
+    if existing:
+        # تکرار همان درخواست (قطع شبکه، دوبار ارسال): همان دریافت قبلی بدون اعتبارسنجی دوباره برمی‌گردد.
+        return JsonResponse({"version": VERSION, "receipt": receipt_json(existing), "replayed": True})
     body = json.loads(request.body or b"{}")
     patient = adapters.get_patient(int(body["patient_id"]))
     if patient is None:
@@ -124,11 +129,15 @@ def receipts(request):
     if len(selected) != len(set(numbers)):
         return error("invalid", "برخی صورتحساب‌ها باز نیستند یا متعلق به این بیمار نیستند.", 400)
     receipt = billing.receive(patient_id=patient["id"], patient_name=patient["name"], tenders=tenders, invoices=selected,
-                              user=request.user, idempotency_key=f"api-{request.user.pk}-{key}")
-    return JsonResponse({"version": VERSION, "receipt": {
-        "number": receipt.number, "status": receipt.status, "total": receipt.total, "advance": receipt.advance,
+                              user=request.user, idempotency_key=idempotency_key)
+    return JsonResponse({"version": VERSION, "receipt": receipt_json(receipt)}, status=201)
+
+
+def receipt_json(receipt):
+    return {
+        "number": receipt.number, "status": receipt.status, "currency": "IRR", "total": receipt.total, "advance": receipt.advance,
         "allocations": [{"invoice": a.invoice.number, "amount": a.amount} for a in receipt.allocations.select_related("invoice")],
-    }}, status=201)
+    }
 
 
 @api_view("accounting.view_financial_reports", "accounting.view_account")

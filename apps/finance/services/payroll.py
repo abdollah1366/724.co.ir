@@ -163,6 +163,7 @@ def calculate_run(run, user):
     return run
 
 
+@transaction.atomic
 def create_run(year, month, user):
     start, end = month_bounds(year, month)
     run = PayrollRun.objects.create(year=year, month=month, created_by=user, date=end)

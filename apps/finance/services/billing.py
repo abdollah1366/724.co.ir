@@ -58,8 +58,19 @@ def same_patient(a, b):
 
 
 # ---------------------------------------------------------------- صورتحساب
+def _check_lines(lines):
+    for line in lines:
+        if line.quantity <= 0:
+            raise DocumentError(f"تعداد «{line.description}» نامعتبر است.")
+        if line.discount > line.gross:
+            raise DocumentError(f"تخفیف «{line.description}» بیشتر از مبلغ آن است.")
+        if line.insurer_share > line.net:
+            raise DocumentError(f"سهم بیمه «{line.description}» بیشتر از مبلغ پس از تخفیف است.")
+
+
 def recalculate(invoice):
     lines = list(invoice.lines.all())
+    _check_lines(lines)
     totals = {
         "gross": sum(line.gross for line in lines),
         "discount": sum(line.discount for line in lines),
@@ -79,13 +90,6 @@ def validate_invoice(invoice):
         raise DocumentError("صورتحساب ردیف ندارد.")
     if not invoice.patient_id and not invoice.patient_user_id:
         raise DocumentError("بیمار صورتحساب مشخص نیست.")
-    for line in lines:
-        if line.quantity <= 0:
-            raise DocumentError(f"تعداد «{line.description}» نامعتبر است.")
-        if line.discount > line.gross:
-            raise DocumentError(f"تخفیف «{line.description}» بیشتر از مبلغ آن است.")
-        if line.insurer_share > line.net:
-            raise DocumentError(f"سهم بیمه «{line.description}» بیشتر از مبلغ پس از تخفیف است.")
     totals = recalculate(invoice)
     if totals["discount"] and not invoice.discount_reason.strip():
         raise DocumentError("علت تخفیف را وارد کنید.")

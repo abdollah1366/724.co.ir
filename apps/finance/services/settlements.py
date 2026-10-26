@@ -227,6 +227,7 @@ def calculate(settlement, user):
     return settlement
 
 
+@transaction.atomic
 def create_settlement(contract, year, month, user):
     start, end = month_bounds(year, month)
     settlement = ProviderSettlement.objects.create(contract=contract, year=year, month=month, period_start=start,
