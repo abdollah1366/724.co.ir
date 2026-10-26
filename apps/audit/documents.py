@@ -39,6 +39,19 @@ def next_number(prefix, date=None):
     return f"{key}-{seq.last_value:05d}"
 
 
+def publish_document_event(doc, action):
+    """رویداد «سند ثبت/برگشت شد» در صندوق خروجی، فقط اگر مصرف‌کننده‌ای برای آن ثبت شده باشد.
+
+    نوع رویداد: «<اپ>.<مدل>.<posted|reversed>»، مثل sales.salesinvoice.posted. payload فقط شناسه، شماره و تاریخ است؛
+    مصرف‌کننده (مثلاً مالی) جزئیات مالی را از سند حسابداری همان منبع می‌خواند.
+    """
+    from apps.core import events
+
+    event_type = f"{doc._meta.label_lower}.{action}"
+    payload = {"number": doc.number or "", "date": str(doc.date), "model": doc._meta.label_lower, "id": doc.pk}
+    events.publish(event_type, doc, payload)
+
+
 class DocStatus(models.TextChoices):
     DRAFT = "draft", "پیش‌نویس"
     POSTED = "posted", "ثبت نهایی"
@@ -130,6 +143,7 @@ class PostedDocument(models.Model):
             doc._save_status(["number", "status", "posted_by", "posted_at"])
             doc.perform_post(user)
             log.record(AuditLog.Action.POST, doc, message=f"ثبت نهایی {doc.number}", user=user)
+            publish_document_event(doc, "posted")
         self.refresh_from_db()
         return self
 
@@ -148,6 +162,7 @@ class PostedDocument(models.Model):
             doc._save_status(["status", "reversed_by", "reversed_at", "reverse_reason"])
             doc.perform_reverse(user)
             log.record(AuditLog.Action.REVERSE, doc, message=f"برگشت {doc.number}: {reason}", user=user)
+            publish_document_event(doc, "reversed")
         self.refresh_from_db()
         return self
 

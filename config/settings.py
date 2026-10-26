@@ -76,6 +76,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "apps.core.middleware.RealIPMiddleware",
+    "apps.core.middleware.RequestIDMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
@@ -304,3 +305,38 @@ EHR_TARIFF_SECTOR = os.environ.get("EHR_TARIFF_SECTOR", "private")
 CLINIC_NAME = os.environ.get("CLINIC_NAME", "درمانگاه ۷۲۴")
 EHR_REMINDER_DAYS_BEFORE = 1  # پیامک یادآوری ویزیت یک روز قبل
 EHR_REFILL_DAYS_BEFORE = 3  # یادآوری تمدید دارو سه روز پیش از تمام شدن
+
+# رویدادهای یکپارچگی بین ماژول‌ها (apps/core/events.py): پردازش فوری پس از commit و تلاش مجدد با cron
+# (python manage.py dispatch_events هر ۵ دقیقه).
+EVENTS_DISPATCH_INLINE = env_bool("EVENTS_DISPATCH_INLINE", True)
+EVENTS_MAX_ATTEMPTS = int(os.environ.get("EVENTS_MAX_ATTEMPTS", "8"))
+EVENTS_MAX_BACKOFF_MINUTES = 360
+
+# قابلیت‌ها (apps/core/flags.py). مقدار صفحه «تنظیمات ماژول‌ها» بر این مقدم است.
+# مثال در .env:  FEATURE_FLAGS_OFF=finance.payroll,finance.integration.lab
+FEATURE_FLAGS = {key: False for key in env_list("FEATURE_FLAGS_OFF")}
+FEATURE_FLAGS.update({key: True for key in env_list("FEATURE_FLAGS_ON")})
+
+# ماژول مالی (apps/finance). همه مبالغ ریال صحیح است؛ درصدها Decimal با گرد کردن نیم به بالا تا ریال.
+FINANCE_CURRENCY = "IRR"
+FINANCE_RULES = {
+    # بدون دوره مالی تعریف‌شده هم سند ثبت شود؟ (پس از تعریف دوره‌ها true کنید)
+    "require_open_period": env_bool("FINANCE_REQUIRE_OPEN_PERIOD", False),
+    # تأییدکننده استرداد، قرارداد، تسویه و حقوق باید غیر از ایجادکننده باشد
+    "four_eyes": env_bool("FINANCE_FOUR_EYES", True),
+    # استرداد از این مبلغ (ریال) به بالا تأیید جداگانه لازم دارد؛ 0 = همه استراردادها
+    "refund_approval_threshold": int(os.environ.get("FINANCE_REFUND_APPROVAL_THRESHOLD", "0")),
+    # صورتحساب ویزیت امضاشده خودکار ثبت نهایی شود (false = پیش‌نویس برای صندوق تا بیمه/تخفیف را وارد کند)
+    "auto_post_encounter_invoices": env_bool("FINANCE_AUTO_POST_ENCOUNTER_INVOICES", False),
+    # اگر ویزیت هیچ خدمت تعرفه‌دار نداشت، هزینه ویزیت پزشک (Doctor.visit_fee) صورتحساب شود
+    "bill_visit_fee_without_services": env_bool("FINANCE_BILL_VISIT_FEE", True),
+    "auto_post_session_invoices": env_bool("FINANCE_AUTO_POST_SESSION_INVOICES", False),
+}
+# مرکز درآمد پیش‌فرض اسناد هر ماژول (کلید: نوع منبع یا نام اپ)
+FINANCE_COST_CENTER_BY_SOURCE = {
+    "sales": "PHARM", "purchasing": "PHARM", "inventory": "PHARM", "lab": "LAB", "telemed": "TELE",
+}
+# حقوق و دستمزد: فقط پارامترهای محاسبه؛ نرخ بیمه و مالیات در جدول‌های پنل تعریف می‌شوند و در کد نیستند.
+PAYROLL_RULES = {
+    "days_per_month": int(os.environ.get("PAYROLL_DAYS_PER_MONTH", "30")),  # مخرج حقوق روزانه طبق رویه مجموعه
+}
