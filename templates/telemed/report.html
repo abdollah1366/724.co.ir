@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}گزارش مشاوره آنلاین | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <h1>گزارش مشاوره آنلاین</h1>
+  <p class="muted">از {{ start|jalali }} تا {{ end|jalali }} · فقط آمار؛ محتوای گفتگوها در این گزارش نیست.</p>
+  <form method="get" class="inline"><label>از <input type="date" name="from" value="{{ start|date:'Y-m-d' }}"></label> <label>تا <input type="date" name="to" value="{{ end|date:'Y-m-d' }}"></label> <button class="btn btn-small">نمایش</button></form>
+  <div class="grid stats">
+    <div class="card"><span class="muted">درآمد دریافت‌شده</span><div class="alert-count">{{ income|toman }}</div></div>
+    <div class="card"><span class="muted">منتظر استرداد</span><div class="alert-count">{{ refund_due.s|default:0|toman }}</div><span class="muted">{{ refund_due.n|fa_digits }} پرداخت</span></div>
+    <div class="card"><span class="muted">مسترد شده</span><div class="alert-count">{{ refunded|toman }}</div></div>
+  </div>
+  <h2>بر اساس نوع</h2>
+  <div class="table-wrap"><table class="table data">
+    <thead><tr><th>با</th><th>نوع</th><th class="num">کل</th><th class="num">پایان‌یافته</th><th class="num">بی‌پاسخ منقضی</th></tr></thead>
+    <tbody>{% for r in rows %}<tr><td>{{ r.channel_label }}</td><td>{{ r.kind_label }}</td><td class="num">{{ r.total|fa_digits }}</td><td class="num">{{ r.closed|fa_digits }}</td><td class="num">{{ r.expired|fa_digits }}</td></tr>{% empty %}<tr><td colspan="5" class="muted">موردی نیست.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <h2>بر اساس پزشک</h2>
+  <div class="table-wrap"><table class="table data">
+    <thead><tr><th>پزشک</th><th class="num">درخواست</th><th class="num">پاسخ داده</th></tr></thead>
+    <tbody>{% for r in by_doctor %}<tr><td>{{ r.doctor__first_name }} {{ r.doctor__last_name }}</td><td class="num">{{ r.total|fa_digits }}</td><td class="num">{{ r.answered|fa_digits }}</td></tr>{% empty %}<tr><td colspan="3" class="muted">موردی نیست.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

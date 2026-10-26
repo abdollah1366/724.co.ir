@@ -72,13 +72,14 @@ cd ~/724/app && ~/724/venv/bin/python manage.py createsuperuser
 
 ## ۴. کارهای زمان‌بندی‌شده (Cron Jobs)
 
-در cPanel > **Cron Jobs**، این سه کار را اضافه کنید. در هر کدام، زمان را در فیلدهای Minute/Hour بنویسید و دستور را در Command. به‌جای `med` نام کاربری هاست خودتان را بنویسید.
+در cPanel > **Cron Jobs**، این چهار کار را اضافه کنید. در هر کدام، زمان را در فیلدهای Minute/Hour بنویسید و دستور را در Command. به‌جای `med` نام کاربری هاست خودتان را بنویسید.
 
 | زمان | Minute | Hour | Command |
 |---|---|---|---|
 | ۲:۳۰ بامداد: پشتیبان | `30` | `2` | `BACKUP_KEEP_DAYS=14 bash /home/med/724/app/deploy/tasks.sh backup` |
 | ۰۰:۳۰: انقضای دارو، پاک کردن نشست‌ها | `30` | `0` | `bash /home/med/724/app/deploy/tasks.sh nightly` |
 | ۱۰ صبح: پیامک‌های یادآوری | `0` | `10` | `bash /home/med/724/app/deploy/tasks.sh reminders` |
+| هر ۱۰ دقیقه: مشاوره آنلاین (انقضا، یادآوری ویزیت) | `*/10` | `*` | `bash /home/med/724/app/deploy/tasks.sh telemed` |
 
 برای بقیه فیلدها (Day، Month، Weekday) علامت `*` بگذارید. ساعت‌ها به وقت سرور است؛ ساعت سرور در بالای صفحه Cron Jobs نمایش داده می‌شود. ایمیل خروجی را می‌توانید در همان صفحه تنظیم کنید تا از خطاها باخبر شوید.
 
@@ -90,6 +91,7 @@ cd ~/724/app && ~/724/venv/bin/python manage.py createsuperuser
 |---|---|
 | `SITE_PHONE`، `SITE_ADDRESS` | تلفن و نشانی در پایین صفحات |
 | `SMS_BACKEND`، `SMS_API_KEY`، `SMS_SENDER` | پیامک. تا `console` است، پیامک‌ها فقط در لاگ ثبت می‌شوند |
+| `PAYMENT_GATEWAY` | درگاه پرداخت مشاوره آنلاین. پیش‌فرض `none`: پرداخت اینترنتی خاموش و ثبت دستی در پنل ([TELEMED.md](TELEMED.md)) |
 | `LAB_NAME`، `LAB_LICENSE_NO`، `LAB_TECHNICAL_DIRECTOR`، ... | مشخصات آزمایشگاه روی برگه جواب |
 | `CLINIC_NAME` | نام درمانگاه در پیامک و مانیتور صف |
 | `DJANGO_HSTS_SECONDS` | ابتدا ۳۶۰۰. وقتی HTTPS چند روز درست کار کرد، آن را `31536000` کنید |

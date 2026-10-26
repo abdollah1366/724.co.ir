@@ -11,6 +11,7 @@
       <p class="muted">شماره نظام پزشکی: {{ doctor.medical_council_number|fa_digits }} · {{ doctor.department.title }}</p>
       {% if doctor.visit_fee %}<p>هزینه ویزیت: <strong>{{ doctor.visit_fee|toman }}</strong></p>{% endif %}
       {% if doctor.accepts_online_booking %}<a class="btn" href="{% url 'appointments:book' doctor.slug %}">دریافت نوبت اینترنتی</a>{% endif %}
+      {% if doctor.online.is_enabled and doctor.online.offered_kinds %}<a class="btn btn-outline" href="{% url 'telemed:doctor' doctor.slug %}">مشاوره و ویزیت آنلاین</a>{% endif %}
     </div>
   </div>
   {% if doctor.bio %}<h2>رزومه</h2><div class="prose">{{ doctor.bio|linebreaks }}</div>{% endif %}

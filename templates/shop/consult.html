@@ -4,6 +4,13 @@
 <section class="container section narrow">
   <h1>مشاوره رایگان با داروساز</h1>
   {% if product %}<p class="lead">درباره: <a href="{{ product.get_absolute_url }}">{{ product.name }}</a></p>{% endif %}
+  <div class="card">
+    <h2>گفتگوی آنلاین با داروساز</h2>
+    <p>پاسخ را در سایت می‌بینید، می‌توانید عکس جعبه دارو یا نسخه بفرستید و پرسش تکمیلی بپرسید.</p>
+    <a class="btn" href="{% url 'telemed:new_pharmacy' %}">شروع گفتگو با داروساز</a>
+    {% if not user.is_authenticated %}<p class="muted small">برای گفتگوی آنلاین باید وارد حساب شوید. بدون ورود هم می‌توانید از فرم زیر بپرسید تا داروساز با شما تماس بگیرد.</p>{% endif %}
+  </div>
+  <h2>یا ثبت سؤال برای تماس داروساز</h2>
   <div class="alert alert-info">در شرایط اورژانسی (مسمومیت، تنگی نفس، واکنش شدید حساسیتی) منتظر پاسخ نمانید و با ۱۱۵ تماس بگیرید.</div>
   <form method="post" class="form card" novalidate>
     {% csrf_token %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}مشاوره‌های من | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <h1>مشاوره‌های آنلاین من</h1>
+  {% include "telemed/_list.html" with items=consultations patient_view=True %}
+  <p><a class="btn btn-outline" href="{% url 'telemed:index' %}">مشاوره جدید</a></p>
+</section>
+{% endblock %}

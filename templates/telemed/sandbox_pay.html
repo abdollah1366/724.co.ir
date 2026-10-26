@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}درگاه آزمایشی | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>درگاه پرداخت آزمایشی</h1>
+  <div class="alert alert-warn">این درگاه فقط برای آزمون است و پولی جابه‌جا نمی‌شود.</div>
+  <p>مبلغ: <strong>{{ payment.amount|toman }}</strong> · مشاوره {{ payment.consultation.code|fa_digits }}</p>
+  <a class="btn" href="{{ callback }}?result=ok">پرداخت موفق</a>
+  <a class="btn btn-outline" href="{{ callback }}?result=fail">انصراف</a>
+</section>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}مشاوره آنلاین {{ doctor.full_name }} | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <div class="doctor-header">
+    <div class="avatar large">{% if doctor.photo %}<img src="{{ doctor.photo.url }}" alt="{{ doctor.full_name }}">{% else %}🩺{% endif %}</div>
+    <div>
+      <h1>مشاوره آنلاین با {{ doctor.full_name }}</h1>
+      <p class="lead">{{ doctor.specialty|default:"پزشک عمومی" }}</p>
+      <p class="muted">شماره نظام پزشکی: {{ doctor.medical_council_number|fa_digits }} · <a href="{{ doctor.get_absolute_url }}">رزومه و نوبت حضوری</a></p>
+      {% if profile.notes %}<p>{{ profile.notes }}</p>{% endif %}
+    </div>
+  </div>
+  {% include "telemed/_safety.html" %}
+
+  <div class="grid">
+    {% if profile.free_enabled %}
+    <article class="card">
+      <h2>پرسش متنی رایگان</h2>
+      <p>یک پرسش کوتاه و یک پرسش تکمیلی. پاسخ حداکثر تا {{ profile.response_hours|fa_digits }} ساعت.</p>
+      {% if free_left %}
+        <p class="muted small">ظرفیت باقی‌مانده امروز: {{ free_left|fa_digits }}</p>
+        <a class="btn" href="{% url 'telemed:new_doctor' doctor.slug 'free' %}">ارسال پرسش رایگان</a>
+      {% else %}<p class="alert alert-warn">ظرفیت امروز تکمیل است؛ فردا دوباره سر بزنید.</p>{% endif %}
+    </article>
+    {% endif %}
+    {% if profile.text_fee %}
+    <article class="card">
+      <h2>گفتگوی متنی</h2>
+      <p>گفتگوی کامل با امکان ارسال عکس و برگه آزمایش تا {{ 3|fa_digits }} روز. پاسخ حداکثر تا {{ profile.response_hours|fa_digits }} ساعت.</p>
+      <p>هزینه: <strong>{{ profile.text_fee|toman }}</strong></p>
+      <a class="btn" href="{% url 'telemed:new_doctor' doctor.slug 'text' %}">شروع گفتگو</a>
+    </article>
+    {% endif %}
+  </div>
+
+  {% if profile.call_fee or profile.video_fee %}
+    <h2>ویزیت تلفنی یا تصویری</h2>
+    <p>{% if profile.call_fee %}تلفنی: <strong>{{ profile.call_fee|toman }}</strong>{% endif %}
+       {% if profile.call_fee and profile.video_fee %} · {% endif %}
+       {% if profile.video_fee %}تصویری: <strong>{{ profile.video_fee|toman }}</strong>{% endif %}
+       · هر ویزیت {{ profile.slot_minutes|fa_digits }} دقیقه</p>
+    {% if dates %}
+      <div class="chips">
+        {% for day in dates %}<a class="chip{% if day == selected %} active{% endif %}" href="?date={{ day|date:'Y-m-d' }}">{{ day|jalali:"%A %d %B" }}</a>{% endfor %}
+      </div>
+      {% if slots %}
+        <form method="get" class="form card" id="live-form">
+          <fieldset class="slots">
+            <legend>ساعت‌های آزاد {{ selected|jalali }}</legend>
+            {% for t in slots %}
+              <label class="slot"><input type="radio" name="slot" value="{{ selected|date:'Y-m-d' }}T{{ t|time:'H:i' }}" required> {{ t|time:"H:i"|fa_digits }}</label>
+            {% endfor %}
+          </fieldset>
+          {% if profile.call_fee %}<button class="btn" formaction="{% url 'telemed:new_doctor' doctor.slug 'call' %}">ویزیت تلفنی در این ساعت</button>{% endif %}
+          {% if profile.video_fee %}<button class="btn btn-outline" formaction="{% url 'telemed:new_doctor' doctor.slug 'video' %}">ویزیت تصویری در این ساعت</button>{% endif %}
+        </form>
+      {% else %}<div class="alert alert-info">همه ساعت‌های این روز رزرو شده است. روز دیگری را انتخاب کنید.</div>{% endif %}
+    {% else %}<p class="muted">ساعت ویزیت آنلاین برای روزهای آینده ثبت نشده است.</p>{% endif %}
+  {% endif %}
+</section>
+{% endblock %}

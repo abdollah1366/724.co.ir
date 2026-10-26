@@ -324,3 +324,15 @@ svg.spark polyline { fill: none; stroke: var(--primary); stroke-width: 2.5; }
 .post-popular { margin-top: 24px; }
 .post-popular h2 { margin-top: 0; font-size: 1.1rem; }
 .blog-board .stat a { color: inherit; }
+
+/* مشاوره آنلاین */
+.badge-free { background: #dcfce7; color: #166534; }
+.chat { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 20px; }
+.msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); }
+.msg-patient { align-self: flex-start; background: var(--primary-soft); }
+.msg-provider { align-self: flex-end; }
+.msg-system { align-self: center; background: transparent; border-style: dashed; color: var(--muted); font-size: .9rem; }
+.msg-meta { font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+.msg-text { overflow-wrap: anywhere; }
+.msg-file { display: inline-block; margin-top: 6px; }
+.msg-file img { max-width: 220px; max-height: 220px; border-radius: 10px; display: block; }

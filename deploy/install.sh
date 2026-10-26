@@ -169,9 +169,9 @@ WORKERS=$(($(nproc) * 2 + 1))
 echo "WORKERS=$WORKERS" >/etc/724/web.env
 install -m 644 "$APP"/deploy/systemd/724-* /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable 724-web.service 724-backup.timer 724-nightly.timer 724-reminders.timer >/dev/null
+systemctl enable 724-web.service 724-backup.timer 724-nightly.timer 724-reminders.timer 724-telemed.timer >/dev/null
 systemctl restart 724-web.service
-systemctl start 724-backup.timer 724-nightly.timer 724-reminders.timer
+systemctl start 724-backup.timer 724-nightly.timer 724-reminders.timer 724-telemed.timer
 
 step "Nginx و HTTPS"
 if [ ! -f "$SELF_CERT" ]; then

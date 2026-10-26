@@ -1,0 +1,15 @@
+{% load persian %}
+{% if items %}
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>کد</th><th>{% if patient_view %}با{% else %}موضوع{% endif %}</th><th>نوع</th><th>زمان</th><th>وضعیت</th></tr></thead>
+  <tbody>{% for c in items %}
+    <tr>
+      <td><a href="{{ c.get_absolute_url }}">{{ c.code|fa_digits }}</a></td>
+      <td>{% if patient_view %}{{ c.provider_name }}{% else %}<a href="{{ c.get_absolute_url }}">{{ c.subject }}</a>{% if c.channel == 'doctor' and show_doctor %} <span class="muted">({{ c.doctor.full_name }})</span>{% endif %}{% endif %}</td>
+      <td>{{ c.get_kind_display }}{% if c.fee %} · {{ c.fee|toman }}{% endif %}</td>
+      <td>{% if c.scheduled_at %}{{ c.scheduled_at|jalali:"%d %B ساعت %H:%M" }}{% else %}{{ c.created_at|jalali:"%d %B %H:%M" }}{% endif %}</td>
+      <td><span class="badge status-{{ c.status }}">{{ c.get_status_display }}</span></td>
+    </tr>{% endfor %}
+  </tbody>
+</table></div>
+{% else %}<p class="muted">موردی نیست.</p>{% endif %}

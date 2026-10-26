@@ -19,8 +19,11 @@ case "${1:-}" in
         manage ehr_reminders
         manage lab_reminders
         ;;
+    telemed)
+        manage telemed_tick
+        ;;
     *)
-        echo "usage: $0 backup|nightly|reminders" >&2
+        echo "usage: $0 backup|nightly|reminders|telemed" >&2
         exit 2
         ;;
 esac
