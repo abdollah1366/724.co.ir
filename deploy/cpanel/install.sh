@@ -185,6 +185,12 @@ else
     Application Name: 724   Deployment Domain: $DOMAIN   Base Application URL: /
     Application Path: 724/app   Deployment Environment: Production"
 fi
+# سرور میزبان با نام python کار نمی‌کند (فقط python3 دارد). Passenger را به پایتون پروژه هدایت می‌کنیم.
+htaccess="$HOME/public_html/.htaccess"
+if ! grep -qs "PassengerPython $VENV/bin/python" "$htaccess" 2>/dev/null; then
+    mkdir -p "$HOME/public_html"
+    printf '\n# 724: Python app (Passenger)\nPassengerPython %s\n' "$VENV/bin/python" >>"$htaccess"
+fi
 touch "$APP/tmp/restart.txt"
 
 step "بررسی"
