@@ -1,0 +1,94 @@
+{% load static persian %}<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}پیشخوان کارکنان | {{ SITE_NAME }}{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  <link rel="stylesheet" href="{% static 'css/staff.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="staff">
+  {% staff_menu as menu %}
+  <a class="skip-link" href="#main">پرش به محتوا</a>
+  <input type="checkbox" id="sb-toggle" class="sb-toggle" aria-label="باز و بسته کردن منو">
+  <aside class="sb" aria-label="منوی پنل کارکنان">
+    <a class="sb-brand" href="{% url 'core:staff_home' %}">
+      <span class="brand-mark">۷۲۴</span>
+      <span><strong>پیشخوان کارکنان</strong><small>{{ SITE_TAGLINE }}</small></span>
+    </a>
+    <label class="sb-search">
+      <span aria-hidden="true">🔍</span>
+      <input type="search" placeholder="جست‌وجوی منو..." data-menu-filter aria-label="جست‌وجوی منو">
+    </label>
+    <nav class="sb-nav">
+      <a class="sb-home{% if request.resolver_match.view_name == 'core:staff_home' %} is-active{% endif %}" href="{% url 'core:staff_home' %}"><span class="sb-ico">🏠</span>صفحه اول پیشخوان</a>
+      {% if menu.quick %}
+      <details class="sb-group c-gold" open>
+        <summary><span class="sb-ico">⭐</span>دسترسی سریع</summary>
+        <div class="sb-links">
+          {% for item in menu.quick %}<a href="{{ item.url }}" class="c-{{ item.color }}{% if item.active %} is-active{% endif %}"><span class="sb-ico">{{ item.icon }}</span>{{ item.label }}</a>{% endfor %}
+        </div>
+      </details>
+      {% endif %}
+      {% for group in menu.groups %}
+      <details class="sb-group c-{{ group.color }}"{% if group.active %} open{% endif %}>
+        <summary><span class="sb-ico">{{ group.icon }}</span>{{ group.title }}<span class="sb-count">{{ group.links|length|fa_digits }}</span></summary>
+        <div class="sb-links">
+          {% for item in group.links %}<a href="{{ item.url }}"{% if item.active %} class="is-active" aria-current="page"{% endif %}><span class="sb-dot"></span>{{ item.label }}</a>{% endfor %}
+        </div>
+      </details>
+      {% endfor %}
+    </nav>
+    <div class="sb-foot">
+      <a href="{% url 'core:home' %}">🌐 مشاهده سایت</a>
+      {% if user.is_staff %}<a href="{% url 'admin:index' %}">🛠️ پنل مدیریت</a>{% endif %}
+    </div>
+  </aside>
+  <label for="sb-toggle" class="sb-backdrop" aria-hidden="true"></label>
+
+  <div class="sw">
+    <header class="tb">
+      <label for="sb-toggle" class="tb-menu" title="منو">☰</label>
+      <div class="tb-crumbs">
+        <a href="{% url 'core:staff_home' %}">پیشخوان</a>
+        {% if menu.current %}<span>›</span><span>{{ menu.current.group.title }}</span><span>›</span><strong>{{ menu.current.link.label }}</strong>{% endif %}
+      </div>
+      <div class="tb-end">
+        <span class="tb-date">📅 {{ menu.today|jalali }}</span>
+        <span class="tb-user"><span class="tb-avatar">{{ user|initial }}</span><span>{{ user.get_full_name|default:user.get_username }}</span></span>
+        <form method="post" action="{% url 'accounts:logout' %}" class="inline-form">{% csrf_token %}<button type="submit" class="tb-btn">خروج</button></form>
+      </div>
+    </header>
+    <main id="main" class="sw-main">
+      {% if messages %}
+        {% for message in messages %}<div class="alert alert-{{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  <script>
+  // فیلتر منو: هر پیوندی که متنش با عبارت جور نیست پنهان و گروه‌های جور باز می‌شوند
+  (function () {
+    var input = document.querySelector("[data-menu-filter]");
+    if (!input) return;
+    input.addEventListener("input", function () {
+      var q = input.value.trim();
+      document.querySelectorAll(".sb-group").forEach(function (group) {
+        var hits = 0;
+        group.querySelectorAll(".sb-links a").forEach(function (a) {
+          var show = !q || a.textContent.indexOf(q) !== -1;
+          a.hidden = !show;
+          if (show) hits++;
+        });
+        group.hidden = q && !hits;
+        if (q && hits) group.open = true;
+      });
+    });
+  })();
+  </script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

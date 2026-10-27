@@ -54,3 +54,49 @@ class RequestIDMiddleware:
             _request_id.reset(token)
         response["X-Request-ID"] = request_id
         return response
+
+
+class SiteStatsMiddleware:
+    """بازدید صفحه‌های عمومی را می‌شمارد (apps/core/stats.py) و برای کارکنان، باز کردن هر منوی پنل را
+    (apps/core/panels.py) تا «دسترسی سریع» پرکاربردترین منوهای هر نفر را نشان دهد."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self._menu_names = None
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        from . import stats
+
+        if stats.is_countable(request, response):
+            stats.record_visit(request, response)
+        else:
+            self._record_menu_use(request, response)
+        return response
+
+    def _record_menu_use(self, request, response):
+        user = getattr(request, "user", None)
+        match = getattr(request, "resolver_match", None)
+        if (request.method != "GET" or response.status_code != 200 or match is None
+                or user is None or not user.is_authenticated or not user.is_staff):
+            return
+        if self._menu_names is None:
+            from .panels import menu_names
+
+            self._menu_names = menu_names()
+        if match.view_name not in self._menu_names:
+            return
+        from django.db import DatabaseError, transaction
+        from django.db.models import F
+        from django.utils import timezone
+
+        from .models import MenuUsage
+
+        try:
+            with transaction.atomic():
+                now = timezone.now()
+                if not MenuUsage.objects.filter(user=user, url_name=match.view_name).update(
+                        count=F("count") + 1, last_used=now):
+                    MenuUsage.objects.create(user=user, url_name=match.view_name, count=1, last_used=now)
+        except DatabaseError:
+            pass

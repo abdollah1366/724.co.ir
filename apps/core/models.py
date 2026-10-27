@@ -115,3 +115,36 @@ class OutboxEvent(models.Model):
 
     def __str__(self):
         return f"{self.event_type} {self.source_type}#{self.source_id}"
+
+
+class DailyVisit(models.Model):
+    """شمار بازدید روزانه سایت؛ بی‌نام: نه IP ذخیره می‌شود نه هویت کاربر. apps/core/stats.py"""
+
+    date = models.DateField("روز", unique=True)
+    page_views = models.PositiveIntegerField("بازدید صفحه", default=0)
+    visitors = models.PositiveIntegerField("بازدیدکننده", default=0)
+
+    class Meta:
+        ordering = ["-date"]
+        verbose_name = "آمار بازدید روزانه"
+        verbose_name_plural = "آمار بازدید روزانه"
+
+    def __str__(self):
+        return f"{self.date}: {self.page_views}"
+
+
+class MenuUsage(models.Model):
+    """چند بار هر کارمند هر منوی پنل را باز کرده؛ برای «دسترسی سریع» به پرکاربردترین منوها."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="menu_usage")
+    url_name = models.CharField("منو", max_length=80)
+    count = models.PositiveIntegerField("دفعات", default=0)
+    last_used = models.DateTimeField("آخرین استفاده", default=timezone.now)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "url_name"], name="core_menuusage_user_url")]
+        verbose_name = "استفاده از منو"
+        verbose_name_plural = "استفاده از منوها"
+
+    def __str__(self):
+        return f"{self.user} · {self.url_name}: {self.count}"

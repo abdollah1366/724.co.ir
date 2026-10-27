@@ -73,11 +73,108 @@ PANELS = [
 ]
 
 
+# نماد و رنگ هر گروه در منوی کناری و کاشی‌های پیشخوان
+GROUP_STYLE = {
+    "داروخانه و تجهیزات": ("💊", "teal"),
+    "درمانگاه و پرونده سلامت": ("🩺", "blue"),
+    "مشاوره و ویزیت آنلاین": ("💬", "violet"),
+    "آزمایشگاه": ("🧪", "pink"),
+    "مالی و حسابداری": ("💰", "amber"),
+    "وبلاگ": ("📝", "green"),
+    "مدیریت مجموعه": ("⚙️", "slate"),
+}
+
+# نماد اختصاصی پیوندهایی که در «دسترسی سریع» زیاد دیده می‌شوند؛ بقیه نماد گروهشان را می‌گیرند.
+LINK_ICONS = {
+    "backoffice:dashboard": "📊",
+    "backoffice:pos": "🧾",
+    "backoffice:stock": "📦",
+    "backoffice:alerts": "⏰",
+    "ehr:search": "🔍",
+    "ehr:my_patients": "👨‍⚕️",
+    "ehr:queue_reception": "🎫",
+    "telemed:inbox": "💬",
+    "lab:staff_reception": "🧪",
+    "lab:staff_worklist": "🔬",
+    "lab:staff_dashboard": "🧫",
+    "finance:cashier": "💵",
+    "finance:dashboard": "📈",
+    "finance:invoices": "🧾",
+    "blog:manage": "📝",
+    "backoffice:staff": "👥",
+}
+
+# هفت منوی پرکاربرد پیش‌فرض برای «دسترسی سریع»، به ترتیب اهمیت کار روزانه مجموعه.
+# تا وقتی کارمند سابقه استفاده ندارد همین‌ها (هرکدام که اجازه‌اش را دارد) نشان داده می‌شوند؛
+# بعد منوهایی که خودش بیشتر باز می‌کند جلو می‌آیند (MenuUsage).
+QUICK_DEFAULTS = [
+    "backoffice:dashboard",
+    "backoffice:pos",
+    "ehr:queue_reception",
+    "ehr:search",
+    "lab:staff_reception",
+    "telemed:inbox",
+    "finance:cashier",
+]
+QUICK_COUNT = 7
+# صفحه اصلی سایت و نمایشگرهای تمام‌صفحه صف جای «دسترسی سریع» نیستند.
+QUICK_EXCLUDE = {"core:home", "ehr:queue_display", "lab:queue_display"}
+
+
+def _allowed(user, perms):
+    return user.is_superuser or not perms or any(user.has_perm(p) for p in perms)
+
+
 def panels_for(user):
     groups = []
     for title, links in PANELS:
-        allowed = [(label, reverse(name)) for label, name, perms in links
-                   if user.is_superuser or not perms or any(user.has_perm(p) for p in perms)]
+        allowed = [(label, reverse(name)) for label, name, perms in links if _allowed(user, perms)]
         if allowed:
             groups.append((title, allowed))
     return groups
+
+
+def menu_names():
+    """نام همه آدرس‌های منوی پنل؛ میان‌افزار فقط بازکردن همین‌ها را برای دسترسی سریع می‌شمارد."""
+    return {name for _, links in PANELS for _, name, _ in links} - QUICK_EXCLUDE
+
+
+def menu_for(user, path=""):
+    """منوی کناری پنل کارکنان: گروه‌ها با نماد و رنگ؛ پیوندی که صفحه جاری زیر آن است فعال می‌شود."""
+    groups = []
+    for title, links in PANELS:
+        icon, color = GROUP_STYLE.get(title, ("•", "slate"))
+        items = [{"label": label, "name": name, "url": reverse(name), "icon": LINK_ICONS.get(name, icon)}
+                 for label, name, perms in links if _allowed(user, perms)]
+        if items:
+            groups.append({"title": title, "icon": icon, "color": color, "links": items, "active": False})
+    # بلندترین پیشوند آدرس برنده است: /lab/staff/orders/12/ زیر «پذیرش‌ها» است، نه «داشبورد».
+    best = None
+    for group in groups:
+        for item in group["links"]:
+            url = item["url"]
+            if url != "/" and path.startswith(url) and (best is None or len(url) > len(best[1]["url"])):
+                best = (group, item)
+    if best:
+        best[0]["active"] = best[1]["active"] = True
+    return groups
+
+
+def quick_links(user, groups=None):
+    """هفت منوی پرکاربرد این کارمند: اول پراستفاده‌ترین‌های خودش، بعد پیش‌فرض‌ها، بعد بقیه مجازها."""
+    from .models import MenuUsage
+
+    groups = groups if groups is not None else menu_for(user)
+    allowed = {}
+    for group in groups:
+        for item in group["links"]:
+            allowed[item["name"]] = dict(item, color=group["color"], group=group["title"])
+    used = MenuUsage.objects.filter(user=user, url_name__in=allowed).order_by("-count", "-last_used")
+    order = [u.url_name for u in used] + QUICK_DEFAULTS + list(allowed)
+    picked = []
+    for name in order:
+        if name in allowed and name not in picked and name not in QUICK_EXCLUDE:
+            picked.append(name)
+        if len(picked) == QUICK_COUNT:
+            break
+    return [allowed[name] for name in picked]

@@ -1,18 +1,27 @@
 {% extends "admin/index.html" %}
 {% load persian %}
 {% block content %}
-{% staff_panels request.user as panels %}
-{% if panels %}
-<div class="module" id="work-panels">
-  <h2>پنل‌های کاری</h2>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;padding:12px">
-    {% for title, links in panels %}
-      <div>
-        <h3 style="margin:0 0 6px;font-size:14px">{{ title }}</h3>
-        <ul style="margin:0;padding-inline-start:18px">{% for label, url in links %}<li style="margin:4px 0"><a href="{{ url }}">{{ label }}</a></li>{% endfor %}</ul>
+{% staff_menu as menu %}
+{% if menu.groups %}
+<div class="adm-home">
+  {% if menu.quick %}
+  <h2 class="adm-title">⭐ دسترسی سریع</h2>
+  <div class="quick-grid">
+    {% for item in menu.quick %}
+      <a class="quick-tile c-{{ item.color }}" href="{{ item.url }}"><span class="qt-ico">{{ item.icon }}</span><span class="qt-label">{{ item.label }}</span><small>{{ item.group }}</small></a>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <h2 class="adm-title" id="work-panels">🗂️ پنل‌های کاری</h2>
+  <div class="panel-grid">
+    {% for group in menu.groups %}
+      <div class="panel-card c-{{ group.color }}">
+        <h3><span class="pc-ico">{{ group.icon }}</span>{{ group.title }}</h3>
+        <ul>{% for item in group.links %}<li><a href="{{ item.url }}">{{ item.label }}</a></li>{% endfor %}</ul>
       </div>
     {% endfor %}
   </div>
+  <h2 class="adm-title">🧩 مدل‌ها و تنظیمات</h2>
 </div>
 {% endif %}
 {{ block.super }}

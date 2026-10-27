@@ -30,7 +30,7 @@
         <a href="{% url 'club' %}">باشگاه مشتریان</a>
         <a href="{% url 'shop:cart' %}" class="nav-cart">سبد خرید{% if cart_count %} <span class="count">{{ cart_count|fa_digits }}</span>{% endif %}</a>
         {% if user.is_authenticated %}
-          {% if user.is_staff %}<a href="{% url 'backoffice:dashboard' %}">پیشخوان</a>{% endif %}
+          {% if user.is_staff %}<a href="{% url 'core:staff_home' %}">پیشخوان</a>{% endif %}
           <a href="{% url 'accounts:dashboard' %}" class="btn btn-small">حساب من</a>
           <form method="post" action="{% url 'accounts:logout' %}" class="inline-form">{% csrf_token %}<button type="submit" class="link-button">خروج</button></form>
         {% else %}
@@ -68,6 +68,8 @@
         <a href="{% url 'core:privacy' %}">حریم خصوصی</a>
         <a href="{% url 'core:contact' %}">تماس با ما</a>
       </div>
+      {% site_stats as footer_stats %}
+      <p class="footer-visits" aria-label="آمار بازدید">👁️ بازدید امروز: <strong>{{ footer_stats.today_views|fa_int }}</strong> · کل بازدیدها: <strong>{{ footer_stats.total_views|fa_int }}</strong></p>
       <p class="footer-note">اطلاعات این سایت جایگزین معاینه و مشاوره پزشک نیست. در شرایط اورژانسی با ۱۱۵ تماس بگیرید.</p>
     </div>
   </footer>

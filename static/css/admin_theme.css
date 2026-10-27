@@ -1,0 +1,94 @@
+/* پوسته پنل مدیریت جنگو: رنگ‌های ۷۲۴، فونت وزیرمتن، منوی کناری با تغییر رنگ هنگام hover. templates/admin/base_site.html */
+html[data-theme="light"], :root {
+  --primary: #14b8a6;
+  --secondary: #0f766e;
+  --accent: #fde68a;
+  --header-color: #e2e8f0;
+  --header-branding-color: #fff;
+  --header-bg: #0b1324;
+  --breadcrumbs-bg: #0f766e;
+  --breadcrumbs-fg: #ccfbf1;
+  --link-fg: #0f766e;
+  --link-hover-color: #1d4ed8;
+  --link-selected-fg: #0f766e;
+  --button-bg: #0f766e;
+  --button-hover-bg: #115e59;
+  --default-button-bg: #1d4ed8;
+  --default-button-hover-bg: #1e40af;
+  --selected-row: #f0fdfa;
+  --text: var(--body-fg);
+  --muted: var(--body-quiet-color);
+  --border: var(--hairline-color);
+  --shadow: 0 4px 20px rgba(15, 23, 42, .06);
+  --font-family-primary: Vazirmatn, Tahoma, "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --header-bg: #020617; --breadcrumbs-bg: #134e4a; --link-fg: #5eead4; --link-hover-color: #93c5fd; --selected-row: #12313f; }
+}
+html[data-theme="dark"] { --header-bg: #020617; --breadcrumbs-bg: #134e4a; --link-fg: #5eead4; --link-hover-color: #93c5fd; --selected-row: #12313f; }
+
+body { font-family: var(--font-family-primary); }
+#header { background: linear-gradient(90deg, var(--header-bg) 0%, #10223a 60%, #0f3b4a 100%); padding: 12px 32px; box-shadow: 0 4px 20px rgba(2, 6, 23, .25); }
+#site-name a { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; }
+.adm-mark { background: linear-gradient(135deg, #14b8a6, #3b82f6); color: #fff; border-radius: 10px; padding: 0 10px; font-weight: 800; }
+#user-tools a { border-bottom: 0; padding: 2px 8px; border-radius: 8px; transition: background .2s, color .2s; }
+#user-tools a:hover, #user-tools a:focus { background: #14b8a6; color: #fff; text-decoration: none; }
+#logout-form button { border-radius: 8px; padding: 2px 8px; transition: background .2s; }
+#logout-form button:hover { background: #dc2626; color: #fff; text-decoration: none; }
+.adm-staff-link { font-weight: 700; color: #fde68a !important; }
+div.breadcrumbs { background: linear-gradient(90deg, #0f766e, #1d4ed8); padding: 10px 32px; }
+
+/* منوی کناری مدل‌ها */
+#nav-sidebar { background: var(--darkened-bg); }
+#nav-sidebar .module caption, #content-related .module h2 { border-radius: 10px 10px 0 0; }
+#nav-sidebar .module th a, #nav-sidebar .module td a { transition: color .15s; }
+#nav-sidebar .module tr { transition: background .15s; }
+#nav-sidebar .module tr:hover { background: #14b8a6; }
+#nav-sidebar .module tr:hover th a, #nav-sidebar .module tr:hover td a { color: #fff; }
+#nav-sidebar .current-model { background: linear-gradient(90deg, #ccfbf1, #dbeafe); }
+#nav-sidebar .current-model a { color: #0f766e; font-weight: 700; }
+html[data-theme="dark"] #nav-sidebar .current-model { background: #12313f; }
+#nav-filter { border-radius: 10px; padding: 6px 10px; }
+.toggle-nav-sidebar:hover { background: #14b8a6; color: #fff; }
+
+/* سرگروه‌ها با رنگ‌های چرخان */
+.module h2, .module caption, .inline-group h2 { background: linear-gradient(90deg, #0f766e, #14b8a6); font-weight: 700; letter-spacing: 0; }
+.app-list .module:nth-of-type(6n+2) caption, #nav-sidebar .module:nth-of-type(6n+2) caption { background: linear-gradient(90deg, #1d4ed8, #3b82f6); }
+.app-list .module:nth-of-type(6n+3) caption, #nav-sidebar .module:nth-of-type(6n+3) caption { background: linear-gradient(90deg, #6d28d9, #8b5cf6); }
+.app-list .module:nth-of-type(6n+4) caption, #nav-sidebar .module:nth-of-type(6n+4) caption { background: linear-gradient(90deg, #be185d, #ec4899); }
+.app-list .module:nth-of-type(6n+5) caption, #nav-sidebar .module:nth-of-type(6n+5) caption { background: linear-gradient(90deg, #b45309, #f59e0b); }
+.app-list .module:nth-of-type(6n+6) caption, #nav-sidebar .module:nth-of-type(6n+6) caption { background: linear-gradient(90deg, #15803d, #22c55e); }
+.module caption a, .module h2 a { color: #fff; }
+.module { border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+.dashboard .module table th a, .app-list th a { font-weight: 600; }
+.dashboard .module tr:hover, .app-list tr:hover { background: var(--selected-row); }
+
+/* فهرست و فرم‌ها */
+#changelist table thead th { background: var(--darkened-bg); }
+#result_list tbody tr { transition: background .15s; }
+#result_list tbody tr:hover { background: var(--selected-row); }
+.button, input[type=submit], input[type=button], .submit-row input, a.button { border-radius: 10px; transition: background .2s, transform .15s; }
+.button:hover, input[type=submit]:hover, a.button:hover { transform: translateY(-1px); }
+.object-tools a { border-radius: 999px; background: #1d4ed8; transition: background .2s; }
+.object-tools a:hover { background: #14b8a6; }
+#changelist-filter { border-radius: 12px; overflow: hidden; }
+#changelist-filter li.selected a { color: #0f766e; }
+#changelist-filter a:hover { color: #1d4ed8; }
+input[type=text], input[type=password], input[type=email], input[type=url], input[type=number], input[type=tel],
+textarea, select, .vTextField { border-radius: 8px; }
+input:focus, textarea:focus, select:focus { border-color: #14b8a6; outline: 2px solid rgba(20, 184, 166, .25); }
+.messagelist li { border-radius: 10px; margin-bottom: 6px; }
+
+/* صفحه اول: دسترسی سریع و پنل‌های کاری (کلاس‌ها از staff.css) */
+.adm-home { margin-bottom: 24px; }
+.adm-home h2.adm-title { background: none; color: var(--body-fg); padding: 0; font-size: 1.05rem; margin: 18px 0 10px; text-transform: none; }
+#content .quick-tile, #content .panel-card { background: var(--body-bg); color: var(--body-fg); border-color: var(--hairline-color); }
+#content .quick-tile:hover { background: linear-gradient(135deg, var(--c), var(--c-dark)); color: #fff; }
+#content .panel-card h3 { color: var(--body-fg); }
+#content .panel-card li a { color: var(--body-fg); }
+#content .panel-card li a:hover { color: var(--c-dark); }
+#content .quick-tile small { color: var(--body-quiet-color); }
+#content .quick-tile:hover small { color: rgba(255, 255, 255, .85); }
+#content .panel-card ul li { list-style: none; }
+.dashboard #content { width: auto; max-width: 1200px; }
+#changelist .changelist-form-container { min-width: 0; }

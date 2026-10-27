@@ -1,0 +1,65 @@
+{% extends "staff/base.html" %}
+{% load persian %}
+{% block title %}پیشخوان کارکنان | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="st-welcome">
+  <div>
+    <p class="st-kicker">{{ menu.today|jalali }}</p>
+    <h1>سلام {{ user.get_full_name|default:user.get_username }}، روز خوبی داشته باشید 👋</h1>
+    <p>هفت منویی که بیشتر از همه به کارتان می‌آید اینجاست. منوهای دیگر را از فهرست کنار صفحه باز کنید.</p>
+  </div>
+</section>
+
+{% if menu.quick %}
+<section aria-labelledby="quick-title">
+  <h2 id="quick-title" class="st-title">⭐ دسترسی سریع</h2>
+  <div class="quick-grid">
+    {% for item in menu.quick %}
+      <a class="quick-tile c-{{ item.color }}" href="{{ item.url }}">
+        <span class="qt-ico">{{ item.icon }}</span>
+        <span class="qt-label">{{ item.label }}</span>
+        <small>{{ item.group }}</small>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section aria-labelledby="visits-title">
+  <h2 id="visits-title" class="st-title">📈 آمار بازدید سایت</h2>
+  <div class="kpi-grid">
+    <div class="kpi c-teal"><span class="kpi-ico">👁️</span><span class="kpi-label">بازدید امروز</span><strong>{{ visits.today_views|fa_int }}</strong></div>
+    <div class="kpi c-blue"><span class="kpi-ico">🙋</span><span class="kpi-label">بازدیدکننده امروز</span><strong>{{ visits.today_visitors|fa_int }}</strong></div>
+    <div class="kpi c-violet"><span class="kpi-ico">📊</span><span class="kpi-label">کل بازدیدها</span><strong>{{ visits.total_views|fa_int }}</strong></div>
+    <div class="kpi c-pink"><span class="kpi-ico">👥</span><span class="kpi-label">کل بازدیدکنندگان</span><strong>{{ visits.total_visitors|fa_int }}</strong></div>
+    {% if today_appointments is not None %}<a class="kpi c-amber" href="{% url 'admin:appointments_appointment_changelist' %}"><span class="kpi-ico">📅</span><span class="kpi-label">نوبت‌های امروز</span><strong>{{ today_appointments|fa_int }}</strong></a>{% endif %}
+    {% if unread_messages is not None %}<a class="kpi c-green" href="{% url 'admin:core_contactmessage_changelist' %}?is_read__exact=0"><span class="kpi-ico">✉️</span><span class="kpi-label">پیام‌های خوانده‌نشده</span><strong>{{ unread_messages|fa_int }}</strong></a>{% endif %}
+  </div>
+  <div class="card chart-card">
+    <div class="section-head"><h3>بازدید ۱۴ روز اخیر</h3><span class="muted small">بازدید کارکنان و ربات‌ها شمرده نمی‌شود</span></div>
+    <div class="bars" role="img" aria-label="نمودار بازدید روزانه">
+      {% for day in series %}
+        <div class="bar" title="{{ day.date|jalali:'%d %B' }}: {{ day.views|fa_int }} بازدید، {{ day.visitors|fa_int }} بازدیدکننده">
+          <span class="bar-value">{{ day.views|fa_int }}</span>
+          <span class="bar-fill" style="height: {{ day.percent }}%"></span>
+          <span class="bar-day">{{ day.date|jalali:'%d' }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="panels-title">
+  <h2 id="panels-title" class="st-title">🗂️ همه پنل‌ها</h2>
+  <div class="panel-grid">
+    {% for group in menu.groups %}
+      <div class="panel-card c-{{ group.color }}">
+        <h3><span class="pc-ico">{{ group.icon }}</span>{{ group.title }}</h3>
+        <ul>{% for item in group.links %}<li><a href="{{ item.url }}">{{ item.label }}</a></li>{% endfor %}</ul>
+      </div>
+    {% empty %}
+      <p class="muted">هنوز نقشی به شما داده نشده است. از مدیر مجموعه بخواهید دسترسی لازم را بدهد.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
