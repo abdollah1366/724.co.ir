@@ -22,8 +22,17 @@ case "${1:-}" in
     telemed)
         manage telemed_tick
         ;;
+    events)
+        # تلاش مجدد رویدادهای بین‌ماژولی ناموفق یا معوق (outbox)؛ پردازش عادی بلافاصله پس از ثبت انجام می‌شود.
+        manage dispatch_events
+        ;;
+    finance)
+        # تمدید/انقضای قراردادها و کنترل مغایرت مالی؛ در صورت مغایرت با کد خطا خارج می‌شود تا ایمیل Cron برسد.
+        manage finance_tick
+        manage finance_reconcile
+        ;;
     *)
-        echo "usage: $0 backup|nightly|reminders|telemed" >&2
+        echo "usage: $0 backup|nightly|reminders|telemed|events|finance" >&2
         exit 2
         ;;
 esac

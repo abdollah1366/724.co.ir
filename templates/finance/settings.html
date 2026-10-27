@@ -1,0 +1,14 @@
+{% extends "finance/base.html" %}
+{% block fin_title %}تنظیمات ماژول‌ها{% endblock %}
+{% block fin_content %}
+<h1>تنظیمات ماژول‌ها و اتصال‌ها</h1>
+<p class="muted">خاموش کردن هیچ داده‌ای را حذف نمی‌کند. رویدادهای اتصال خاموش در صف می‌مانند و با روشن کردن دوباره، یک بار و بدون تکرار پردازش می‌شوند. این تنظیمات جایگزین مجوزهای کاربران نیست.</p>
+<div class="table-wrap"><table class="table data"><tr><th>قابلیت</th><th>وضعیت مؤثر</th><th>وابسته‌ها</th><th>رویداد معوق</th><th>تغییر</th></tr>
+{% for r in rows %}<tr><td style="padding-right:{{ r.depth }}em"><strong>{{ r.label }}</strong> <code>{{ r.key }}</code><br><span class="muted small">{{ r.description }}</span></td>
+<td>{% if r.effective %}روشن{% else %}خاموش{% if r.blocked_by %} (به‌خاطر {{ r.blocked_by|join:"، " }}){% endif %}{% endif %}</td>
+<td class="small">{{ r.dependents|join:"، "|default:"—" }}</td><td>{{ r.pending }}</td>
+<td>{% if r.critical %}<span class="muted small">هسته؛ خاموش نمی‌شود</span>{% else %}
+<form method="post">{% csrf_token %}<input type="hidden" name="key" value="{{ r.key }}"><input type="hidden" name="enabled" value="{% if r.own %}0{% else %}1{% endif %}">
+<input name="note" required placeholder="علت تغییر" maxlength="300"> <button class="btn btn-small">{% if r.own %}خاموش کن{% else %}روشن کن{% endif %}</button></form>{% endif %}</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

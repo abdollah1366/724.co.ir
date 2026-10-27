@@ -4,8 +4,10 @@ from collections import namedtuple
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils import timezone
 
 from apps.clinic.models import ProviderType
+from apps.core import events
 
 from .clinical import sparkline
 from .models import Assessment, Discipline, Referral, TherapySession, TreatmentPlan
@@ -77,8 +79,21 @@ def sign_session(session, user):
         raise ValidationError("این جلسه قبلاً امضا شده است.")
     if session.attendance == TherapySession.Attendance.ATTENDED and not (session.intervention or session.response):
         raise ValidationError("برای جلسه انجام‌شده، اقدامات درمانی یا پاسخ بیمار را بنویسید.")
-    session.sign()
+    with transaction.atomic():
+        session.sign()
+        publish_session_signed(session)
     return session
+
+
+def publish_session_signed(session):
+    """رویداد «جلسه درمان انجام و امضا شد» برای صورتحساب؛ بدون رشته درمان، یادداشت یا پاسخ بیمار."""
+    plan = session.plan
+    events.publish("ehr.therapysession.signed", session, {
+        "session_id": session.pk, "patient_id": plan.patient_id, "patient_name": plan.patient.full_name,
+        "provider_id": plan.therapist_id, "provider_name": str(plan.therapist), "attendance": session.attendance,
+        "date": str(timezone.localdate(session.held_at)), "code": session.service_code.code if session.service_code_id else "",
+        "title": session.service_code.title[:150] if session.service_code_id else "", "unit_tariff": session.unit_tariff,
+    })
 
 
 def close_plan(plan, user, status, summary):

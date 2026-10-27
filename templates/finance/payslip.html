@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}فیش حقوق | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+<h1>فیش حقوق {{ line.run.year|fa_digits }}/{{ line.run.month|fa_digits }}</h1>
+<p>{{ line.profile.party.name }} — شماره پرسنلی {{ line.profile.personnel_no|fa_digits }} — {{ line.profile.job_title }}{% if line.run.status != "posted" %} — <strong>{{ line.run.get_status_display }}</strong>{% endif %}</p>
+<p>کارکرد {{ line.work_days|fa_digits }} روز، غیبت {{ line.absence_days|fa_digits }}، مرخصی {{ line.leave_days|fa_digits }}، اضافه‌کاری {{ line.overtime_hours }} ساعت</p>
+<table class="table data"><tr><th>قلم</th><th>جزئیات</th><th class="num">مبلغ</th></tr>
+{% for i in items %}<tr><td>{{ i.item_type.name }} <span class="muted small">{{ i.item_type.get_kind_display }}</span></td><td class="small">{{ i.detail }}</td><td class="num">{{ i.amount|rial }}</td></tr>{% endfor %}</table>
+<p>ناخالص {{ line.gross|rial }} — کسور {{ line.deductions|rial }} — <strong>خالص پرداختی {{ line.net|rial }}</strong></p>
+</section>
+{% endblock %}

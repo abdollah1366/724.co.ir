@@ -1,0 +1,17 @@
+{% extends "admin/erp/document_change_form.html" %}
+{% block object-tools-items %}
+  {% if original and not original.number and original.status %}
+    <li><span style="padding:0 8px">وضعیت: <strong>{{ original.get_status_display }}</strong></span></li>
+  {% endif %}
+  {% for button in action_buttons %}
+    <li><a href="#" onclick="document.getElementById('action-{{ button.name }}').submit();return false;">{{ button.label }}</a></li>
+  {% endfor %}
+  {{ block.super }}
+{% endblock %}
+{% block content %}
+  {% for button in action_buttons %}
+    <form id="action-{{ button.name }}" method="post" action="{{ button.url }}" style="display:none">{% csrf_token %}</form>
+  {% endfor %}
+  {% if action_help %}<p class="help" style="margin:8px 0">{{ action_help }}</p>{% endif %}
+  {{ block.super }}
+{% endblock %}

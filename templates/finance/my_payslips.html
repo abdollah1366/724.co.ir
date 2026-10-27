@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}فیش حقوق من | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section"><h1>فیش‌های حقوق من</h1>
+<ul>{% for l in lines %}<li><a href="{% url 'finance:payslip' l.pk %}">{{ l.run.year|fa_digits }}/{{ l.run.month|fa_digits }}</a> — خالص {{ l.net|rial }}</li>{% empty %}<li class="muted">فیشی ثبت نشده است.</li>{% endfor %}</ul></section>
+{% endblock %}

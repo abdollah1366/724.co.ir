@@ -1,0 +1,18 @@
+{% extends "finance/base.html" %}
+{% load persian %}
+{% block fin_title %}دفتر حساب{% endblock %}
+{% block fin_content %}
+<h1>دفتر حساب (دفتر کل)</h1>
+<form method="get" class="filters">
+<select name="account">{% for a in accounts %}<option value="{{ a.code }}"{% if a == account %} selected{% endif %}>{{ a }}</option>{% endfor %}</select>
+<select name="center"><option value="">همه مراکز</option>{% for c in centers %}<option value="{{ c.code }}"{% if c == center %} selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+<input type="date" name="start" value="{{ start|date:'Y-m-d' }}"> <input type="date" name="end" value="{{ end|date:'Y-m-d' }}">
+<button class="btn btn-small">نمایش</button></form>
+{% if report %}
+<p>مانده ابتدای دوره: {{ report.opening|rial }}</p>
+<div class="table-wrap"><table class="table data"><tr><th>تاریخ</th><th>سند</th><th>شرح</th><th>طرف حساب</th><th>مرکز</th><th class="num">بدهکار</th><th class="num">بستانکار</th><th class="num">مانده</th></tr>
+{% for r in report.rows %}<tr><td>{{ r.line.entry.date|jalali:"%Y/%m/%d" }}</td><td>{{ r.line.entry.number }}</td><td>{{ r.line.description }}</td><td>{{ r.line.party|default:"" }}</td><td>{{ r.line.cost_center.code|default:"" }}</td><td class="num">{{ r.line.debit|rial }}</td><td class="num">{{ r.line.credit|rial }}</td><td class="num">{{ r.running|rial }}</td></tr>
+{% empty %}<tr><td colspan="8" class="muted">گردشی نیست.</td></tr>{% endfor %}</table></div>
+<p>مانده پایان دوره: <strong>{{ report.closing|rial }}</strong></p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "finance/base.html" %}
+{% load persian %}
+{% block fin_title %}صورتحساب {{ invoice.number }}{% endblock %}
+{% block fin_content %}
+<h1>صورتحساب {{ invoice.number|default:"پیش‌نویس" }}</h1>
+<p>{{ invoice.get_module_display }} — {{ invoice.date|jalali }} — بیمار: {{ invoice.patient_name }}{% if invoice.provider_name %} — پزشک: {{ invoice.provider_name }}{% endif %}</p>
+<p class="muted small">منبع: {{ invoice.source_type|default:"صدور دستی" }} {{ invoice.source_ref }}{% if event %} — رویداد {{ event.event_type }} ({{ event.event_id }}){% endif %}</p>
+<div class="table-wrap"><table class="table data">
+<tr><th>کد</th><th>شرح</th><th class="num">تعداد</th><th class="num">مبلغ واحد</th><th class="num">تخفیف</th><th class="num">سهم بیمه</th><th class="num">سهم بیمار</th></tr>
+{% for l in lines %}<tr><td>{{ l.service_code }}</td><td>{{ l.description }}</td><td class="num">{{ l.quantity|fa_digits }}</td><td class="num">{{ l.unit_price|rial }}</td><td class="num">{{ l.discount|rial }}</td><td class="num">{{ l.insurer_share|rial }}</td><td class="num">{{ l.patient_share|rial }}</td></tr>{% endfor %}
+<tfoot><tr><td colspan="3">جمع</td><td class="num">{{ invoice.gross|rial }}</td><td class="num">{{ invoice.discount|rial }}</td><td class="num">{{ invoice.insurer_share|rial }}</td><td class="num">{{ invoice.patient_share|rial }}</td></tr></tfoot>
+</table></div>
+<p>وصول‌شده: {{ invoice.paid_amount|rial }} — مانده: {{ invoice.balance_due|rial }} — {{ invoice.payment_status }}{% if invoice.discount_reason %} — علت تخفیف: {{ invoice.discount_reason }}{% endif %}</p>
+<h3>دریافت‌ها و استردادها</h3>
+<ul>{% for a in allocations %}<li>{{ a.receipt.number|default:"پیش‌نویس" }} — {{ a.amount|rial }} ({{ a.receipt.get_status_display }})</li>{% endfor %}
+{% for r in refunds %}<li>استرداد {{ r.number|default:"پیش‌نویس" }} — {{ r.amount|rial }} ({{ r.get_status_display }})</li>{% endfor %}</ul>
+<h3>اسناد حسابداری</h3>
+{% for e in entries %}<p><strong>{{ e.number }}</strong> {{ e.date|jalali:"%Y/%m/%d" }} — {{ e.description }}</p>
+<table class="table data">{% for l in e.lines.all %}<tr><td>{{ l.account }}</td><td class="num">{{ l.debit|rial }}</td><td class="num">{{ l.credit|rial }}</td></tr>{% endfor %}</table>
+{% empty %}<p class="muted">سندی ندارد (پیش‌نویس).</p>{% endfor %}
+{% endblock %}

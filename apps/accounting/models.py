@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from apps.audit.documents import ImmutableRecord, PostedDocument
+from apps.audit.documents import DocumentLine, ImmutableRecord, PostedDocument
 from apps.core.fields import unique_when
 from apps.core.validators import validate_mobile
 
@@ -13,6 +13,8 @@ class Party(models.Model):
         SUPPLIER = "supplier", "تأمین‌کننده"
         CUSTOMER = "customer", "مشتری"
         INSURER = "insurer", "سازمان بیمه‌گر"
+        PROVIDER = "provider", "پزشک / ارائه‌دهنده خدمت"
+        EMPLOYEE = "employee", "کارمند"
         OTHER = "other", "سایر"
 
     kind = models.CharField("نوع", max_length=10, choices=Kind.choices)
@@ -57,6 +59,8 @@ class Account(models.Model):
     name = models.CharField("نام حساب", max_length=150)
     type = models.CharField("ماهیت", max_length=10, choices=Type.choices)
     is_cash = models.BooleanField("حساب نقد و بانک", default=False)
+    bank_name = models.CharField("نام بانک / صندوق", max_length=80, blank=True)
+    account_no = models.CharField("شماره حساب / شبا", max_length=34, blank=True, help_text="برای حساب‌های بانکی")
     is_system = models.BooleanField("حساب سیستمی", default=False, editable=False)
     is_active = models.BooleanField("فعال", default=True)
 
@@ -67,6 +71,62 @@ class Account(models.Model):
 
     def __str__(self):
         return f"{self.code} {self.name}"
+
+
+class CostCenter(models.Model):
+    """مرکز هزینه / درآمد (بخش‌های مجموعه). آرتیکل‌ها برای گزارش سود و زیان به تفکیک بخش به آن برچسب می‌خورند."""
+
+    code = models.CharField("کد", max_length=12, unique=True)
+    name = models.CharField("نام", max_length=120)
+    is_active = models.BooleanField("فعال", default=True)
+
+    class Meta:
+        ordering = ["code"]
+        verbose_name = "مرکز هزینه / درآمد"
+        verbose_name_plural = "مراکز هزینه و درآمد"
+
+    def __str__(self):
+        return f"{self.code} {self.name}"
+
+
+class AccountingPeriod(models.Model):
+    """دوره مالی. ثبت سند با تاریخ داخل دوره بسته ممکن نیست؛ اصلاح فقط با سند در دوره باز."""
+
+    class Status(models.TextChoices):
+        OPEN = "open", "باز"
+        CLOSED = "closed", "بسته"
+
+    name = models.CharField("نام دوره", max_length=60, unique=True, help_text="مثلاً «سال مالی ۱۴۰۵» یا «مهر ۱۴۰۵»")
+    start_date = models.DateField("از تاریخ")
+    end_date = models.DateField("تا تاریخ")
+    is_year_end = models.BooleanField("پایان سال مالی", default=False, help_text="با بستن، سند بستن حساب‌های موقت صادر می‌شود")
+    status = models.CharField("وضعیت", max_length=6, choices=Status.choices, default=Status.OPEN, editable=False)
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="+", verbose_name="بستن توسط",
+        editable=False,
+    )
+    closed_at = models.DateTimeField("زمان بستن", null=True, blank=True, editable=False)
+    note = models.CharField("توضیح آخرین تغییر وضعیت", max_length=300, blank=True, editable=False)
+
+    class Meta:
+        ordering = ["-start_date"]
+        verbose_name = "دوره مالی"
+        verbose_name_plural = "دوره‌های مالی"
+        permissions = [("close_accountingperiod", "بستن و بازگشایی دوره مالی")]
+        constraints = [models.CheckConstraint(condition=models.Q(end_date__gte=models.F("start_date")), name="period_end_after_start")]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if self.start_date and self.end_date:
+            overlap = AccountingPeriod.objects.filter(start_date__lte=self.end_date, end_date__gte=self.start_date)
+            if overlap.exclude(pk=self.pk).exists():
+                raise ValidationError("این بازه با دوره دیگری هم‌پوشانی دارد.")
+        if self.pk and self.status == self.Status.CLOSED:
+            raise ValidationError("دوره بسته قابل ویرایش نیست.")
 
 
 class JournalEntry(ImmutableRecord):
@@ -105,6 +165,9 @@ class JournalLine(ImmutableRecord):
     entry = models.ForeignKey(JournalEntry, on_delete=models.PROTECT, related_name="lines", verbose_name="سند")
     account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name="lines", verbose_name="حساب")
     party = models.ForeignKey(Party, on_delete=models.PROTECT, null=True, blank=True, related_name="lines", verbose_name="طرف حساب")
+    cost_center = models.ForeignKey(
+        CostCenter, on_delete=models.PROTECT, null=True, blank=True, related_name="lines", verbose_name="مرکز هزینه / درآمد"
+    )
     debit = models.PositiveBigIntegerField("بدهکار", default=0)
     credit = models.PositiveBigIntegerField("بستانکار", default=0)
     description = models.CharField("شرح", max_length=200, blank=True)
@@ -208,3 +271,94 @@ class Expense(PostedDocument):
         from . import services
 
         services.reverse_entry_for(self, user)
+
+
+class ManualJournal(PostedDocument):
+    """سند دستی (اصلاحی، افتتاحیه، بستن یا سایر). پس از ثبت نهایی فقط با برگشت اصلاح می‌شود."""
+
+    NUMBER_PREFIX = "MJV"
+
+    class Kind(models.TextChoices):
+        GENERAL = "general", "عمومی / اصلاحی"
+        OPENING = "opening", "افتتاحیه"
+        CLOSING = "closing", "بستن حساب‌ها"
+
+    kind = models.CharField("نوع", max_length=8, choices=Kind.choices, default=Kind.GENERAL)
+    description = models.CharField("شرح سند", max_length=300)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+        verbose_name = "سند دستی"
+        verbose_name_plural = "اسناد دستی (اصلاحی و افتتاحیه)"
+        permissions = [("post_manualjournal", "ثبت نهایی سند دستی"), ("reverse_manualjournal", "برگشت سند دستی")]
+
+    def validate_for_post(self):
+        from . import services
+
+        services.validate_manual_journal(self)
+
+    def perform_post(self, user):
+        from . import services
+
+        services.post_manual_journal(self, user)
+
+    def perform_reverse(self, user):
+        from . import services
+
+        services.reverse_entry_for(self, user)
+
+
+class ManualJournalLine(DocumentLine):
+    document = models.ForeignKey(ManualJournal, on_delete=models.CASCADE, related_name="lines", verbose_name="سند")
+    account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name="+", verbose_name="حساب")
+    party = models.ForeignKey(Party, on_delete=models.PROTECT, null=True, blank=True, related_name="+", verbose_name="طرف حساب")
+    cost_center = models.ForeignKey(CostCenter, on_delete=models.PROTECT, null=True, blank=True, related_name="+",
+                                    verbose_name="مرکز هزینه / درآمد")
+    debit = models.PositiveBigIntegerField("بدهکار", default=0)
+    credit = models.PositiveBigIntegerField("بستانکار", default=0)
+    description = models.CharField("شرح", max_length=200, blank=True)
+
+    class Meta:
+        verbose_name = "ردیف سند دستی"
+        verbose_name_plural = "ردیف‌های سند دستی"
+
+
+class BankReconciliation(models.Model):
+    """مغایرت‌گیری حساب بانک/صندوق با صورت‌حساب بانک: آرتیکل‌های تطبیق‌شده علامت می‌خورند و اختلاف نمایش داده می‌شود."""
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "در حال تطبیق"
+        FINAL = "final", "نهایی"
+
+    account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name="+", verbose_name="حساب بانک / صندوق",
+                                limit_choices_to={"is_cash": True})
+    statement_date = models.DateField("تاریخ صورت‌حساب بانک")
+    statement_balance = models.BigIntegerField("مانده طبق صورت‌حساب بانک (ریال)")
+    status = models.CharField("وضعیت", max_length=5, choices=Status.choices, default=Status.DRAFT, editable=False)
+    note = models.CharField("توضیح اختلاف", max_length=300, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+                                   related_name="+", verbose_name="ایجادکننده", editable=False)
+    created_at = models.DateTimeField("زمان ایجاد", auto_now_add=True)
+    finalized_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+                                     related_name="+", verbose_name="نهایی‌کننده", editable=False)
+    finalized_at = models.DateTimeField("زمان نهایی شدن", null=True, blank=True, editable=False)
+
+    class Meta:
+        ordering = ["-statement_date", "-id"]
+        verbose_name = "مغایرت‌گیری بانک"
+        verbose_name_plural = "مغایرت‌گیری بانک و صندوق"
+
+    def __str__(self):
+        return f"{self.account} تا {self.statement_date}"
+
+
+class ReconciledLine(models.Model):
+    """آرتیکل بانکی که با ردیف صورت‌حساب بانک تطبیق داده شده. هر آرتیکل فقط یک بار تطبیق می‌خورد."""
+
+    reconciliation = models.ForeignKey(BankReconciliation, on_delete=models.CASCADE, related_name="items", verbose_name="مغایرت‌گیری")
+    line = models.OneToOneField(JournalLine, on_delete=models.PROTECT, related_name="reconciled", verbose_name="آرتیکل")
+    bank_reference = models.CharField("شماره پیگیری در صورت‌حساب بانک", max_length=60, blank=True)
+
+    class Meta:
+        verbose_name = "آرتیکل تطبیق‌شده"
+        verbose_name_plural = "آرتیکل‌های تطبیق‌شده"

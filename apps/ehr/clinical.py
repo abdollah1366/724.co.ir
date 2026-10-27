@@ -9,6 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.appointments.models import Appointment
+from apps.core import events
 
 from .models import ChronicProgram, Encounter, EncounterAddendum, Problem, VitalSigns
 
@@ -62,7 +63,23 @@ def sign(encounter, user):
         from .engagement import visit_reminder_from_encounter
 
         visit_reminder_from_encounter(encounter, user)
+        publish_encounter_signed(encounter)
     return encounter
+
+
+def publish_encounter_signed(encounter):
+    """رویداد «ویزیت انجام و امضا شد» برای صورتحساب. فقط کد و عنوان خدمت و تعرفه؛ شرح حال و تشخیص هرگز."""
+    provider = encounter.provider
+    services = [
+        {"line_ref": s.pk, "code": s.service_code.code, "title": s.service_code.title[:150], "quantity": s.quantity,
+         "unit_tariff": s.unit_tariff, "sector": s.sector}
+        for s in encounter.services.select_related("service_code").order_by("id")
+    ]
+    events.publish("ehr.encounter.signed", encounter, {
+        "encounter_id": encounter.pk, "patient_id": encounter.patient_id, "patient_name": encounter.patient.full_name,
+        "provider_id": provider.pk, "provider_name": str(provider), "appointment_id": encounter.appointment_id,
+        "date": str(timezone.localdate(encounter.signed_at)), "visit_fee": provider.visit_fee, "services": services,
+    })
 
 
 def add_addendum(encounter, user, text):

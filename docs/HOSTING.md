@@ -72,7 +72,7 @@ cd ~/724/app && ~/724/venv/bin/python manage.py createsuperuser
 
 ## ۴. کارهای زمان‌بندی‌شده (Cron Jobs)
 
-در cPanel > **Cron Jobs**، این چهار کار را اضافه کنید. در هر کدام، زمان را در فیلدهای Minute/Hour بنویسید و دستور را در Command. به‌جای `med` نام کاربری هاست خودتان را بنویسید.
+در cPanel > **Cron Jobs**، این شش کار را اضافه کنید. در هر کدام، زمان را در فیلدهای Minute/Hour بنویسید و دستور را در Command. به‌جای `med` نام کاربری هاست خودتان را بنویسید.
 
 | زمان | Minute | Hour | Command |
 |---|---|---|---|
@@ -80,6 +80,8 @@ cd ~/724/app && ~/724/venv/bin/python manage.py createsuperuser
 | ۰۰:۳۰: انقضای دارو، پاک کردن نشست‌ها | `30` | `0` | `bash /home/med/724/app/deploy/tasks.sh nightly` |
 | ۱۰ صبح: پیامک‌های یادآوری | `0` | `10` | `bash /home/med/724/app/deploy/tasks.sh reminders` |
 | هر ۱۰ دقیقه: مشاوره آنلاین (انقضا، یادآوری ویزیت) | `*/10` | `*` | `bash /home/med/724/app/deploy/tasks.sh telemed` |
+| هر ۵ دقیقه: تلاش مجدد رویدادهای بین‌ماژولی (مالی) | `*/5` | `*` | `bash /home/med/724/app/deploy/tasks.sh events` |
+| ۱:۱۵ بامداد: قراردادها و کنترل مغایرت مالی | `15` | `1` | `bash /home/med/724/app/deploy/tasks.sh finance` |
 
 برای بقیه فیلدها (Day، Month، Weekday) علامت `*` بگذارید. ساعت‌ها به وقت سرور است؛ ساعت سرور در بالای صفحه Cron Jobs نمایش داده می‌شود. ایمیل خروجی را می‌توانید در همان صفحه تنظیم کنید تا از خطاها باخبر شوید.
 

@@ -25,6 +25,7 @@ urlpatterns = [
     path("ehr/", include("apps.ehr.urls")),
     path("blog/", include("apps.blog.urls")),
     path("consult/", include("apps.telemed.urls")),
+    path("finance/", include("apps.finance.urls")),
     path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
     path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain")),
     path("", include("apps.shop.urls")),

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}سهم و تسویه من | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+<h1>سهم و تسویه‌حساب من</h1>
+{% for p in previews %}<div class="card"><h3>{{ p.contract.number }} — {{ p.contract.title }} ({{ p.contract.get_status_display }})</h3>
+<p>برآورد تسویه‌نشده تا امروز برای {{ year|fa_digits }}/{{ month|fa_digits }}: <strong>{{ p.total|rial }}</strong> <span class="muted small">(قطعی نیست؛ پس از تأیید مالی و مدیریتی قطعی می‌شود)</span></p>
+<table class="table data">{% for r in p.rows %}<tr><td>{{ r.description }}</td><td class="small muted">{{ r.detail.formula }}</td><td class="num">{{ r.amount|rial }}</td></tr>{% empty %}<tr><td class="muted">موردی نیست.</td></tr>{% endfor %}</table></div>
+{% empty %}<p class="muted">قرارداد فعالی برای شما ثبت نشده است.</p>{% endfor %}
+<h2>تسویه‌های قطعی</h2>
+<ul>{% for s in settlements %}<li><a href="{% url 'finance:my_settlement' s.pk %}">{{ s.number }}</a> — {{ s.year|fa_digits }}/{{ s.month|fa_digits }} — {{ s.total|rial }} ({{ s.get_status_display }})</li>{% empty %}<li class="muted">—</li>{% endfor %}</ul>
+</section>
+{% endblock %}

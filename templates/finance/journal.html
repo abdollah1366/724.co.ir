@@ -1,0 +1,11 @@
+{% extends "finance/base.html" %}
+{% load persian %}
+{% block fin_title %}دفتر روزنامه{% endblock %}
+{% block fin_content %}
+<h1>دفتر روزنامه</h1>
+{% include "finance/_period.html" %}
+{% for e in page %}<div class="card"><p><strong>{{ e.number }}</strong> — {{ e.date|jalali:"%Y/%m/%d" }} — {{ e.description }} <span class="muted small">{{ e.source_type }} {{ e.source_number }}{% if e.is_reversal %} (برگشتی){% endif %}</span></p>
+<table class="table data">{% for l in e.lines.all %}<tr><td>{{ l.account }}</td><td>{{ l.party|default:"" }}</td><td>{{ l.cost_center.code|default:"" }}</td><td class="num">{{ l.debit|rial }}</td><td class="num">{{ l.credit|rial }}</td></tr>{% endfor %}</table></div>
+{% empty %}<p class="muted">سندی در این بازه نیست.</p>{% endfor %}
+{% include "finance/_pager.html" %}
+{% endblock %}
