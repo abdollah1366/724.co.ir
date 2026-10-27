@@ -86,6 +86,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "apps.audit.context.AuditContextMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "apps.core.middleware.SiteStatsMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 

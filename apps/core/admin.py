@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ContactMessage, SmsMessage
+from .models import ContactMessage, DailyVisit, SmsMessage
 
 admin.site.site_header = "پنل مدیریت ۷۲۴"
 admin.site.site_title = "مدیریت ۷۲۴"
@@ -26,6 +26,18 @@ class SmsMessageAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         return [f.name for f in self.model._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(DailyVisit)
+class DailyVisitAdmin(admin.ModelAdmin):
+    list_display = ("date", "page_views", "visitors")
+    date_hierarchy = "date"
 
     def has_add_permission(self, request):
         return False

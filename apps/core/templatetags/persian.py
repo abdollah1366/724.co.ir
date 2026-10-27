@@ -59,3 +59,34 @@ def staff_panels(user):
     from apps.core.panels import panels_for
 
     return panels_for(user)
+
+
+@register.simple_tag(takes_context=True)
+def staff_menu(context):
+    """منوی کناری و دسترسی سریع پنل کارکنان برای کاربر و صفحه جاری؛ templates/staff/base.html"""
+    from apps.core.panels import menu_for, quick_links
+
+    request = context.get("request")
+    if request is None or not request.user.is_authenticated:
+        return {"groups": [], "quick": [], "current": None, "today": timezone.localdate()}
+    groups = menu_for(request.user, request.path)
+    current = next(({"group": g, "link": link} for g in groups if g["active"]
+                    for link in g["links"] if link.get("active")), None)
+    return {"groups": groups, "quick": quick_links(request.user, groups), "current": current,
+            "today": timezone.localdate()}
+
+
+@register.simple_tag
+def site_stats():
+    from apps.core.stats import site_stats as stats
+
+    return stats()
+
+
+@register.filter
+def initial(user):
+    name = (user.get_full_name() or user.get_username() or "?").strip()
+    return name[:1].upper()
+
+
+register.filter("fa_int", rial)  # شمار با جداکننده هزارگان و ارقام فارسی

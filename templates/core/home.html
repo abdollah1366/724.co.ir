@@ -18,6 +18,19 @@
   </div>
 </section>
 
+{% site_stats as stats %}
+<section class="container site-stats" aria-labelledby="stats-title">
+  <h2 id="stats-title" class="visually-hidden">۷۲۴ در یک نگاه</h2>
+  <div class="stats-strip">
+    <div class="sstat c-teal"><span class="sstat-ico">👁️</span><strong data-count="{{ stats.total_views }}">{{ stats.total_views|fa_int }}</strong><span>بازدید از سایت</span></div>
+    <div class="sstat c-blue"><span class="sstat-ico">🙋</span><strong data-count="{{ stats.today_views }}">{{ stats.today_views|fa_int }}</strong><span>بازدید امروز</span></div>
+    {% if stats.doctors %}<div class="sstat c-violet"><span class="sstat-ico">👨‍⚕️</span><strong data-count="{{ stats.doctors }}">{{ stats.doctors|fa_int }}</strong><span>پزشک</span></div>{% endif %}
+    {% if stats.lab_tests %}<div class="sstat c-pink"><span class="sstat-ico">🧪</span><strong data-count="{{ stats.lab_tests }}">{{ stats.lab_tests|fa_int }}</strong><span>نوع آزمایش</span></div>{% endif %}
+    {% if stats.products %}<div class="sstat c-amber"><span class="sstat-ico">💊</span><strong data-count="{{ stats.products }}">{{ stats.products|fa_int }}</strong><span>کالای داروخانه</span></div>{% endif %}
+    {% if stats.appointments %}<div class="sstat c-green"><span class="sstat-ico">📅</span><strong data-count="{{ stats.appointments }}">{{ stats.appointments|fa_int }}</strong><span>نوبت ثبت‌شده</span></div>{% endif %}
+  </div>
+</section>
+
 <section class="container section">
   <h2>خدمات ۷۲۴</h2>
   <div class="grid floors">
@@ -47,4 +60,26 @@
     <a class="btn" href="{% url 'accounts:signup' %}">عضویت رایگان</a>
   {% endif %}
 </section>
+<script>
+// شمارنده‌های آمار وقتی به چشم می‌آیند از صفر بالا می‌روند
+(function () {
+  var nums = document.querySelectorAll("[data-count]");
+  if (!nums.length || !("IntersectionObserver" in window) || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  var fa = function (n) { return n.toLocaleString("fa-IR"); };
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      io.unobserve(entry.target);
+      var el = entry.target, end = +el.dataset.count, start = performance.now();
+      if (!end) return;
+      (function tick(now) {
+        var t = Math.min((now - start) / 1200, 1);
+        el.textContent = fa(Math.round(end * (1 - Math.pow(1 - t, 3))));
+        if (t < 1) requestAnimationFrame(tick);
+      })(start);
+    });
+  });
+  nums.forEach(function (el) { io.observe(el); });
+})();
+</script>
 {% endblock %}
