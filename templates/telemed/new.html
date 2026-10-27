@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}{{ kind_label }} | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  <h1>{% if doctor %}{{ kind_label }} با {{ doctor.full_name }}{% else %}مشاوره دارویی رایگان با داروساز{% endif %}</h1>
+  <p class="lead">
+    {% if scheduled_at %}زمان: {{ scheduled_at|jalali:"%A %d %B %Y ساعت %H:%M" }} · {% endif %}
+    {% if fee %}هزینه: <strong>{{ fee|toman }}</strong>{% else %}رایگان{% endif %}
+  </p>
+  {% include "telemed/_safety.html" %}
+  {% if fee and not online_payment %}<div class="alert alert-warn">پرداخت اینترنتی هنوز فعال نشده است. پس از ثبت، برای پرداخت با پذیرش مجموعه تماس بگیرید{% if SITE_PHONE %} ({{ SITE_PHONE }}){% endif %}؛ درخواست پس از ثبت پرداخت برای پزشک فرستاده می‌شود.</div>{% endif %}
+  {% if kind == "call" %}<p class="muted">پزشک در زمان ویزیت با شماره موبایل حساب شما تماس می‌گیرد.</p>{% endif %}
+  {% if kind == "video" %}<p class="muted">پیوند تماس تصویری پیش از زمان ویزیت در صفحه مشاوره و با پیامک به شما اعلام می‌شود.</p>{% endif %}
+  <form method="post" enctype="multipart/form-data" class="form card" novalidate>
+    {% csrf_token %}
+    {% if slot %}<input type="hidden" name="slot" value="{{ slot }}">{% endif %}
+    {% include "includes/form.html" %}
+    <p class="muted small">فقط اطلاعاتی را بنویسید که برای پاسخ لازم است. گفتگو را فقط شما و {% if doctor %}همین پزشک{% else %}داروسازان مسئول فنی{% endif %} می‌بینید. <a href="{% url 'core:privacy' %}" target="_blank">حریم خصوصی</a></p>
+    <button class="btn" type="submit">{% if fee %}ثبت و ادامه برای پرداخت{% else %}ارسال پرسش{% endif %}</button>
+  </form>
+</section>
+{% endblock %}

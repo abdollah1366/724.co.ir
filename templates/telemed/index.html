@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}مشاوره و ویزیت آنلاین | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <h1>مشاوره و ویزیت آنلاین</h1>
+  <p class="lead">پرسش از پزشکان مجموعه بدون مراجعه حضوری: پرسش متنی رایگان، گفتگوی متنی، ویزیت تلفنی یا تصویری؛ و مشاوره دارویی رایگان با داروساز.</p>
+  {% include "telemed/_safety.html" %}
+
+  <div class="grid">
+    <article class="card">
+      <h2>💊 مشاوره دارویی رایگان</h2>
+      <p>نحوه مصرف، تداخل داروها، عوارض، داروی مناسب در بارداری و شیردهی و نگهداری دارو را از داروساز مسئول فنی بپرسید.</p>
+      <a class="btn" href="{% url 'telemed:new_pharmacy' %}">پرسش از داروساز</a>
+    </article>
+    {% if user.is_authenticated %}
+    <article class="card">
+      <h2>🗂 مشاوره‌های من</h2>
+      <p>پاسخ‌ها، پیگیری و پرداخت مشاوره‌هایی که ثبت کرده‌اید.</p>
+      <a class="btn btn-outline" href="{% url 'telemed:mine' %}">مشاهده</a>
+    </article>
+    {% endif %}
+  </div>
+
+  <h2>پزشکان دارای مشاوره آنلاین</h2>
+  <div class="grid">
+    {% for doctor in doctors %}
+      <article class="card doctor-card">
+        <div class="avatar">{% if doctor.photo %}<img src="{{ doctor.photo.url }}" alt="{{ doctor.full_name }}">{% else %}🩺{% endif %}</div>
+        <div>
+          <h3><a href="{% url 'telemed:doctor' doctor.slug %}">{{ doctor.full_name }}</a></h3>
+          <p class="muted">{{ doctor.specialty|default:"پزشک عمومی" }} · نظام پزشکی {{ doctor.medical_council_number|fa_digits }}</p>
+          <p>{% for kind in doctor.online.offered_kinds %}<span class="badge{% if kind == 'free' %} badge-free{% endif %}">{{ kind.label }}</span> {% endfor %}</p>
+          <a class="btn btn-small" href="{% url 'telemed:doctor' doctor.slug %}">درخواست مشاوره</a>
+        </div>
+      </article>
+    {% empty %}
+      <p class="muted">هنوز پزشکی مشاوره آنلاین را فعال نکرده است.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

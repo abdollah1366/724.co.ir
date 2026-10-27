@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}مشاوره {{ c.code|fa_digits }} | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section narrow">
+  {% if is_provider %}<p><a href="{% url 'telemed:inbox' %}">→ کارتابل مشاوره آنلاین</a></p>{% else %}<p><a href="{% url 'telemed:mine' %}">→ مشاوره‌های من</a></p>{% endif %}
+  <h1>{{ c.subject }}</h1>
+  <p class="lead">{{ c.get_kind_display }} با {{ c.provider_name }} · <span class="badge status-{{ c.status }}">{{ c.get_status_display }}</span></p>
+  <table class="table">
+    <tr><th>کد مشاوره</th><td>{{ c.code|fa_digits }}</td></tr>
+    <tr><th>برای</th><td>{{ c.get_for_whom_display }} · {{ c.get_sex_display }} · {{ c.age|fa_digits }} ساله</td></tr>
+    {% if c.scheduled_at %}<tr><th>زمان ویزیت</th><td><strong>{{ c.scheduled_at|jalali:"%A %d %B %Y ساعت %H:%M" }}</strong></td></tr>{% endif %}
+    {% if is_provider and c.kind == 'call' %}<tr><th>موبایل بیمار</th><td dir="ltr">{% if patient_mobile %}<a href="tel:{{ patient_mobile }}">{{ patient_mobile }}</a>{% else %}ثبت نشده{% endif %}</td></tr>{% endif %}
+    {% if c.kind == 'video' %}<tr><th>تماس تصویری</th><td>{% if c.meeting_link and c.is_open %}<a class="btn btn-small" href="{{ c.meeting_link }}" target="_blank" rel="noopener noreferrer">ورود به تماس</a>{% elif c.is_open %}<span class="muted">پیوند هنوز ثبت نشده</span>{% else %}—{% endif %}</td></tr>{% endif %}
+    {% if c.fee %}<tr><th>هزینه</th><td>{{ c.fee|toman }}{% if payment %} · <span class="badge status-{{ payment.status }}">{{ payment.get_status_display }}</span>{% endif %}</td></tr>{% endif %}
+    {% if c.outcome %}<tr><th>نتیجه</th><td>{{ c.get_outcome_display }}</td></tr>{% endif %}
+    {% if c.decline_reason %}<tr><th>علت</th><td>{{ c.decline_reason }}</td></tr>{% endif %}
+  </table>
+
+  {% if c.status == 'unpaid' and not is_provider %}
+    <div class="card">
+      <h2>پرداخت</h2>
+      {% if online_payment %}
+        <p>برای ارسال درخواست به پزشک، هزینه را تا {{ 30|fa_digits }} دقیقه پرداخت کنید؛ پس از آن زمان رزروشده آزاد می‌شود.</p>
+        <form method="post" action="{% url 'telemed:pay' c.code %}">{% csrf_token %}<button class="btn">پرداخت {{ c.fee|toman }}</button></form>
+      {% else %}
+        <p>پرداخت اینترنتی هنوز فعال نشده است. برای پرداخت با کد مشاوره <strong>{{ c.code|fa_digits }}</strong> با پذیرش تماس بگیرید{% if SITE_PHONE %}: <a href="tel:{{ SITE_PHONE }}">{{ SITE_PHONE }}</a>{% endif %}.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if not is_provider and c.outcome == 'visit' and c.doctor %}<div class="alert alert-info">پزشک ویزیت حضوری را توصیه کرده است. <a href="{% url 'appointments:book' c.doctor.slug %}">دریافت نوبت حضوری</a></div>{% endif %}
+  {% if not is_provider and c.outcome == 'emergency' %}<div class="alert alert-error">پزشک مراجعه فوری به اورژانس را توصیه کرده است. با <a href="tel:115">۱۱۵</a> تماس بگیرید.</div>{% endif %}
+
+  <h2>گفتگو</h2>
+  <div class="chat">
+    {% for m in thread %}
+      <div class="msg msg-{{ m.role }}{% if forloop.last %}" id="last{% endif %}">
+        <div class="msg-meta">{% if m.role == 'patient' %}{% if is_provider %}بیمار{% else %}شما{% endif %}{% elif m.role == 'provider' %}{% if c.doctor %}{{ c.doctor.full_name }}{% else %}داروساز{% if m.sender %} ({{ m.sender.get_full_name|default:m.sender.username }}){% endif %}{% endif %}{% else %}سامانه{% endif %} · {{ m.created_at|jalali:"%d %B %H:%M" }}</div>
+        {% if m.text %}<div class="msg-text">{{ m.text|linebreaksbr }}</div>{% endif %}
+        {% for a in m.attachments.all %}
+          <a class="msg-file" href="{% url 'telemed:attachment' a.pk %}" target="_blank" rel="noopener">{% if a.is_image %}<img src="{% url 'telemed:attachment' a.pk %}" alt="پیوست" loading="lazy">{% else %}📄 فایل PDF{% endif %}</a>
+        {% endfor %}
+      </div>
+    {% endfor %}
+    {% if c.status == 'waiting' and not c.answered_at %}<p class="muted">{% if c.is_live %}در زمان ویزیت{% if c.kind == 'call' %} پزشک با شما تماس می‌گیرد{% endif %}.{% else %}در انتظار پاسخ؛ حداکثر تا {{ c.response_deadline|jalali:"%A %d %B ساعت %H:%M" }}.{% endif %}</p>{% endif %}
+  </div>
+
+  {% if can_post %}
+    <form method="post" enctype="multipart/form-data" class="form card" novalidate>
+      {% csrf_token %}
+      {% include "includes/form.html" %}
+      <button class="btn" type="submit">{% if is_provider %}ارسال پاسخ{% else %}ارسال{% endif %}</button>
+    </form>
+  {% elif c.is_open %}<p class="muted">{{ cannot_reason }}</p>{% endif %}
+
+  {% if is_provider and c.is_open %}
+    <div class="grid">
+      {% if c.kind == 'video' %}
+      <form method="post" action="{% url 'telemed:meeting_link' c.code %}" class="form card">{% csrf_token %}
+        <h3>پیوند تماس تصویری</h3>{% include "includes/form.html" with form=link_form %}
+        <p class="muted small">فقط از سرویس تماس تصویری مورد تأیید مجموعه استفاده کنید.</p>
+        <button class="btn btn-small">ثبت و اطلاع به بیمار</button></form>
+      {% endif %}
+      <form method="post" action="{% url 'telemed:close' c.code %}" class="form card">{% csrf_token %}
+        <h3>پایان مشاوره</h3>{% include "includes/form.html" with form=close_form %}
+        <button class="btn btn-small">پایان</button></form>
+      <form method="post" action="{% url 'telemed:decline' c.code %}" class="form card">{% csrf_token %}
+        <h3>رد درخواست</h3>{% include "includes/form.html" with form=decline_form %}
+        <p class="muted small">مثلاً وقتی پاسخ آنلاین ممکن نیست یا خارج از تخصص است. مبلغ پرداختی بیمار قابل استرداد می‌شود.</p>
+        <button class="btn btn-small btn-danger">رد</button></form>
+    </div>
+  {% endif %}
+
+  {% if can_cancel and not is_provider %}
+    <form method="post" action="{% url 'telemed:cancel' c.code %}" onsubmit="return confirm('مشاوره لغو شود؟')">{% csrf_token %}
+      <button class="btn btn-small btn-outline">لغو مشاوره{% if payment %} و استرداد وجه{% endif %}</button></form>
+  {% endif %}
+</section>
+{% endblock %}

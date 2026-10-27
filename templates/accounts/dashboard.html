@@ -62,6 +62,9 @@
     <a class="btn btn-small" href="{% url 'ehr:my_record' %}">مشاهده پرونده سلامت</a>
   </div>
 
+  <div class="section-head"><h2>مشاوره‌های آنلاین من</h2><a href="{% url 'telemed:index' %}">مشاوره جدید</a></div>
+  {% include "telemed/_list.html" with items=consultations patient_view=True %}
+
   <h2>نوبت‌های من</h2>
   {% if appointments %}
     <table class="table">

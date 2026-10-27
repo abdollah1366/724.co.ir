@@ -1,0 +1,11 @@
+# مشاوره آنلاین: انقضای پرداخت‌نشده و بی‌پاسخ، بستن گفتگوی راکد، یادآوری ویزیت تلفنی/تصویری
+[Unit]
+Description=724 timer: telemed
+
+[Timer]
+OnCalendar=*:0/10
+Unit=724-task@telemed.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load persian %}
+{% block title %}کارتابل مشاوره آنلاین | {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section class="container section">
+  <h1>کارتابل مشاوره آنلاین</h1>
+  {% if not is_doctor and not is_pharmacist %}<div class="alert alert-warn">حساب شما به هیچ پزشکی وصل نیست. مدیر باید در «پزشکان» حساب کاربری شما را انتخاب کند.</div>{% endif %}
+  <div class="grid stats">
+    <div class="card"><span class="muted">در انتظار پاسخ</span><div class="alert-count">{{ waiting|fa_digits }}</div></div>
+    <div class="card"><span class="muted">ویزیت تلفنی/تصویری امروز</span><div class="alert-count">{{ today_live|fa_digits }}</div></div>
+  </div>
+  <nav class="chips">
+    <a class="chip{% if show != 'closed' %} active{% endif %}" href="?show=open">باز</a>
+    <a class="chip{% if show == 'closed' %} active{% endif %}" href="?show=closed">بسته‌شده</a>
+  </nav>
+  {% include "telemed/_list.html" with show_doctor=is_pharmacist %}
+  <p class="muted small">هر بار باز کردن گفتگو یا پیوست در گزارش ثبت می‌شود. پاسخ‌ها را کوتاه، روشن و بدون تجویز داروی نسخه‌ای بنویسید و در صورت لزوم ویزیت حضوری را توصیه کنید.</p>
+</section>
+{% endblock %}

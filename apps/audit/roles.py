@@ -45,6 +45,7 @@ ROLES = {
         "extra": [
             "sales.approve_prescription", "sales.post_salesinvoice", "sales.post_salesreturn", "sales.use_pos",
             "inventory.change_batch_status", "inventory.post_inventorydocument", "ehr.dispense_prescription",
+            "telemed.answer_pharmacy",
         ],
     },
     "انباردار": {
@@ -80,11 +81,12 @@ ROLES = {
             "purchasing.purchaseinvoiceline": ("add", "change", "delete", "view"), "purchasing.goodsreceipt": (VIEW,),
             "sales.salesinvoice": (VIEW,), "sales.salesreturn": (VIEW,), "sales.cashsession": (VIEW,),
             "inventory.stockmove": (VIEW,), "shop.pricehistory": (VIEW,),
+            "telemed.consultation": (VIEW,), "telemed.consultpayment": (VIEW,),
         },
         "extra": [
             "purchasing.post_purchaseinvoice", "purchasing.reverse_purchaseinvoice", "accounting.post_payment",
             "accounting.reverse_payment", "accounting.post_expense", "accounting.reverse_expense",
-            "accounting.view_financial_reports", "sales.reverse_salesinvoice",
+            "accounting.view_financial_reports", "sales.reverse_salesinvoice", "telemed.manage_payments",
         ],
     },
 }
@@ -187,12 +189,12 @@ EHR_NURSE = {
 }
 
 ROLES.update({
-    "پزشک": {"models": EHR_DOCTOR, "extra": ["ehr.view_clinical_record", "ehr.sign_encounter"]},
+    "پزشک": {"models": EHR_DOCTOR, "extra": ["ehr.view_clinical_record", "ehr.sign_encounter", "telemed.answer_consultation"]},
     "پرستار": {"models": EHR_NURSE, "extra": ["ehr.view_clinical_record"]},
     # فیزیوتراپیست، گفتاردرمانگر، کاردرمانگر، شنوایی‌شناس و کارشناس تغذیه
-    "درمانگر توانبخشی": {"models": EHR_THERAPIST, "extra": ["ehr.view_clinical_record"]},
+    "درمانگر توانبخشی": {"models": EHR_THERAPIST, "extra": ["ehr.view_clinical_record", "telemed.answer_consultation"]},
     # یادداشت‌های روانشناسی به‌طور پیش‌فرض فقط برای خود درمانگر قابل خواندن است (TreatmentPlan.can_read_notes)
-    "روانشناس": {"models": EHR_THERAPIST, "extra": ["ehr.view_clinical_record"]},
+    "روانشناس": {"models": EHR_THERAPIST, "extra": ["ehr.view_clinical_record", "telemed.answer_consultation"]},
     "پذیرش درمانگاه": {"models": CLINIC_FRONT_DESK, "extra": []},
     "مسئول فنی درمانگاه": {
         "models": {
@@ -200,8 +202,9 @@ ROLES.update({
             "clinic.doctor": ("change", VIEW), "ehr.icd10code": EDIT,
             "ehr.servicecode": EDIT, "ehr.rvucoefficient": EDIT, "ehr.genericdrug": EDIT,
             "ehr.treatmentplan": ("change", VIEW), "ehr.clinicticket": ("add", "change", VIEW),
+            "telemed.doctoronlineprofile": EDIT, "telemed.onlinehours": EDIT,
         },
-        "extra": ["ehr.view_clinical_record", "ehr.view_all_records"],
+        "extra": ["ehr.view_clinical_record", "ehr.view_all_records", "telemed.view_telemed_report"],
     },
 })
 
@@ -256,8 +259,11 @@ ROLES["مدیر کل"] = _merge(
     {"models": {"clinic.doctor": ("add", "change", VIEW), "clinic.department": EDIT, "clinic.service": EDIT,
                 "clinic.specialty": EDIT, "clinic.workinghours": EDIT, "auth.user": ("add", "change", VIEW),
                 "auth.group": (VIEW,), "core.smsmessage": (VIEW,), "ehr.recordaccess": (VIEW,), "ehr.rvucoefficient": EDIT,
-                "ehr.servicecode": (VIEW,), "audit.auditlog": (VIEW,)},
-     "extra": ["ehr.view_management_report"]},
+                "ehr.servicecode": (VIEW,), "audit.auditlog": (VIEW,),
+                # مشاوره آنلاین: تنظیم پزشکان، پرداخت و آمار؛ متن گفتگو را نمی‌بیند.
+                "telemed.doctoronlineprofile": EDIT, "telemed.onlinehours": EDIT, "telemed.consultation": (VIEW,),
+                "telemed.consultpayment": (VIEW,)},
+     "extra": ["ehr.view_management_report", "telemed.manage_payments", "telemed.view_telemed_report"]},
 )
 
 # گروه‌بندی نقش‌ها در صفحه مدیریت کارکنان
@@ -304,13 +310,13 @@ def setup_roles_after_migrate(sender, app_config=None, **kwargs):
 ROLE_DESCRIPTIONS = {
     "مدیر کل": "همه بخش‌های مالی، انبار، آزمایشگاه، نوبت‌دهی، کارکنان و گزارش‌های آماری؛ بدون دسترسی به پرونده پزشکی و جواب آزمایش",
     "مدیر داروخانه": "کالا، خرید، انبار، فروش، صندوق، حسابداری و گزارش مالی داروخانه",
-    "داروساز مسئول فنی": "تأیید فروش نسخه‌ای، تحویل نسخه درمانگاه، مشاوره دارویی، وضعیت سری ساخت",
+    "داروساز مسئول فنی": "تأیید فروش نسخه‌ای، تحویل نسخه درمانگاه، مشاوره دارویی حضوری و آنلاین، وضعیت سری ساخت",
     "انباردار": "رسید کالا، انتقال و شمارش انبار",
     "کارشناس خرید": "سفارش و فاکتور خرید، تأمین‌کنندگان",
     "صندوق‌دار": "صندوق فروش و مرجوعی",
-    "حسابدار": "دریافت و پرداخت، هزینه‌ها، فاکتور خرید، گزارش‌های مالی",
+    "حسابدار": "دریافت و پرداخت، هزینه‌ها، فاکتور خرید، گزارش‌های مالی، پرداخت و استرداد مشاوره آنلاین",
     "مسئول فنی درمانگاه": "همه پرونده‌های پزشکی، گزارش مشاهده پرونده‌ها، کاتالوگ‌ها و ضرایب تعرفه",
-    "پزشک": "پرونده بیماران خودش، ویزیت، نسخه، درخواست آزمایش، ارجاع، یادآور، صف مطب خودش",
+    "پزشک": "پرونده بیماران خودش، ویزیت، نسخه، درخواست آزمایش، ارجاع، یادآور، صف مطب خودش، مشاوره آنلاین بیماران خودش",
     "پرستار": "علائم حیاتی و حساسیت بیماران امروز، مدارک، فراخوان صف",
     "درمانگر توانبخشی": "فیزیوتراپی، گفتاردرمانی، کاردرمانی، شنوایی‌شناسی و تغذیه: برنامه درمان، جلسه و ارزیابی؛ بدون نسخه دارو",
     "روانشناس": "مثل درمانگر توانبخشی؛ یادداشت‌ها پیش‌فرض فقط برای خودش قابل خواندن است",

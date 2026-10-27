@@ -24,6 +24,12 @@ PANELS = [
         ("گزارش مدیریتی درمانگاه", "ehr:report", ("ehr.view_management_report", "ehr.view_all_records")),
         ("نمایشگر صف درمانگاه", "ehr:queue_display", ()),
     ]),
+    ("مشاوره و ویزیت آنلاین", [
+        ("کارتابل مشاوره آنلاین", "telemed:inbox", ("telemed.answer_consultation", "telemed.answer_pharmacy")),
+        ("تنظیم مشاوره آنلاین پزشکان", "admin:telemed_doctoronlineprofile_changelist", ("telemed.change_doctoronlineprofile",)),
+        ("پرداخت‌ها و استردادها", "admin:telemed_consultpayment_changelist", ("telemed.view_consultpayment",)),
+        ("گزارش مشاوره آنلاین", "telemed:report", ("telemed.view_telemed_report",)),
+    ]),
     ("آزمایشگاه", [
         ("داشبورد آزمایشگاه", "lab:staff_dashboard", ("lab.view_laborder",)),
         ("پذیرش", "lab:staff_reception", ("lab.add_laborder",)),

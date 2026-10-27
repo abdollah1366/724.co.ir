@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "apps.lab",
     "apps.ehr",
     "apps.blog",
+    "apps.telemed",
     "apps.audit",  # باید آخر باشد تا نقش‌ها پس از ساخت همه مجوزها تنظیم شوند
 ]
 
@@ -238,6 +239,21 @@ PHARMACY_RULES = {
 SMS_BACKEND = os.environ.get("SMS_BACKEND", "console")
 SMS_API_KEY = os.environ.get("SMS_API_KEY", "")
 SMS_SENDER = os.environ.get("SMS_SENDER", "")
+
+# مشاوره و ویزیت آنلاین (apps/telemed). درگاه پرداخت هنوز انتخاب نشده؛ راهنما در apps/telemed/payments.py.
+PAYMENT_GATEWAY = os.environ.get("PAYMENT_GATEWAY", "sandbox" if DEBUG else "none")
+TELEMED_BOOKING_DAYS_AHEAD = 7
+TELEMED_MIN_NOTICE_MINUTES = 60  # ویزیت تلفنی/تصویری دست‌کم یک ساعت بعد
+TELEMED_PAYMENT_MINUTES = 30  # مهلت پرداخت؛ پس از آن زمان رزروشده آزاد می‌شود
+TELEMED_PHARMACY_RESPONSE_HOURS = 24
+TELEMED_LIVE_GRACE_HOURS = 24  # ویزیت تلفنی/تصویری که تا این مدت پس از زمانش بسته نشود منقضی می‌شود
+TELEMED_AUTO_CLOSE_DAYS = 3  # گفتگوی بی‌فعالیت بسته می‌شود
+TELEMED_CANCEL_HOURS = 3  # بیمار تا این مدت پیش از ویزیت تلفنی/تصویری می‌تواند لغو کند
+TELEMED_REMINDER_MINUTES = 60
+TELEMED_FREE_FOLLOWUPS = 1  # تعداد پرسش تکمیلی بیمار پس از پاسخ در مشاوره رایگان
+TELEMED_FREE_OPEN_PER_USER = 2
+TELEMED_MAX_MESSAGES_BEFORE_ANSWER = 3
+TELEMED_MAX_FILES = 3
 SITE_URL = os.environ.get("SITE_URL", "https://724.co.ir").rstrip("/")
 
 # آزمایشگاه

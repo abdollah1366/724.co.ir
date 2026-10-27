@@ -50,6 +50,7 @@ def dashboard(request):
             "appointments": appointments,
             "orders": request.user.orders.all()[:10],
             "questions": request.user.pharmacy_questions.select_related("product")[:10],
+            "consultations": request.user.consultations.select_related("doctor")[:10],
         },
     )
 
