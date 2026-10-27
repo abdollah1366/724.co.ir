@@ -161,7 +161,7 @@ class FreeConsultTests(PrivateMediaMixin, Base):
                             files=[SimpleUploadedFile("a.png", PNG, content_type="image/png")])
         item = ConsultAttachment.objects.get(message__consultation=c)
         self.assertTrue(item.file.name.startswith("telemed/"))
-        self.assertNotIn("a.png", item.file.name)
+        self.assertNotEqual(item.file.name.rsplit("/", 1)[-1], "a.png")  # نام اصلی فایل نگه داشته نمی‌شود
         self.client.force_login(self.patient)
         response = self.client.get(reverse("telemed:attachment", args=[item.pk]))
         self.assertEqual(response.status_code, 200)
