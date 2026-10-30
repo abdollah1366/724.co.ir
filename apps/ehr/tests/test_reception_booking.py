@@ -155,19 +155,36 @@ class TrackingTests(TestCase):
         cache.clear()
         self.appt = appointment(doctor(), days=2)
 
-    def track(self, identifier, code=None):
-        return self.client.post(reverse("appointments:track"),
-                                {"tracking_code": code or self.appt.tracking_code, "identifier": identifier})
+    def track(self, identifier):
+        return self.client.post(reverse("appointments:track"), {"identifier": identifier})
 
-    def test_track_by_mobile_or_national_code(self):
+    def test_track_with_one_identifier(self):
         detail = reverse("appointments:detail", args=[self.appt.pk])
-        self.assertRedirects(self.track("09121234567"), detail)
-        self.client.session.flush()
-        self.assertRedirects(self.track("۰۴۹۹۳۷۰۸۹۹"), detail)
+        for identifier in (self.appt.tracking_code, "09121234567", "۰۴۹۹۳۷۰۸۹۹"):
+            self.client.session.flush()
+            self.assertRedirects(self.track(identifier), detail)
+        self.assertContains(self.track("00000000"), "یافت نشد")
+        self.assertContains(self.track("09350000000"), "یافت نشد")
 
-    def test_tracking_code_always_required(self):
-        self.assertContains(self.track(NATIONAL_CODE, code="00000000"), "یافت نشد")
-        self.assertContains(self.client.post(reverse("appointments:track"), {"identifier": NATIONAL_CODE}), "error")
+    def test_parent_sees_all_children_by_shared_mobile(self):
+        child = appointment(doctor(slug="dr-b", council="22222"), national_code=OTHER_CODE, name="علی رضایی", days=3)
+        response = self.track("09121234567")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "مریم رضایی")
+        self.assertContains(response, "علی رضایی")
+        self.assertContains(response, reverse("appointments:detail", args=[child.pk]))
+
+    def test_cancel_only_with_tracking_code(self):
+        self.track("09121234567")
+        cancel = reverse("appointments:cancel", args=[self.appt.pk])
+        self.assertNotContains(self.client.get(reverse("appointments:detail", args=[self.appt.pk])), cancel)
+        self.client.post(cancel)
+        self.appt.refresh_from_db()
+        self.assertNotEqual(self.appt.status, "cancelled")
+        self.track(self.appt.tracking_code)
+        self.client.post(cancel)
+        self.appt.refresh_from_db()
+        self.assertEqual(self.appt.status, "cancelled")
 
     @override_settings(TRACKING_LIMIT_PER_HOUR=3)
     def test_rate_limited(self):

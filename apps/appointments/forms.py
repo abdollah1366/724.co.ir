@@ -1,7 +1,6 @@
 import datetime
 
 from django import forms
-from django.db.models import Q
 from django.utils import timezone
 
 from apps.core.templatetags.persian import fa_digits, jalali
@@ -79,31 +78,39 @@ class BookingForm(forms.Form):
 
 
 class TrackingForm(forms.Form):
-    """پیگیری نوبت: کد پیگیری همیشه لازم است، به‌همراه موبایل یا کد ملی بیمار (حدس زدن هر دو با هم عملاً ناممکن است)."""
+    """پیگیری نوبت با یکی از این‌ها: کد پیگیری (۸ رقم)، کد ملی (۱۰ رقم) یا شماره موبایل (۱۱ رقم).
 
-    tracking_code = forms.CharField(label="کد پیگیری", max_length=8)
-    identifier = forms.CharField(label="شماره موبایل یا کد ملی", max_length=11)
+    با موبایل یا کد ملی همه نوبت‌های آن شماره دیده می‌شود (مثلاً پدر یا مادری که برای چند فرزند نوبت گرفته)؛
+    لغو نوبت فقط با کد پیگیری یا در مرورگری که نوبت را ثبت کرده ممکن است.
+    """
+
+    identifier = forms.CharField(label="کد پیگیری، کد ملی یا شماره موبایل", max_length=11)
 
     def __init__(self, data=None, *args, **kwargs):
-        if data is not None and "identifier" not in data and "mobile" in data:
-            # فرم و پیوندهای قدیمی که فقط «mobile» می‌فرستند
+        if data is not None and "identifier" not in data:
+            # فرم قدیمی: کد پیگیری یا موبایل
             data = data.copy()
-            data["identifier"] = data["mobile"]
+            data["identifier"] = data.get("tracking_code") or data.get("mobile", "")
         super().__init__(data, *args, **kwargs)
 
     def clean(self):
         cleaned = super().clean()
-        code = normalize_digits(cleaned.get("tracking_code", "")).strip()
-        identifier = normalize_digits(cleaned.get("identifier", "")).strip()
-        appointment = None
-        if code and identifier:
-            appointment = Appointment.objects.select_related("doctor").filter(
-                Q(mobile=identifier) | Q(national_code=identifier), tracking_code=code
-            ).first()
-        if not appointment:
-            # پیام عمومی تا وجود یا عدم وجود کد پیگیری افشا نشود.
+        value = normalize_digits(cleaned.get("identifier", "")).strip()
+        recent = timezone.localdate() - datetime.timedelta(days=30)
+        appointments = Appointment.objects.none()
+        if len(value) == 8 and value.isdigit():
+            cleaned["by_code"] = True
+            appointments = Appointment.objects.filter(tracking_code=value)
+        elif len(value) in (10, 11) and value.isdigit():
+            cleaned["by_code"] = False
+            field = "national_code" if len(value) == 10 else "mobile"
+            appointments = Appointment.objects.filter(**{field: value}, date__gte=recent).exclude(
+                status=Appointment.Status.CANCELLED)
+        appointments = list(appointments.select_related("doctor").order_by("date", "time")[:20])
+        if not appointments:
+            # پیام عمومی تا وجود یا عدم وجود نوبت افشا نشود.
             raise forms.ValidationError("نوبتی با این مشخصات یافت نشد.")
-        cleaned["appointment"] = appointment
+        cleaned["appointments"] = appointments
         return cleaned
 
 

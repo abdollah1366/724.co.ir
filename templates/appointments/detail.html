@@ -6,7 +6,7 @@
   <h1>جزئیات نوبت</h1>
   <div class="card">
     <p class="tracking">کد پیگیری: <strong>{{ appointment.tracking_code|fa_digits }}</strong></p>
-    <p class="muted small">این کد را نگه دارید؛ برای پیگیری یا لغو نوبت به آن و شماره موبایل نیاز دارید.</p>
+    <p class="muted small">این کد را نگه دارید؛ برای لغو نوبت به آن نیاز دارید. پیگیری با کد ملی یا شماره موبایل هم ممکن است.</p>
     <table class="table">
       <tr><th>پزشک</th><td>{{ appointment.doctor.full_name }}</td></tr>
       <tr><th>تاریخ</th><td>{{ appointment.date|jalali }}</td></tr>
@@ -15,11 +15,13 @@
       <tr><th>کد ملی</th><td dir="ltr">{{ appointment.masked_national_code|fa_digits }}</td></tr>
       <tr><th>وضعیت</th><td><span class="badge status-{{ appointment.status }}">{{ appointment.get_status_display }}</span></td></tr>
     </table>
-    {% if appointment.can_cancel %}
+    {% if can_cancel %}
       <form method="post" action="{% url 'appointments:cancel' appointment.pk %}" onsubmit="return confirm('از لغو نوبت مطمئن هستید؟');">
         {% csrf_token %}
         <button class="btn btn-danger" type="submit">لغو نوبت</button>
       </form>
+    {% elif appointment.can_cancel %}
+      <p class="muted small">برای لغو این نوبت، آن را با کد پیگیری باز کنید یا با پذیرش تماس بگیرید.</p>
     {% endif %}
   </div>
 </section>

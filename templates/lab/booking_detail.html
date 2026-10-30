@@ -17,10 +17,12 @@
       {% if tests %}<p>آمادگی آزمایش‌های انتخابی: <a href="{% url 'lab:preparation' %}?{% for t in tests %}t={{ t.code }}&{% endfor %}">مشاهده</a></p>{% endif %}
     {% endwith %}
     <p class="muted small">کارت ملی و نسخه پزشک (یا کد رهگیری نسخه الکترونیک) و کارت بیمه را همراه داشته باشید.</p>
-    {% if appointment.is_cancellable %}
+    {% if appointment.is_cancellable and can_cancel %}
       <form method="post" action="{% url 'lab:booking_cancel' appointment.pk %}" onsubmit="return confirm('از لغو نوبت مطمئن هستید؟');">
         {% csrf_token %}<button class="btn btn-danger" type="submit">لغو نوبت</button>
       </form>
+    {% elif appointment.is_cancellable %}
+      <p class="muted small">برای لغو، نوبت را با کد پیگیری باز کنید.</p>
     {% endif %}
   </div>
 </section>

@@ -12,13 +12,21 @@ from .forms import BookingForm, TrackingForm
 from .models import Appointment
 
 SESSION_KEY = "appointment_ids"
+# نوبت‌هایی که این مرورگر ثبت کرده یا با کد پیگیری باز کرده؛ فقط این‌ها لغوشدنی‌اند (نه با موبایل یا کد ملی تنها).
+CANCEL_KEY = "appointment_cancel_ids"
 
 
-def _remember(request, appointment):
+def _remember(request, appointment, can_cancel=True):
     # فقط شناسه نوبت‌هایی که همین مرورگر ثبت یا پیگیری کرده در نشست نگه داشته می‌شود.
-    ids = set(request.session.get(SESSION_KEY, []))
-    ids.add(appointment.pk)
-    request.session[SESSION_KEY] = list(ids)
+    keys = (SESSION_KEY, CANCEL_KEY) if can_cancel else (SESSION_KEY,)
+    for key in keys:
+        ids = set(request.session.get(key, []))
+        ids.add(appointment.pk)
+        request.session[key] = list(ids)
+
+
+def _can_cancel(request, appointment):
+    return appointment.can_cancel and appointment.pk in request.session.get(CANCEL_KEY, [])
 
 
 def _session_appointment(request, pk):
@@ -53,7 +61,8 @@ def detail(request, pk):
     appointment = _session_appointment(request, pk)
     if appointment is None:
         return redirect("appointments:track")
-    return render(request, "appointments/detail.html", {"appointment": appointment})
+    return render(request, "appointments/detail.html", {
+        "appointment": appointment, "can_cancel": _can_cancel(request, appointment)})
 
 
 def track(request):
@@ -62,9 +71,12 @@ def track(request):
         messages.error(request, "تعداد تلاش‌ها زیاد است؛ یک ساعت دیگر دوباره تلاش کنید یا با پذیرش تماس بگیرید.")
         return render(request, "appointments/track.html", {"form": TrackingForm()})
     if request.method == "POST" and form.is_valid():
-        appointment = form.cleaned_data["appointment"]
-        _remember(request, appointment)
-        return redirect("appointments:detail", pk=appointment.pk)
+        appointments = form.cleaned_data["appointments"]
+        for appointment in appointments:
+            _remember(request, appointment, can_cancel=form.cleaned_data["by_code"])
+        if len(appointments) == 1:
+            return redirect("appointments:detail", pk=appointments[0].pk)
+        return render(request, "appointments/track.html", {"form": TrackingForm(), "appointments": appointments})
     return render(request, "appointments/track.html", {"form": form})
 
 
@@ -73,7 +85,7 @@ def cancel(request, pk):
     appointment = _session_appointment(request, pk)
     if appointment is None:
         return redirect("appointments:track")
-    if appointment.can_cancel:
+    if _can_cancel(request, appointment):
         appointment.status = Appointment.Status.CANCELLED
         appointment.save(update_fields=["status", "updated_at"])
         messages.success(request, "نوبت شما لغو شد.")

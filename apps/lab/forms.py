@@ -2,7 +2,6 @@ import datetime
 
 import jdatetime
 from django import forms
-from django.db.models import Q
 from django.conf import settings
 from django.utils import timezone
 
@@ -91,27 +90,32 @@ class SamplingBookingForm(DigitsMixin, forms.Form):
 
 
 class BookingTrackForm(DigitsMixin, forms.Form):
-    """کد پیگیری همیشه لازم است، به‌همراه موبایل یا کد ملی."""
+    """پیگیری با یکی از این‌ها: کد پیگیری، کد ملی یا شماره موبایل. لغو فقط با کد پیگیری."""
 
-    digit_fields = ("tracking_code", "identifier")
-    tracking_code = forms.CharField(label="کد پیگیری", max_length=8)
-    identifier = forms.CharField(label="شماره موبایل یا کد ملی", max_length=11)
+    digit_fields = ("identifier",)
+    identifier = forms.CharField(label="کد پیگیری، کد ملی یا شماره موبایل", max_length=11)
 
     def __init__(self, data=None, **kwargs):
-        if data is not None and "identifier" not in data and "mobile" in data:
+        if data is not None and "identifier" not in data:
             data = data.copy()
-            data["identifier"] = data["mobile"]
+            data["identifier"] = data.get("tracking_code") or data.get("mobile", "")
         super().__init__(self._normalize(data), **kwargs)
 
     def clean(self):
         cleaned = super().clean()
-        identifier = cleaned.get("identifier", "").strip()
-        appointment = SamplingAppointment.objects.filter(
-            Q(mobile=identifier) | Q(national_code=identifier), tracking_code=cleaned.get("tracking_code", "").strip().upper(),
-        ).first() if identifier else None
-        if appointment is None:
+        value = cleaned.get("identifier", "").strip()
+        recent = timezone.localdate() - datetime.timedelta(days=30)
+        if len(value) in (10, 11) and value.isdigit():
+            cleaned["by_code"] = False
+            field = "national_code" if len(value) == 10 else "mobile"
+            found = SamplingAppointment.objects.active().filter(**{field: value}, date__gte=recent)
+        else:
+            cleaned["by_code"] = True
+            found = SamplingAppointment.objects.filter(tracking_code=value.upper()) if value else SamplingAppointment.objects.none()
+        found = list(found.order_by("date", "time")[:20])
+        if not found:
             raise forms.ValidationError("نوبتی با این مشخصات یافت نشد.")
-        cleaned["appointment"] = appointment
+        cleaned["appointments"] = found
         return cleaned
 
 
