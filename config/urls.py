@@ -16,6 +16,8 @@ from .sitemaps import SITEMAPS
 ADMIN_URL = os.environ.get("DJANGO_ADMIN_URL", "admin/")
 
 urlpatterns = [
+    # خروج از پنل مدیریت جنگو هم به صفحه ورود مدیریت برمی‌گردد، نه صفحه اول سایت.
+    path(f"{ADMIN_URL}logout/", accounts_views.StaffLogoutView.as_view(), name="admin_logout"),
     path(ADMIN_URL, admin.site.urls),
     path("appointments/", include("apps.appointments.urls")),
     path("accounts/", include("apps.accounts.urls")),

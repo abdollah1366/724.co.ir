@@ -2,6 +2,7 @@
 
 import datetime
 
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.shortcuts import redirect, render
@@ -9,7 +10,10 @@ from django.views.decorators.http import require_POST
 
 from ..forms import BookingTrackForm, SamplingBookingForm, date_choices
 from ..models import SamplingAppointment, SamplingSchedule
+from apps.audit.context import client_ip
+
 from ..services import booking, notify
+from ..services.portal import rate_limited
 
 SESSION_KEY = "lab_appointment_ids"
 
@@ -73,6 +77,9 @@ def booking_detail(request, pk):
 
 def booking_track(request):
     form = BookingTrackForm(request.POST or None)
+    if request.method == "POST" and rate_limited(f"lab-track:{client_ip(request)}", limit=settings.TRACKING_LIMIT_PER_HOUR):
+        messages.error(request, "تعداد تلاش‌ها زیاد است؛ یک ساعت دیگر دوباره تلاش کنید یا با آزمایشگاه تماس بگیرید.")
+        return render(request, "lab/booking_track.html", {"form": BookingTrackForm()})
     if request.method == "POST" and form.is_valid():
         appointment = form.cleaned_data["appointment"]
         _remember(request, appointment)

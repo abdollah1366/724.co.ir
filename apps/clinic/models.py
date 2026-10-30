@@ -167,9 +167,9 @@ class Doctor(models.Model):
     def can_prescribe(self):
         return self.provider_type in PRESCRIBER_TYPES
 
-    def available_dates(self, days=None):
+    def available_dates(self, days=None, staff=False):
         """روزهای آینده‌ای که پزشک برنامه کاری دارد."""
-        days = days or settings.APPOINTMENT_BOOKING_DAYS_AHEAD
+        days = days or (settings.APPOINTMENT_STAFF_DAYS_AHEAD if staff else settings.APPOINTMENT_BOOKING_DAYS_AHEAD)
         weekdays = set(self.working_hours.values_list("weekday", flat=True))
         today = timezone.localdate()
         return [
@@ -178,12 +178,16 @@ class Doctor(models.Model):
             if (today + datetime.timedelta(days=i)).weekday() in weekdays
         ]
 
-    def available_slots(self, date):
-        """زمان‌های آزاد پزشک در یک روز مشخص (بدون نوبت‌های رزرو شده و زمان‌های گذشته)."""
-        if not self.accepts_online_booking or not self.is_active:
+    def available_slots(self, date, staff=False):
+        """زمان‌های آزاد پزشک در یک روز مشخص (بدون نوبت‌های رزرو شده و زمان‌های گذشته).
+
+        staff=True برای ثبت نوبت حضوری در پذیرش: پزشکی که نوبت اینترنتی را بسته هم نوبت می‌گیرد و بازه آن بلندتر است.
+        """
+        if not self.is_active or not (staff or self.accepts_online_booking):
             return []
         today = timezone.localdate()
-        if date < today or date > today + datetime.timedelta(days=settings.APPOINTMENT_BOOKING_DAYS_AHEAD):
+        days = settings.APPOINTMENT_STAFF_DAYS_AHEAD if staff else settings.APPOINTMENT_BOOKING_DAYS_AHEAD
+        if date < today or date > today + datetime.timedelta(days=days):
             return []
 
         slots = []

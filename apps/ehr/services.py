@@ -73,6 +73,27 @@ def link_lab_patient(lab_patient):
     return patient
 
 
+def reception_patient(national_code, verified=False, **data):
+    """پذیرش حضوری (منشی، داروخانه، آزمایشگاه): پرونده کد ملی را برمی‌گرداند یا می‌سازد.
+
+    فقط جاهای خالی پرونده موجود پر می‌شود تا اطلاعاتی که بخش دیگری ثبت کرده بازنویسی نشود؛ اگر منشی کارت ملی را
+    دیده باشد (verified) پرونده تأییدنشده «تأییدشده» می‌شود.
+    """
+    data = {name: value for name, value in data.items() if value}
+    patient = get_or_create_patient(national_code, is_verified=verified, **data)
+    if patient is None:
+        return None
+    changed = [name for name, value in data.items() if not getattr(patient, name)]
+    for name in changed:
+        setattr(patient, name, data[name])
+    if verified and not patient.is_verified:
+        patient.is_verified = True
+        changed.append("is_verified")
+    if changed:
+        patient.save(update_fields=[*changed, "updated_at"])
+    return patient
+
+
 def link_appointment(appointment):
     """نوبت اینترنتی هویت را تأیید نمی‌کند؛ پرونده جدید «تأییدنشده» ساخته می‌شود و پرونده موجود تغییر نمی‌کند."""
     if appointment.patient_id:

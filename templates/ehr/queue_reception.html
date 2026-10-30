@@ -3,13 +3,14 @@
 {% block ehr_title %}پذیرش و صف مطب{% endblock %}
 {% block ehr_content %}
 <h1>پذیرش و صف مطب · {{ today|jalali:"%A %d %B" }}</h1>
+<p class="no-print"><a class="btn" href="{% url 'ehr:reception_book' %}">➕ ثبت نوبت حضوری / تلفنی (امروز یا روزهای بعد)</a></p>
 <p class="muted no-print">مانیتور سالن انتظار: <a href="{% url 'ehr:queue_display' %}" target="_blank">نمایشگر درمانگاه</a> ·
   <a href="{% url 'ehr:queue_display' %}?lab=*" target="_blank">درمانگاه + آزمایشگاه</a></p>
 
 <div class="queue-grid">
   <div>
     <form class="card" method="post">{% csrf_token %}
-      <h2>بیمار بدون نوبت</h2>
+      <h2>بیمار بدون نوبت (شماره صف فوری)</h2>
       <input type="hidden" name="action" value="walk_in">
       {% include "includes/form.html" with form=form %}
       <button class="btn">صدور شماره</button>
@@ -36,7 +37,7 @@
     <div class="table-wrap"><table class="table data">
       <thead><tr><th>ساعت</th><th>بیمار</th><th>پزشک</th><th>صف</th></tr></thead>
       <tbody>{% for a in appointments %}
-        <tr><td>{{ a.time|time:"H:i"|fa_digits }}</td><td>{{ a.patient_full_name }} <span class="muted">{{ a.masked_national_code }}</span></td><td>{{ a.doctor.full_name }}</td>
+        <tr><td>{{ a.time|time:"H:i"|fa_digits }}</td><td>{{ a.patient_full_name }} <span class="muted">{{ a.masked_national_code }}</span>{% if a.source != 'online' %} <span class="badge">{{ a.get_source_display }}</span>{% endif %}</td><td>{{ a.doctor.full_name }}</td>
           <td>{% if a.ticket %}{{ a.ticket.label|fa_digits }} · {{ a.ticket.get_status_display }}
             {% elif a.status != 'done' %}<form method="post" class="inline">{% csrf_token %}<input type="hidden" name="action" value="check_in"><input type="hidden" name="appointment" value="{{ a.pk }}">
               <label class="small"><input type="checkbox" name="special" value="1"> اولویت</label> <button class="btn btn-small">حاضر شد · شماره</button></form>
