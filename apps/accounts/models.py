@@ -6,7 +6,7 @@ from django.db.models import Sum
 from django.urls import reverse
 
 from apps.core.fields import unique_when
-from apps.core.validators import validate_mobile
+from apps.core.validators import validate_mobile, validate_national_code
 
 REFERRAL_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
@@ -37,6 +37,28 @@ class Profile(models.Model):
 
     def referral_url(self, request):
         return request.build_absolute_uri(reverse("accounts:signup") + f"?ref={self.referral_code}")
+
+
+class StaffAccount(models.Model):
+    """مشخصات هویتی کارمند: کد ملی نام کاربری اوست و موبایل رمز پیش‌فرض؛ رمز پیش‌فرض در اولین ورود باید عوض شود."""
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="staff_account", verbose_name="کاربر")
+    national_code = models.CharField(
+        "کد ملی (کد شناسایی)", max_length=10, unique=True, null=True, blank=True, validators=[validate_national_code],
+        help_text="کارمند با کد ملی هم می‌تواند وارد شود.",
+    )
+    mobile = models.CharField("موبایل", max_length=11, blank=True, validators=[validate_mobile])
+    must_change_password = models.BooleanField(
+        "باید رمز را عوض کند", default=False, help_text="بعد از ساخت حساب یا بازنشانی به رمز پیش‌فرض روشن می‌شود.",
+    )
+    password_changed_at = models.DateTimeField("آخرین تغییر رمز توسط خود کارمند", null=True, blank=True, editable=False)
+
+    class Meta:
+        verbose_name = "مشخصات کارمند"
+        verbose_name_plural = "مشخصات کارمندان"
+
+    def __str__(self):
+        return self.user.get_full_name() or self.user.get_username()
 
 
 class PointTransaction(models.Model):

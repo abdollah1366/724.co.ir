@@ -4,7 +4,7 @@ import jdatetime
 from django import forms
 from django.utils import timezone
 
-from apps.core.validators import normalize_digits
+from apps.core.validators import normalize_digits, validate_mobile
 from apps.lab.forms import DigitsMixin
 
 from .models import Reminder, Assessment, TherapySession, TreatmentPlan, Allergy, DrugCounseling, ExternalDocument, ExternalLabValue, LabRequest, EncounterService, GenericDrug, Prescription, ServiceCode, Diagnosis, Encounter, HistoryEntry, ICD10Code, Patient, Problem, Referral, VitalSigns
@@ -59,6 +59,7 @@ class PatientForm(DigitsMixin, forms.ModelForm):
 
     def __init__(self, data=None, *args, **kwargs):
         super().__init__(self._normalize(data), *args, **kwargs)
+        self.fields["national_code"].label = "کد ملی (کد شناسایی)"
         for name in ("first_name", "last_name", "sex", "mobile"):
             self.fields[name].required = True
         self.initial["reminder_consent"] = bool(self.instance.reminder_consent_at)
@@ -475,9 +476,13 @@ class ReminderForm(DigitsMixin, forms.Form):
 
 
 class WalkInForm(DigitsMixin, forms.Form):
-    digit_fields = ("identifier",)
+    digit_fields = ("identifier", "mobile")
     doctor = forms.ModelChoiceField(label="پزشک / درمانگر", queryset=None)
-    identifier = forms.CharField(label="کد ملی یا شماره پرونده (اختیاری)", max_length=30, required=False)
+    identifier = forms.CharField(label="کد ملی (کد شناسایی) یا شماره پرونده", max_length=30, required=False,
+                                 help_text="اگر بیمار پرونده ندارد، کد ملی و نام را بنویسید تا پرونده‌اش همین‌جا ساخته شود.")
+    first_name = forms.CharField(label="نام (بیمار جدید)", max_length=80, required=False)
+    last_name = forms.CharField(label="نام خانوادگی (بیمار جدید)", max_length=80, required=False)
+    mobile = forms.CharField(label="موبایل (بیمار جدید)", max_length=11, required=False)
     special = forms.BooleanField(label="اولویت‌دار (سالمند، باردار، معلول، کودک، اورژانسی)", required=False)
 
     def __init__(self, data=None, *args, **kwargs):
@@ -485,3 +490,9 @@ class WalkInForm(DigitsMixin, forms.Form):
 
         super().__init__(self._normalize(data), *args, **kwargs)
         self.fields["doctor"].queryset = Doctor.objects.filter(is_active=True)
+
+    def clean_mobile(self):
+        value = self.cleaned_data.get("mobile", "").strip()
+        if value:
+            validate_mobile(value)
+        return value

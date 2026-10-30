@@ -1,7 +1,10 @@
 """یادآورهای بیمار، پذیرش صف مطب، کنسول فراخوان پزشک و مانیتور سالن انتظار."""
 
+import datetime
+
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -9,8 +12,10 @@ from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
+from apps.appointments.forms import ReceptionBookingForm
 from apps.appointments.models import Appointment
 from apps.clinic.models import Doctor
+from apps.core.validators import normalize_digits
 
 from . import engagement, services
 from .forms import ReminderForm, WalkInForm
@@ -88,7 +93,8 @@ def queue_reception(request):
             if request.POST.get("action") == "walk_in" and form.is_valid():
                 data = form.cleaned_data
                 priority = ClinicTicket.Priority.SPECIAL if data["special"] else ClinicTicket.Priority.NORMAL
-                ticket = engagement.walk_in(data["doctor"], request.user, data["identifier"], priority)
+                ticket = engagement.walk_in(data["doctor"], request.user, data["identifier"], priority,
+                                            data["first_name"], data["last_name"], data["mobile"])
                 return redirect("ehr:queue_ticket", pk=ticket.pk)
         except ValidationError as exc:
             _errors(request, exc)
@@ -98,6 +104,72 @@ def queue_reception(request):
         "appointments": appointments, "form": form, "today": today,
         "queues": [{"doctor": d, "current": engagement.current(d), "waiting": list(engagement.waiting(d))} for d in doctors],
     })
+
+
+def _parse_date(value):
+    try:
+        return datetime.date.fromisoformat(value or "")
+    except ValueError:
+        return None
+
+
+@staff_perm("appointments.add_appointment")
+def reception_book(request):
+    """ثبت نوبت حضوری یا تلفنی توسط منشی: کد ملی → پرونده موجود (یا ساخت پرونده) → پزشک، روز و ساعت.
+
+    پزشک و روز در آدرس (GET) می‌آیند تا با عوض شدنشان ساعت‌های آزاد دوباره ساخته شود؛ فرم بیمار با POST به همان آدرس.
+    """
+    doctors = Doctor.objects.filter(is_active=True).select_related("department")
+    doctor = doctors.filter(pk=request.GET.get("doctor")).first() if request.GET.get("doctor", "").isdigit() else None
+    national_code = normalize_digits(request.GET.get("nc", "")).strip()
+    patient = Patient.objects.filter(national_code=national_code).first() if national_code else None
+    dates = doctor.available_dates(staff=True) if doctor else []
+    date = _parse_date(request.GET.get("date"))
+    if doctor and date not in dates:
+        # اولین روزی که هنوز ساعت آزاد دارد (امروز بعد از ساعت کاری پر یا گذشته است)
+        date = next((d for d in dates if doctor.available_slots(d, staff=True)), dates[0] if dates else None)
+
+    form = None
+    if doctor and date:
+        initial = {"national_code": national_code}
+        if patient:
+            initial.update(first_name=patient.first_name, last_name=patient.last_name, mobile=patient.mobile,
+                           identity_checked=patient.is_verified)
+        form = ReceptionBookingForm(request.POST or None, doctor=doctor, date=date, initial=initial)
+        if request.method == "POST" and form.is_valid():
+            try:
+                with transaction.atomic():
+                    appointment = form.save(request.user)
+            except IntegrityError:
+                messages.error(request, "این ساعت همین حالا رزرو شد؛ ساعت دیگری انتخاب کنید.")
+                return redirect(request.get_full_path())
+            if form.cleaned_data.get("check_in_now"):
+                priority = ClinicTicket.Priority.SPECIAL if form.cleaned_data["special"] else ClinicTicket.Priority.NORMAL
+                try:
+                    ticket = engagement.check_in(appointment, request.user, priority)
+                except ValidationError as exc:
+                    _errors(request, exc)
+                else:
+                    messages.success(request, f"نوبت ثبت و شماره صف {ticket.label} صادر شد.")
+                    return redirect("ehr:queue_ticket", pk=ticket.pk)
+            return redirect("ehr:reception_booked", pk=appointment.pk)
+    elif request.method == "POST":
+        messages.error(request, "اول پزشک و روز را انتخاب کنید.")
+
+    day_appointments = []
+    if doctor and date:
+        day_appointments = doctor.appointments.active().filter(date=date).order_by("time")
+    return render(request, "ehr/reception_book.html", {
+        "doctors": doctors, "doctor": doctor, "dates": dates, "date": date, "form": form, "patient": patient,
+        "national_code": national_code, "day_appointments": day_appointments,
+    })
+
+
+@staff_perm("appointments.view_appointment")
+def reception_booked(request, pk):
+    """رسید نوبت حضوری برای چاپ یا خواندن کد پیگیری به بیمار."""
+    appointment = get_object_or_404(Appointment.objects.select_related("doctor"), pk=pk)
+    return render(request, "ehr/reception_booked.html", {"appointment": appointment})
 
 
 @staff_perm("ehr.add_clinicticket")

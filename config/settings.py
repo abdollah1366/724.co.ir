@@ -85,6 +85,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "apps.audit.context.AuditContextMiddleware",
+    "apps.accounts.middleware.ForcePasswordChangeMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "apps.core.middleware.SiteStatsMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -159,9 +160,17 @@ else:
         }
     }
 
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    # کارمند با کد ملی (کد شناسایی) هم وارد می‌شود
+    "apps.accounts.backends.NationalCodeBackend",
+]
+
+# حداقل طول رمز به خواست مدیریت مجموعه ۵ نویسه است؛ رمز تماماً عددی، رایج یا شبیه نام کاربری پذیرفته نمی‌شود.
+PASSWORD_MIN_LENGTH = int(os.environ.get("PASSWORD_MIN_LENGTH", "5"))
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 10}},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": PASSWORD_MIN_LENGTH}},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -213,6 +222,10 @@ SITE_ADDRESS = os.environ.get("SITE_ADDRESS", "")
 
 # نوبت‌دهی
 APPOINTMENT_BOOKING_DAYS_AHEAD = 30
+# منشی و پذیرش برای نوبت حضوری تا چند روز آینده نوبت می‌دهند.
+APPOINTMENT_STAFF_DAYS_AHEAD = 90
+# سقف تلاش پیگیری نوبت با کد پیگیری از هر IP در ساعت (جلوی حدس زدن کد را می‌گیرد).
+TRACKING_LIMIT_PER_HOUR = int(os.environ.get("TRACKING_LIMIT_PER_HOUR", "20"))
 
 # ورود کاربران
 LOGIN_URL = "accounts:login"

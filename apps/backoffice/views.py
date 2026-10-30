@@ -183,8 +183,8 @@ class CheckoutForm(forms.Form):
     prescriber_name = forms.CharField(label="نام پزشک", max_length=120, required=False)
     prescriber_council_no = forms.CharField(label="نظام پزشکی", max_length=20, required=False)
     patient_national_code = forms.CharField(
-        label="کد ملی بیمار (ثبت در پرونده سلامت)", max_length=10, required=False,
-        help_text="دارو یا تجهیزات تحویلی در پرونده بیمار دیده می‌شود.",
+        label="کد ملی (کد شناسایی) بیمار", max_length=10, required=False,
+        help_text="به پرونده سلامت همین کد ملی وصل می‌شود (اگر در درمانگاه یا آزمایشگاه ثبت شده، دوباره ثبت لازم نیست).",
     )
 
     def clean_patient_national_code(self):

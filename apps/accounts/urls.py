@@ -1,5 +1,5 @@
 from django.contrib.auth import views as auth_views
-from django.urls import path, reverse_lazy
+from django.urls import path
 
 from . import views
 from .forms import LoginForm
@@ -13,14 +13,8 @@ urlpatterns = [
         auth_views.LoginView.as_view(template_name="accounts/login.html", authentication_form=LoginForm, redirect_authenticated_user=True),
         name="login",
     ),
-    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
-    path(
-        "password/",
-        auth_views.PasswordChangeView.as_view(
-            template_name="accounts/password_change.html", success_url=reverse_lazy("accounts:dashboard")
-        ),
-        name="password_change",
-    ),
+    path("logout/", views.StaffLogoutView.as_view(), name="logout"),
+    path("password/", views.PasswordChangeView.as_view(), name="password_change"),
     path("rewards/<int:pk>/redeem/", views.redeem, name="redeem"),
     path("", views.dashboard, name="dashboard"),
 ]

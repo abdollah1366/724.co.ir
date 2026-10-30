@@ -12,7 +12,7 @@ class SignupForm(forms.Form):
     first_name = forms.CharField(label="نام", max_length=80)
     last_name = forms.CharField(label="نام خانوادگی", max_length=80)
     mobile = forms.CharField(label="شماره موبایل", max_length=11, help_text="نام کاربری شما همین شماره است.")
-    password1 = forms.CharField(label="رمز عبور", widget=forms.PasswordInput, help_text="حداقل ۱۰ نویسه، ترکیبی از حرف و عدد.")
+    password1 = forms.CharField(label="رمز عبور", widget=forms.PasswordInput, help_text="حداقل ۵ نویسه و نه فقط عدد.")
     password2 = forms.CharField(label="تکرار رمز عبور", widget=forms.PasswordInput)
     referral_code = forms.CharField(label="کد معرف (اختیاری)", max_length=8, required=False)
     consent = forms.BooleanField(label="قوانین حریم خصوصی و باشگاه مشتریان را می‌پذیرم.")

@@ -5,10 +5,10 @@ from .models import Appointment
 
 @admin.register(Appointment)
 class AppointmentAdmin(admin.ModelAdmin):
-    list_display = ("tracking_code", "patient_full_name", "doctor", "date", "time", "status")
-    list_filter = ("status", "doctor", "date")
+    list_display = ("tracking_code", "patient_full_name", "doctor", "date", "time", "status", "source")
+    list_filter = ("status", "source", "doctor", "date")
     search_fields = ("tracking_code", "patient_full_name", "mobile", "national_code")
-    readonly_fields = ("tracking_code", "consent_at", "created_at", "updated_at")
+    readonly_fields = ("tracking_code", "consent_at", "created_by", "created_at", "updated_at")
     date_hierarchy = "date"
     list_select_related = ("doctor",)
     raw_id_fields = ("user", "patient")

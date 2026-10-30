@@ -2,6 +2,8 @@
 
 import uuid
 
+import jdatetime
+
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import permission_required
@@ -18,6 +20,7 @@ from apps.audit import log
 from apps.audit.documents import DocStatus
 from apps.audit.models import AuditLog
 from apps.core.validators import normalize_digits
+from apps.ehr.models import Patient
 
 from ..forms import OrderForm, PatientForm, PaymentForm, ReasonForm
 from ..models import LabOrder, LabPatient, LabPayment, SamplingAppointment
@@ -44,6 +47,16 @@ def find_patients(query):
     )[:20]
 
 
+def find_health_records(query):
+    """پرونده‌های سلامت (درمانگاه، داروخانه) با همین کد ملی یا موبایل که هنوز پرونده آزمایشگاه ندارند."""
+    query = normalize_digits(query).strip()
+    if not query:
+        return Patient.objects.none()
+    return Patient.objects.filter(lab_patient__isnull=True).filter(
+        Q(national_code=query) | Q(foreign_id__iexact=query) | Q(mobile=query) | Q(file_number__iexact=query)
+    )[:10]
+
+
 @staff_perm("lab.add_laborder")
 def reception(request, pk=None):
     """پذیرش جدید یا ویرایش پیش‌نویس. بیمار با کد ملی جست‌وجو و در صورت نبودن ساخته می‌شود."""
@@ -56,6 +69,10 @@ def reception(request, pk=None):
         if request.GET.get("appointment"):
             appointment = get_object_or_404(SamplingAppointment.objects.active(), pk=request.GET["appointment"])
             patient = patient or LabPatient.objects.filter(national_code=appointment.national_code).first()
+        if request.GET.get("ehr") and not patient:
+            # بیماری که در درمانگاه یا داروخانه پرونده دارد: مشخصاتش دوباره تایپ نمی‌شود.
+            health_record = get_object_or_404(Patient, pk=request.GET["ehr"])
+            patient = getattr(health_record, "lab_patient", None)
     if request.method == "POST":
         patient_form = PatientForm(request.POST, instance=patient, prefix="p")
         order_form = OrderForm(request.POST, instance=order, prefix="o", user=request.user)
@@ -77,7 +94,20 @@ def reception(request, pk=None):
     else:
         initial_patient = {}
         initial_order = {}
-        if appointment and not patient:
+        health_record = None
+        if not patient:
+            if request.GET.get("ehr"):
+                health_record = Patient.objects.filter(pk=request.GET["ehr"]).first()
+            elif appointment:
+                health_record = Patient.objects.filter(national_code=appointment.national_code).first()
+        if health_record:
+            initial_patient = {
+                name: getattr(health_record, name) for name in (
+                    "national_code", "foreign_id", "first_name", "last_name", "father_name", "sex", "mobile", "phone", "address")
+            }
+            if health_record.birth_date:
+                initial_patient["birth_date"] = jdatetime.date.fromgregorian(date=health_record.birth_date).strftime("%Y/%m/%d")
+        elif appointment and not patient:
             first, _, last = appointment.full_name.partition(" ")
             initial_patient = {
                 "national_code": appointment.national_code, "first_name": first, "last_name": last,
@@ -96,6 +126,7 @@ def reception(request, pk=None):
     return render(request, "lab/staff/reception.html", {
         "patient_form": patient_form, "order_form": order_form, "order": order, "patient": patient,
         "appointment": appointment, "query": query, "matches": find_patients(query) if query else None,
+        "health_matches": find_health_records(query) if query else None,
     })
 
 

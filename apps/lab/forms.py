@@ -2,6 +2,7 @@ import datetime
 
 import jdatetime
 from django import forms
+from django.db.models import Q
 from django.conf import settings
 from django.utils import timezone
 
@@ -90,18 +91,24 @@ class SamplingBookingForm(DigitsMixin, forms.Form):
 
 
 class BookingTrackForm(DigitsMixin, forms.Form):
-    digit_fields = ("tracking_code", "mobile")
+    """کد پیگیری همیشه لازم است، به‌همراه موبایل یا کد ملی."""
+
+    digit_fields = ("tracking_code", "identifier")
     tracking_code = forms.CharField(label="کد پیگیری", max_length=8)
-    mobile = forms.CharField(label="شماره موبایل", max_length=11)
+    identifier = forms.CharField(label="شماره موبایل یا کد ملی", max_length=11)
 
     def __init__(self, data=None, **kwargs):
+        if data is not None and "identifier" not in data and "mobile" in data:
+            data = data.copy()
+            data["identifier"] = data["mobile"]
         super().__init__(self._normalize(data), **kwargs)
 
     def clean(self):
         cleaned = super().clean()
+        identifier = cleaned.get("identifier", "").strip()
         appointment = SamplingAppointment.objects.filter(
-            tracking_code=cleaned.get("tracking_code", "").upper(), mobile=cleaned.get("mobile", "")
-        ).first()
+            Q(mobile=identifier) | Q(national_code=identifier), tracking_code=cleaned.get("tracking_code", "").strip().upper(),
+        ).first() if identifier else None
         if appointment is None:
             raise forms.ValidationError("نوبتی با این مشخصات یافت نشد.")
         cleaned["appointment"] = appointment
@@ -127,6 +134,7 @@ class PatientForm(DigitsMixin, forms.ModelForm):
 
     def __init__(self, data=None, *args, **kwargs):
         super().__init__(self._normalize(data), *args, **kwargs)
+        self.fields["national_code"].label = "کد ملی (کد شناسایی)"
         for name in ("basic_plan", "supplementary_plan"):
             self.fields[name].queryset = self.fields[name].queryset.filter(is_active=True)
         if self.instance.pk:

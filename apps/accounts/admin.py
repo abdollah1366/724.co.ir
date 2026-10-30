@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 from django.utils import timezone
 
 from . import club
-from .models import PointTransaction, Profile, Redemption, Reward
+from .models import PointTransaction, Profile, Redemption, Reward, StaffAccount
 
 
 class PointTransactionInline(admin.TabularInline):
@@ -57,3 +57,18 @@ class RedemptionAdmin(admin.ModelAdmin):
     def cancel_and_refund(self, request, queryset):
         count = sum(1 for r in queryset.select_related("user") if club.cancel_redemption(r))
         self.message_user(request, f"{count} جایزه لغو و ژتون برگشت داده شد.", messages.SUCCESS)
+
+
+@admin.register(StaffAccount)
+class StaffAccountAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "national_code", "mobile", "must_change_password", "password_changed_at")
+    list_filter = ("must_change_password",)
+    search_fields = ("national_code", "mobile", "user__username", "user__first_name", "user__last_name")
+    readonly_fields = ("password_changed_at",)
+    raw_id_fields = ("user",)
+
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    has_view_permission = has_change_permission = has_add_permission = has_delete_permission = (
+        lambda self, request, obj=None: request.user.is_superuser)

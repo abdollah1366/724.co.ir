@@ -20,6 +20,11 @@ class AppointmentQuerySet(models.QuerySet):
 
 
 class Appointment(models.Model):
+    class Source(models.TextChoices):
+        ONLINE = "online", "اینترنتی"
+        IN_PERSON = "in_person", "حضوری (پذیرش / منشی)"
+        PHONE = "phone", "تلفنی (پذیرش / منشی)"
+
     class Status(models.TextChoices):
         PENDING = "pending", "در انتظار تأیید"
         CONFIRMED = "confirmed", "تأیید شده"
@@ -37,6 +42,11 @@ class Appointment(models.Model):
     national_code = models.CharField("کد ملی", max_length=10, validators=[validate_national_code])
     mobile = models.CharField("موبایل", max_length=11, validators=[validate_mobile])
     status = models.CharField("وضعیت", max_length=12, choices=Status.choices, default=Status.PENDING)
+    source = models.CharField("نحوه ثبت", max_length=10, choices=Source.choices, default=Source.ONLINE)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+        verbose_name="ثبت‌کننده (کارمند)", editable=False,
+    )
     patient = models.ForeignKey(
         "ehr.Patient", on_delete=models.PROTECT, null=True, blank=True, related_name="appointments",
         verbose_name="پرونده بیمار", help_text="با کد ملی خودکار وصل می‌شود.",

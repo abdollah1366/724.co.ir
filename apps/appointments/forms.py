@@ -1,6 +1,7 @@
 import datetime
 
 from django import forms
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.core.templatetags.persian import fa_digits, jalali
@@ -13,7 +14,7 @@ class BookingForm(forms.Form):
     date = forms.ChoiceField(label="تاریخ")
     time = forms.ChoiceField(label="ساعت")
     patient_full_name = forms.CharField(label="نام و نام خانوادگی", max_length=150)
-    national_code = forms.CharField(label="کد ملی", max_length=10)
+    national_code = forms.CharField(label="کد ملی (کد شناسایی)", max_length=10)
     mobile = forms.CharField(label="شماره موبایل", max_length=11)
     consent = forms.BooleanField(
         label="با قوانین حریم خصوصی موافقم و اجازه می‌دهم اطلاعاتم فقط برای ثبت و یادآوری نوبت استفاده شود.",
@@ -78,16 +79,108 @@ class BookingForm(forms.Form):
 
 
 class TrackingForm(forms.Form):
+    """پیگیری نوبت: کد پیگیری همیشه لازم است، به‌همراه موبایل یا کد ملی بیمار (حدس زدن هر دو با هم عملاً ناممکن است)."""
+
     tracking_code = forms.CharField(label="کد پیگیری", max_length=8)
-    mobile = forms.CharField(label="شماره موبایل", max_length=11)
+    identifier = forms.CharField(label="شماره موبایل یا کد ملی", max_length=11)
+
+    def __init__(self, data=None, *args, **kwargs):
+        if data is not None and "identifier" not in data and "mobile" in data:
+            # فرم و پیوندهای قدیمی که فقط «mobile» می‌فرستند
+            data = data.copy()
+            data["identifier"] = data["mobile"]
+        super().__init__(data, *args, **kwargs)
 
     def clean(self):
         cleaned = super().clean()
-        code = normalize_digits(cleaned.get("tracking_code", ""))
-        mobile = normalize_digits(cleaned.get("mobile", ""))
-        appointment = Appointment.objects.select_related("doctor").filter(tracking_code=code, mobile=mobile).first()
+        code = normalize_digits(cleaned.get("tracking_code", "")).strip()
+        identifier = normalize_digits(cleaned.get("identifier", "")).strip()
+        appointment = None
+        if code and identifier:
+            appointment = Appointment.objects.select_related("doctor").filter(
+                Q(mobile=identifier) | Q(national_code=identifier), tracking_code=code
+            ).first()
         if not appointment:
             # پیام عمومی تا وجود یا عدم وجود کد پیگیری افشا نشود.
             raise forms.ValidationError("نوبتی با این مشخصات یافت نشد.")
         cleaned["appointment"] = appointment
         return cleaned
+
+
+class ReceptionBookingForm(forms.Form):
+    """نوبت حضوری یا تلفنی که منشی / پذیرش برای بیمار ثبت می‌کند؛ پرونده بیمار با کد ملی یکی می‌شود."""
+
+    national_code = forms.CharField(label="کد ملی (کد شناسایی)", max_length=10)
+    first_name = forms.CharField(label="نام", max_length=80)
+    last_name = forms.CharField(label="نام خانوادگی", max_length=80)
+    mobile = forms.CharField(label="شماره موبایل", max_length=11)
+    time = forms.ChoiceField(label="ساعت آزاد", required=False)
+    custom_time = forms.TimeField(
+        label="یا ساعت دلخواه (خارج از برنامه، مثل ۱۸:۳۰)", required=False,
+        help_text="فقط اگر پزشک بیمار اضافه می‌پذیرد؛ ساعتی که نوبت دارد پذیرفته نمی‌شود.",
+    )
+    source = forms.ChoiceField(
+        label="نحوه مراجعه", choices=[c for c in Appointment.Source.choices if c[0] != Appointment.Source.ONLINE],
+        initial=Appointment.Source.IN_PERSON,
+    )
+    identity_checked = forms.BooleanField(label="کارت ملی / مدرک شناسایی بیمار را دیدم", required=False)
+    consent = forms.BooleanField(label="بیمار با ثبت اطلاعاتش برای نوبت و پیامک یادآوری موافق است")
+    check_in_now = forms.BooleanField(label="بیمار الان حاضر است؛ شماره صف هم صادر شود (فقط نوبت امروز)", required=False)
+    special = forms.BooleanField(label="اولویت‌دار (سالمند، باردار، معلول، کودک)", required=False)
+
+    def __init__(self, data=None, *args, doctor, date, **kwargs):
+        if data is not None:
+            data = data.copy()
+            for name in ("national_code", "mobile", "custom_time"):
+                if name in data:
+                    data[name] = normalize_digits(data[name]).strip()
+        super().__init__(data, *args, **kwargs)
+        self.doctor, self.date = doctor, date
+        self.slots = doctor.available_slots(date, staff=True)
+        self.fields["time"].choices = [("", "— انتخاب ساعت —")] + [
+            (t.strftime("%H:%M"), fa_digits(t.strftime("%H:%M"))) for t in self.slots]
+        if date != timezone.localdate():
+            del self.fields["check_in_now"]
+
+    def clean_national_code(self):
+        value = normalize_digits(self.cleaned_data["national_code"])
+        validate_national_code(value)
+        return value
+
+    def clean_mobile(self):
+        value = normalize_digits(self.cleaned_data["mobile"])
+        validate_mobile(value)
+        return value
+
+    def clean(self):
+        cleaned = super().clean()
+        chosen, custom = cleaned.get("time"), cleaned.get("custom_time")
+        if chosen:
+            cleaned["time"] = datetime.time.fromisoformat(chosen)
+        elif custom:
+            custom = custom.replace(second=0, microsecond=0)
+            today = timezone.localdate()
+            if self.date < today or (self.date == today and custom <= timezone.localtime().time()):
+                self.add_error("custom_time", "این ساعت گذشته است.")
+            elif self.doctor.appointments.active().filter(date=self.date, time=custom).exists():
+                self.add_error("custom_time", "این ساعت قبلاً نوبت دارد.")
+            cleaned["time"] = custom
+        else:
+            raise forms.ValidationError("یک ساعت آزاد انتخاب کنید یا ساعت دلخواه را بنویسید.")
+        return cleaned
+
+    def save(self, user):
+        """پرونده بیمار را پیدا یا می‌سازد و نوبت تأییدشده را ثبت می‌کند (داخل transaction.atomic صدا زده شود)."""
+        from apps.ehr import services
+
+        data = self.cleaned_data
+        patient = services.reception_patient(
+            data["national_code"], verified=data["identity_checked"],
+            first_name=data["first_name"], last_name=data["last_name"], mobile=data["mobile"],
+        )
+        return Appointment.objects.create(
+            doctor=self.doctor, date=self.date, time=data["time"], patient=patient,
+            patient_full_name=f"{data['first_name']} {data['last_name']}".strip(),
+            national_code=data["national_code"], mobile=data["mobile"],
+            status=Appointment.Status.CONFIRMED, source=data["source"], created_by=user, consent_at=timezone.now(),
+        )

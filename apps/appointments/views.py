@@ -1,9 +1,12 @@
+from django.conf import settings
 from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from apps.audit.context import client_ip
 from apps.clinic.models import Doctor
+from apps.lab.services.portal import rate_limited
 
 from .forms import BookingForm, TrackingForm
 from .models import Appointment
@@ -55,6 +58,9 @@ def detail(request, pk):
 
 def track(request):
     form = TrackingForm(request.POST or None)
+    if request.method == "POST" and rate_limited(f"appt-track:{client_ip(request)}", limit=settings.TRACKING_LIMIT_PER_HOUR):
+        messages.error(request, "تعداد تلاش‌ها زیاد است؛ یک ساعت دیگر دوباره تلاش کنید یا با پذیرش تماس بگیرید.")
+        return render(request, "appointments/track.html", {"form": TrackingForm()})
     if request.method == "POST" and form.is_valid():
         appointment = form.cleaned_data["appointment"]
         _remember(request, appointment)

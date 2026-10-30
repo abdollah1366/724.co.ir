@@ -13,8 +13,9 @@ from apps.appointments.models import Appointment
 from apps.clinic.models import Doctor
 from apps.core.db import lock_own_rows
 from apps.core.sms import send_sms
-from apps.core.validators import normalize_digits
+from apps.core.validators import normalize_digits, validate_national_code
 
+from . import services
 from .models import ClinicTicket, Patient, Reminder
 
 # ---------------------------------------------------------------- یادآور
@@ -142,15 +143,22 @@ def check_in(appointment, user, priority=ClinicTicket.Priority.NORMAL):
     return _issue(appointment.doctor, user, priority, appointment.patient, appointment)
 
 
-def walk_in(doctor, user, identifier="", priority=ClinicTicket.Priority.NORMAL):
-    """بیمار بدون نوبت قبلی: با کد ملی یا شماره پرونده به پرونده وصل می‌شود (اختیاری)."""
+def walk_in(doctor, user, identifier="", priority=ClinicTicket.Priority.NORMAL, first_name="", last_name="", mobile=""):
+    """بیمار بدون نوبت قبلی: با کد ملی یا شماره پرونده به پرونده وصل می‌شود (اختیاری).
+
+    کد ملی تازه با نام بیمار، پرونده جدید می‌سازد تا بخش‌های دیگر دوباره ثبتش نکنند.
+    """
     patient = None
     identifier = normalize_digits(identifier or "").strip()
     if identifier:
         patient = Patient.objects.filter(national_code=identifier).first() or Patient.objects.filter(
             file_number__iexact=identifier).first()
         if patient is None:
-            raise ValidationError("پرونده‌ای با این کد ملی یا شماره پرونده پیدا نشد؛ ابتدا پرونده بسازید یا خالی بگذارید.")
+            if not (first_name and last_name):
+                raise ValidationError("پرونده‌ای با این کد ملی یا شماره پرونده پیدا نشد؛ برای بیمار جدید نام و نام خانوادگی "
+                                      "را هم بنویسید یا کد را خالی بگذارید.")
+            validate_national_code(identifier)
+            patient = services.reception_patient(identifier, first_name=first_name, last_name=last_name, mobile=mobile)
     return _issue(doctor, user, priority, patient)
 
 

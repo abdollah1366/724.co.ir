@@ -13,7 +13,9 @@
 {% if matches is not None %}
   <div class="card">
     {% for p in matches %}<p><a href="?patient={{ p.pk }}{% if appointment %}&appointment={{ appointment.pk }}{% endif %}">{{ p.full_name }}</a> <span class="muted" dir="ltr">{{ p.identifier }}</span> · {{ p.mobile|fa_digits }}</p>
-    {% empty %}<p class="muted">بیماری پیدا نشد؛ اطلاعات بیمار جدید را وارد کنید.</p>{% endfor %}
+    {% empty %}{% if not health_matches %}<p class="muted">بیماری پیدا نشد؛ اطلاعات بیمار جدید را وارد کنید.</p>{% endif %}{% endfor %}
+    {% for h in health_matches %}<p>🗂️ <a href="?ehr={{ h.pk }}{% if appointment %}&appointment={{ appointment.pk }}{% endif %}">{{ h.full_name }}</a> <span class="muted" dir="ltr">{{ h.identifier }}</span>
+      · <span class="muted">پرونده سلامت {{ h.file_number|fa_digits }} (در درمانگاه یا داروخانه ثبت شده؛ مشخصات خودکار پر می‌شود)</span></p>{% endfor %}
   </div>
 {% endif %}
 {% endif %}

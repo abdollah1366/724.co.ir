@@ -1,8 +1,11 @@
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -10,7 +13,43 @@ from apps.appointments.models import Appointment
 
 from . import club as club_rules
 from .forms import SignupForm
-from .models import Profile, Reward
+from .models import Profile, Reward, StaffAccount
+
+
+class PasswordChangeView(auth_views.PasswordChangeView):
+    """تغییر رمز؛ برای کارکنان داخل پیشخوان و پس از آن پرچم «رمز پیش‌فرض» برداشته می‌شود."""
+
+    template_name = "accounts/password_change.html"
+    success_url = reverse_lazy("accounts:dashboard")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        account = StaffAccount.objects.filter(user=self.request.user).first()
+        context["base_template"] = "staff/base.html" if self.request.user.is_staff else "base.html"
+        context["forced"] = bool(account and account.must_change_password)
+        return context
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        StaffAccount.objects.filter(user=self.request.user).update(must_change_password=False, password_changed_at=timezone.now())
+        messages.success(self.request, "رمز عبور شما تغییر کرد.")
+        return response
+
+    def get_success_url(self):
+        return reverse("core:staff_home") if self.request.user.is_staff else super().get_success_url()
+
+
+class StaffLogoutView(auth_views.LogoutView):
+    """خروج: کارکنان به صفحه ورود پنل مدیریت برمی‌گردند و مشتریان به صفحه اول سایت."""
+
+    def post(self, request, *args, **kwargs):
+        self.was_staff = request.user.is_authenticated and request.user.is_staff
+        return super().post(request, *args, **kwargs)
+
+    def get_default_redirect_url(self):
+        if self.next_page is None and getattr(self, "was_staff", False):
+            return f"{reverse('admin:login')}?next={reverse('core:staff_home')}"
+        return super().get_default_redirect_url()
 
 
 def signup(request):

@@ -1,0 +1,51 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}ثبت نوبت حضوری{% endblock %}
+{% block ehr_content %}
+<h1>ثبت نوبت حضوری / تلفنی</h1>
+<p class="muted">کد ملی بیمار کد شناسایی اوست: اگر قبلاً در هر بخش (درمانگاه، داروخانه، آزمایشگاه) ثبت شده باشد مشخصاتش خودکار پر می‌شود و دوباره پرونده ساخته نمی‌شود.
+  · <a href="{% url 'ehr:queue_reception' %}">پذیرش و صف امروز</a></p>
+
+<form method="get" class="card filters" id="pick">
+  <div class="field"><label for="nc">کد ملی (کد شناسایی)</label>
+    <input type="search" id="nc" name="nc" value="{{ national_code }}" inputmode="numeric" maxlength="10" dir="ltr" autofocus></div>
+  <div class="field"><label for="doctor">پزشک / درمانگر</label>
+    <select id="doctor" name="doctor" onchange="this.form.date.value='';this.form.submit()">
+      <option value="">— انتخاب پزشک —</option>
+      {% for d in doctors %}<option value="{{ d.pk }}"{% if d == doctor %} selected{% endif %}>{{ d.full_name }}{% if d.department %} · {{ d.department }}{% endif %}</option>{% endfor %}
+    </select></div>
+  <div class="field"><label for="date">روز</label>
+    <select id="date" name="date" onchange="this.form.submit()"{% if not dates %} disabled{% endif %}>
+      {% for d in dates %}<option value="{{ d.isoformat }}"{% if d == date %} selected{% endif %}>{{ d|jalali:"%A %d %B" }}</option>
+      {% empty %}<option value="">{% if doctor %}برنامه کاری ثبت نشده{% else %}اول پزشک را انتخاب کنید{% endif %}</option>{% endfor %}
+    </select></div>
+  <button class="btn">جست‌وجو و نمایش ساعت‌ها</button>
+</form>
+
+{% if national_code %}
+<div class="alert {% if patient %}alert-success{% else %}alert-info{% endif %}" role="status">
+  {% if patient %}پرونده موجود: <strong>{{ patient.full_name }}</strong> · شماره پرونده {{ patient.file_number|fa_digits }}{% if not patient.is_verified %} · <span class="badge badge-warn">هویت هنوز با کارت ملی تطبیق نشده</span>{% endif %}
+  {% else %}بیماری با این کد ملی ثبت نشده؛ با ثبت نوبت، پرونده او هم ساخته می‌شود و در همه بخش‌ها قابل استفاده است.{% endif %}
+</div>
+{% endif %}
+
+{% if form %}
+<div class="queue-grid">
+  <form method="post" class="form card" novalidate>{% csrf_token %}
+    <h2>{{ doctor.full_name }} · {{ date|jalali:"%A %d %B" }}</h2>
+    {% if not form.slots %}<p class="muted">ساعت آزادی در برنامه این روز نمانده؛ در صورت موافقت پزشک ساعت دلخواه بنویسید.</p>{% endif %}
+    {% include "includes/form.html" with form=form %}
+    <button class="btn">ثبت نوبت</button>
+  </form>
+  <div class="card">
+    <h2>نوبت‌های این روز</h2>
+    <div class="table-wrap"><table class="table data">
+      <thead><tr><th>ساعت</th><th>بیمار</th><th>نحوه ثبت</th><th>وضعیت</th></tr></thead>
+      <tbody>{% for a in day_appointments %}
+        <tr><td>{{ a.time|time:"H:i"|fa_digits }}</td><td>{{ a.patient_full_name }}</td><td>{{ a.get_source_display }}</td><td>{{ a.get_status_display }}</td></tr>
+      {% empty %}<tr><td colspan="4" class="muted">هنوز نوبتی ثبت نشده.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

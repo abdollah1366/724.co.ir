@@ -1,0 +1,18 @@
+{% extends "ehr/base.html" %}
+{% load persian %}
+{% block ehr_title %}رسید نوبت{% endblock %}
+{% block ehr_content %}
+<div class="card narrow">
+  <h1>نوبت ثبت شد</h1>
+  <p><strong>{{ appointment.patient_full_name }}</strong> · کد ملی <span dir="ltr">{{ appointment.masked_national_code|fa_digits }}</span></p>
+  <p>{{ appointment.doctor.full_name }}{% if appointment.doctor.room %} · {{ appointment.doctor.room }}{% endif %}</p>
+  <p>{{ appointment.date|jalali:"%A %d %B %Y" }} · ساعت {{ appointment.time|time:"H:i"|fa_digits }}</p>
+  <p class="lead">کد پیگیری: <strong dir="ltr">{{ appointment.tracking_code|fa_digits }}</strong></p>
+  <p class="muted small">بیمار با این کد و شماره موبایل یا کد ملی خود می‌تواند نوبت را در سایت پیگیری یا لغو کند.</p>
+  <div class="no-print">
+    <button class="btn" type="button" onclick="window.print()">چاپ رسید</button>
+    <a class="btn btn-outline" href="{% url 'ehr:reception_book' %}?doctor={{ appointment.doctor_id }}&date={{ appointment.date.isoformat }}">نوبت بعدی همین پزشک</a>
+    <a class="btn btn-outline" href="{% url 'ehr:queue_reception' %}">پذیرش و صف امروز</a>
+  </div>
+</div>
+{% endblock %}
