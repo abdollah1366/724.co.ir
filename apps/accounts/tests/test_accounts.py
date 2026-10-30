@@ -46,11 +46,11 @@ class SignupLoginTests(TestCase):
         signup(self.client)
         self.assertEqual(Profile.objects.count(), 1)
 
-    def test_weak_password_rejected(self):
+    def test_short_password_rejected(self):
         response = self.client.post(
             reverse("accounts:signup"),
-            {"first_name": "a", "last_name": "b", "mobile": "09121234567", "password1": "123456",
-             "password2": "123456", "consent": "on"},
+            {"first_name": "a", "last_name": "b", "mobile": "09121234567", "password1": "1234",
+             "password2": "1234", "consent": "on"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Profile.objects.exists())
@@ -212,3 +212,30 @@ class RewardsAndLevelsTests(TestCase):
         self.give(1000, "a2")
         self.assertEqual(club.level_for(self.user)["next_name"], None)
         self.assertContains(self.client.get(reverse("accounts:dashboard")), "طلایی")
+
+
+class SharedMobileSignupTests(TestCase):
+    """یک شماره برای چند نفر (پدر یا مادر برای فرزندان) و رمز ساده برای مراجعان."""
+
+    def post(self, **extra):
+        data = {"first_name": "علی", "last_name": "رضایی", "mobile": "09121234567", "password1": "09121234567",
+                "password2": "09121234567", "consent": "on"}
+        data.update(extra)
+        return self.client.post(reverse("accounts:signup"), data)
+
+    def test_simple_password_same_as_username_is_allowed(self):
+        self.assertRedirects(self.post(), reverse("accounts:dashboard"), fetch_redirect_response=False)
+        self.assertTrue(get_user_model().objects.get(username="09121234567").check_password("09121234567"))
+
+    def test_second_person_with_same_mobile_uses_national_code(self):
+        self.post()
+        self.client.logout()
+        response = self.post(first_name="سارا")
+        self.assertContains(response, "کد ملی خودتان را بنویسید")
+        self.assertRedirects(self.post(first_name="سارا", national_code="۰۰۱۳۵۴۲۴۱۹", password1="sara1", password2="sara1"),
+                             reverse("accounts:dashboard"), fetch_redirect_response=False)
+        child = get_user_model().objects.get(username="0013542419")
+        self.assertEqual(child.profile.mobile, "09121234567")
+        self.assertEqual(Profile.objects.filter(mobile="09121234567").count(), 2)
+        self.client.logout()
+        self.assertTrue(self.client.login(username="0013542419", password="sara1"))

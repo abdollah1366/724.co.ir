@@ -1,8 +1,21 @@
 {% extends "base.html" %}
+{% load persian %}
 {% block title %}پیگیری نوبت | {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section class="container section narrow">
   <h1>پیگیری نوبت</h1>
+  {% if appointments %}
+  <div class="card">
+    <h2>نوبت‌های یافت‌شده</h2>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>تاریخ</th><th>ساعت</th><th>پزشک</th><th>بیمار</th><th></th></tr></thead>
+      <tbody>{% for a in appointments %}
+        <tr><td>{{ a.date|jalali }}</td><td>{{ a.time|time:"H:i"|fa_digits }}</td><td>{{ a.doctor.full_name }}</td>
+          <td>{{ a.patient_full_name }}</td><td><a href="{% url 'appointments:detail' a.pk %}">جزئیات</a></td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endif %}
   <form method="post" class="form card" novalidate>
     {% csrf_token %}
     {% include "includes/form.html" %}

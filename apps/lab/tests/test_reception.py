@@ -272,14 +272,22 @@ class BookingTests(TestCase):
         self.assertEqual(appointment.status, "cancelled")
         self.assertEqual(len(booking.available_slots("lab", self.day)), 2)
 
-    def test_track_needs_code_and_mobile(self):
+    def test_track_with_one_identifier_cancel_only_by_code(self):
         self._book()
         appointment = SamplingAppointment.objects.get()
-        self.client.session.flush()
+        detail = reverse("lab:booking_detail", args=[appointment.pk])
         other = self.client_class()
-        self.assertRedirects(other.get(reverse("lab:booking_detail", args=[appointment.pk])), reverse("lab:booking_track"))
-        response = other.post(reverse("lab:booking_track"), {"tracking_code": appointment.tracking_code, "mobile": "09121234567"})
-        self.assertRedirects(response, reverse("lab:booking_detail", args=[appointment.pk]))
+        self.assertRedirects(other.get(detail), reverse("lab:booking_track"))
+        for identifier in ("09121234567", NATIONAL_CODE):
+            self.assertRedirects(other.post(reverse("lab:booking_track"), {"identifier": identifier}), detail)
+        other.post(reverse("lab:booking_cancel", args=[appointment.pk]))
+        appointment.refresh_from_db()
+        self.assertNotEqual(appointment.status, "cancelled")  # با موبایل یا کد ملی فقط مشاهده
+        self.assertRedirects(other.post(reverse("lab:booking_track"), {"identifier": appointment.tracking_code.lower()}), detail)
+        other.post(reverse("lab:booking_cancel", args=[appointment.pk]))
+        appointment.refresh_from_db()
+        self.assertEqual(appointment.status, "cancelled")
+        self.assertContains(other.post(reverse("lab:booking_track"), {"identifier": "09350000000"}), "یافت نشد")
 
     def test_home_booking_requires_address(self):
         SamplingSchedule.objects.create(kind="home", weekday=self.day.weekday(), start_time=datetime.time(9), end_time=datetime.time(10))

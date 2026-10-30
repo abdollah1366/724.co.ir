@@ -1,8 +1,14 @@
 {% extends "base.html" %}
+{% load persian %}
 {% block title %}پیگیری نوبت نمونه‌گیری | {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section class="container section narrow">
   <h1>پیگیری نوبت نمونه‌گیری</h1>
+  {% if appointments %}
+  <div class="card"><h2>نوبت‌های یافت‌شده</h2>
+    {% for a in appointments %}<p><a href="{% url 'lab:booking_detail' a.pk %}">{{ a.date|jalali }} · {{ a.time|time:"H:i"|fa_digits }}</a> · {{ a.full_name }} · {{ a.get_kind_display }}</p>{% endfor %}
+  </div>
+  {% endif %}
   <form method="post" class="form card" novalidate>{% csrf_token %}{% include "includes/form.html" %}<button class="btn" type="submit">پیگیری</button></form>
 </section>
 {% endblock %}

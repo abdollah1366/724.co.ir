@@ -166,13 +166,14 @@ AUTHENTICATION_BACKENDS = [
     "apps.accounts.backends.NationalCodeBackend",
 ]
 
-# حداقل طول رمز به خواست مدیریت مجموعه ۵ نویسه است؛ رمز تماماً عددی، رایج یا شبیه نام کاربری پذیرفته نمی‌شود.
+# حداقل طول رمز به خواست مدیریت مجموعه ۵ نویسه است. رمز مراجعان می‌تواند ساده یا هم‌نام با نام کاربری باشد؛
+# رمز کارکنان (دسترسی به پرونده بیماران) تماماً عددی، رایج یا شبیه نام کاربری پذیرفته نمی‌شود.
 PASSWORD_MIN_LENGTH = int(os.environ.get("PASSWORD_MIN_LENGTH", "5"))
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": PASSWORD_MIN_LENGTH}},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {"NAME": "apps.accounts.password_validation.StaffUserAttributeSimilarityValidator"},
+    {"NAME": "apps.accounts.password_validation.StaffCommonPasswordValidator"},
+    {"NAME": "apps.accounts.password_validation.StaffNumericPasswordValidator"},
 ]
 
 LANGUAGE_CODE = "fa"

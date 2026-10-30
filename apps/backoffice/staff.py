@@ -93,7 +93,8 @@ class StaffForm(forms.Form):
     def clean_password(self):
         password = self.cleaned_data.get("password")
         if password:
-            validate_password(password, self.instance)
+            validate_password(password, self.instance or User(
+                username=self.data.get("username") or self.data.get("national_code") or "", is_staff=True))
         return password
 
     def clean(self):

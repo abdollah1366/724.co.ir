@@ -16,12 +16,15 @@ from ..services import booking, notify
 from ..services.portal import rate_limited
 
 SESSION_KEY = "lab_appointment_ids"
+# فقط نوبتی که همین مرورگر ثبت کرده یا با کد پیگیری باز کرده لغوشدنی است.
+CANCEL_KEY = "lab_appointment_cancel_ids"
 
 
-def _remember(request, appointment):
-    ids = set(request.session.get(SESSION_KEY, []))
-    ids.add(appointment.pk)
-    request.session[SESSION_KEY] = list(ids)
+def _remember(request, appointment, can_cancel=True):
+    for key in (SESSION_KEY, CANCEL_KEY) if can_cancel else (SESSION_KEY,):
+        ids = set(request.session.get(key, []))
+        ids.add(appointment.pk)
+        request.session[key] = list(ids)
 
 
 def _session_appointment(request, pk):
@@ -72,7 +75,8 @@ def booking_detail(request, pk):
     appointment = _session_appointment(request, pk)
     if appointment is None:
         return redirect("lab:booking_track")
-    return render(request, "lab/booking_detail.html", {"appointment": appointment})
+    return render(request, "lab/booking_detail.html", {
+        "appointment": appointment, "can_cancel": pk in request.session.get(CANCEL_KEY, [])})
 
 
 def booking_track(request):
@@ -81,9 +85,12 @@ def booking_track(request):
         messages.error(request, "تعداد تلاش‌ها زیاد است؛ یک ساعت دیگر دوباره تلاش کنید یا با آزمایشگاه تماس بگیرید.")
         return render(request, "lab/booking_track.html", {"form": BookingTrackForm()})
     if request.method == "POST" and form.is_valid():
-        appointment = form.cleaned_data["appointment"]
-        _remember(request, appointment)
-        return redirect("lab:booking_detail", pk=appointment.pk)
+        appointments = form.cleaned_data["appointments"]
+        for appointment in appointments:
+            _remember(request, appointment, can_cancel=form.cleaned_data["by_code"])
+        if len(appointments) == 1:
+            return redirect("lab:booking_detail", pk=appointments[0].pk)
+        return render(request, "lab/booking_track.html", {"form": BookingTrackForm(), "appointments": appointments})
     return render(request, "lab/booking_track.html", {"form": form})
 
 
@@ -92,6 +99,9 @@ def booking_cancel(request, pk):
     appointment = _session_appointment(request, pk)
     if appointment is None:
         return redirect("lab:booking_track")
+    if appointment.pk not in request.session.get(CANCEL_KEY, []):
+        messages.error(request, "برای لغو، نوبت را با کد پیگیری باز کنید.")
+        return redirect("lab:booking_detail", pk=appointment.pk)
     try:
         booking.cancel(appointment)
     except ValidationError as exc:

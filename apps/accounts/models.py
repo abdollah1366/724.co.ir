@@ -17,7 +17,12 @@ def generate_referral_code():
 
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile", verbose_name="کاربر")
-    mobile = models.CharField("موبایل", max_length=11, unique=True, null=True, blank=True, validators=[validate_mobile])
+    # یک شماره می‌تواند مال چند عضو باشد (پدر یا مادر برای فرزندانش).
+    mobile = models.CharField("موبایل", max_length=11, null=True, blank=True, db_index=True, validators=[validate_mobile])
+    national_code = models.CharField(
+        "کد ملی", max_length=10, unique=True, null=True, blank=True, validators=[validate_national_code],
+        help_text="وقتی شماره موبایل مشترک است، نام کاربری عضو همین کد ملی است.",
+    )
     referral_code = models.CharField("کد معرف", max_length=8, unique=True, default=generate_referral_code, editable=False)
     referred_by = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="referrals", verbose_name="معرفی‌شده توسط"

@@ -106,9 +106,7 @@ class TrackingAndPrivacyTests(TestCase):
         self.assertRedirects(response, reverse("appointments:track"))
 
     def test_track_with_wrong_mobile_fails(self):
-        response = self.client.post(
-            reverse("appointments:track"), {"tracking_code": self.appointment.tracking_code, "mobile": "09350000000"}
-        )
+        response = self.client.post(reverse("appointments:track"), {"identifier": "09350000000"})
         self.assertContains(response, "نوبتی با این مشخصات یافت نشد")
 
     def test_track_then_cancel(self):
