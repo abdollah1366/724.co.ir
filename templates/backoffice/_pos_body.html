@@ -1,0 +1,32 @@
+{% load persian %}
+<div class="pos-grid">
+  <div class="card">
+    {% if invoice and lines %}
+    <div class="table-wrap"><table class="table data">
+      <tr><th>کالا</th><th class="num">تعداد</th><th class="num">قیمت واحد</th><th class="num">مالیات</th><th class="num">جمع</th><th></th></tr>
+      {% for line in lines %}
+      <tr data-product="{{ line.product_id }}"><td>{{ line.product.name }}{% if line.product.requires_prescription %} <span class="badge badge-warn">نسخه‌ای</span>{% endif %}{% if line.product.is_controlled %} <span class="badge status-cancelled">کنترل‌شده</span>{% endif %}</td>
+      <td class="num"><form method="post" action="{% url 'backoffice:pos_quantity' line.pk %}" data-ajax class="inline-form">{% csrf_token %}<input type="number" name="quantity" value="{{ line.quantity }}" min="0" class="qty-input" aria-label="تعداد {{ line.product.name }}"><noscript><button class="link-button">ثبت</button></noscript></form></td>
+      <td class="num">{{ line.unit_price|rial }}</td><td class="num">{{ line.tax|rial }}</td><td class="num">{{ line.line_total|rial }}</td>
+      <td><form method="post" action="{% url 'backoffice:pos_remove' line.pk %}" data-ajax>{% csrf_token %}<button class="link-button" type="submit">حذف</button></form></td></tr>
+      {% endfor %}
+      <tfoot><tr><td colspan="4">مبلغ قابل پرداخت (پیش از تخفیف فاکتور)</td><td class="num pos-total">{{ invoice.total|rial }}</td><td></td></tr></tfoot>
+    </table></div>
+    {% else %}<p class="muted">برای شروع فروش، بارکد کالا را با بارکدخوان بزنید یا دکمه «📷 دوربین» را بزنید. کد دوبعدی بسته دارو، بارکد جعبه/ورق و برچسب بچ همه خوانده می‌شوند.</p>{% endif %}
+  </div>
+  <div>
+    {% if invoice and lines %}
+    <form method="post" action="{% url 'backoffice:pos_checkout' %}" class="form card" id="pos-checkout">{% csrf_token %}
+      <h3>پرداخت</h3>
+      {% if invoice.needs_prescription %}<div class="alert alert-warn">این فاکتور داروی نسخه‌ای دارد: شماره نسخه و نظام پزشکی را وارد کنید. ثبت نهایی فقط با حساب داروساز ممکن است.</div>{% endif %}
+      {% include "includes/form.html" with form=checkout %}
+      <button class="btn" type="submit">ثبت نهایی فاکتور</button>
+    </form>
+    {% endif %}
+    <form method="post" action="{% url 'backoffice:pos_close' %}" class="form card">{% csrf_token %}
+      <h3>بستن شیفت</h3>
+      {% include "includes/form.html" with form=close_form %}
+      <button class="btn btn-outline" type="submit">بستن شیفت</button>
+    </form>
+  </div>
+</div>

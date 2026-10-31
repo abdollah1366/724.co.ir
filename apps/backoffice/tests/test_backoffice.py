@@ -111,7 +111,7 @@ class BackofficeViewTests(TestCase):
         self.assertRedirects(response, reverse("backoffice:pos_invoice", args=[invoice.pk]))
         self.client.post(reverse("backoffice:pos_checkout"), data)  # ارسال دوباره فرم
         self.assertEqual(SalesInvoice.objects.filter(status="posted").count(), 1)
-        self.assertEqual(acc.account_balance(acc.CASH), 1_500_000)
+        self.assertEqual(acc.account_balance(register.cash_code), 1_500_000)
         self.assertContains(self.client.get(reverse("backoffice:pos_invoice", args=[invoice.pk])), invoice.number)
         self.client.post(reverse("backoffice:pos_close"), {"counted_cash": 1_500_000})
         session.refresh_from_db()

@@ -96,14 +96,14 @@ def add_item(prescription, **fields):
 
 def dispense(prescription, user, selections):
     """selections: [(item, product, quantity)]. فاکتور پیش‌نویس صندوق داروساز را می‌سازد؛ پرداخت و ثبت نهایی در صندوق."""
+    from apps.sales import cashbox
     from apps.sales import services as sales
-    from apps.sales.models import CashSession
 
     if not prescription.is_valid:
         raise ValidationError("نسخه معتبر نیست.")
-    session = CashSession.objects.filter(cashier=user, status=CashSession.Status.OPEN).first()
+    session = cashbox.user_session(user, cashbox.Department.PHARMACY)
     if session is None:
-        raise ValidationError("ابتدا شیفت صندوق خود را باز کنید.")
+        raise ValidationError("ابتدا شیفت صندوق داروخانه خود را باز کنید.")
     selections = [(item, product, qty) for item, product, qty in selections if qty]
     if not selections:
         raise ValidationError("تعداد هیچ دارویی وارد نشده است.")

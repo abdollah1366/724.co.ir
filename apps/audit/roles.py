@@ -16,6 +16,7 @@ ROLES = {
             **{m: EDIT for m in MASTER_DATA},
             "inventory.warehouse": EDIT, "inventory.location": EDIT, "inventory.batch": (VIEW, "change"),
             "inventory.inventorydocument": EDIT, "inventory.inventorydocumentline": EDIT,
+            "inventory.stockrequest": EDIT, "inventory.stockrequestline": EDIT,
             "purchasing.purchaseorder": EDIT, "purchasing.goodsreceipt": EDIT, "purchasing.purchaseinvoice": EDIT,
             "sales.salesinvoice": EDIT, "sales.salesreturn": EDIT, "sales.cashsession": EDIT, "sales.cashregister": EDIT,
             "accounting.party": EDIT, "accounting.account": EDIT, "accounting.payment": EDIT, "accounting.expense": EDIT,
@@ -30,6 +31,8 @@ ROLES = {
             "sales.post_salesinvoice", "sales.reverse_salesinvoice", "sales.post_salesreturn", "sales.use_pos",
             "accounting.post_payment", "accounting.reverse_payment", "accounting.post_expense", "accounting.reverse_expense",
             "accounting.view_financial_reports", "inventory.change_batch_status",
+            "inventory.post_stockrequest", "inventory.reverse_stockrequest", "inventory.issue_stockrequest",
+            "inventory.consume_inventorydocument", "inventory.count_inventorydocument",
         ],
     },
     "داروساز مسئول فنی": {
@@ -55,8 +58,19 @@ ROLES = {
             "inventory.inventorydocument": ("add", "change", "view"), "inventory.inventorydocumentline": ("add", "change", "delete", "view"),
             "purchasing.goodsreceipt": ("add", "change", "view"), "purchasing.goodsreceiptline": ("add", "change", "delete", "view"),
             "purchasing.purchaseorder": (VIEW,),
+            "inventory.stockrequest": ("add", "change", "view"), "inventory.stockrequestline": ("add", "change", "delete", "view"),
         },
-        "extra": ["inventory.post_inventorydocument", "purchasing.post_goodsreceipt"],
+        "extra": ["inventory.post_inventorydocument", "purchasing.post_goodsreceipt", "inventory.post_stockrequest",
+                  "inventory.issue_stockrequest", "inventory.consume_inventorydocument", "inventory.count_inventorydocument"],
+    },
+    # پرستار یا مسئول اتاق پانسمان، کلینیک و پاراکلینیک: درخواست کالا از داروخانه و ثبت مصرف داخلی بخش خودش.
+    "مسئول انبار بخش": {
+        "models": {
+            "shop.product": (VIEW,), "inventory.warehouse": (VIEW,), "inventory.stockbalance": (VIEW,),
+            "inventory.stockrequest": ("add", "change", "view"), "inventory.stockrequestline": ("add", "change", "delete", "view"),
+            "inventory.inventorydocument": ("add", "view"), "inventory.inventorydocumentline": ("add", "view"),
+        },
+        "extra": ["inventory.post_stockrequest", "inventory.consume_inventorydocument"],
     },
     "کارشناس خرید": {
         "models": {
@@ -287,7 +301,7 @@ ROLES.update({
             "finance.payrollline": (VIEW,), "finance.payrollitem": (VIEW,), "finance.employeeloan": (VIEW,),
             "finance.payrollprofile": (VIEW,),
             "core.outboxevent": (VIEW,), "core.featureflag": ("change", VIEW), "audit.auditlog": (VIEW,),
-            "telemed.consultpayment": (VIEW,),
+            "telemed.consultpayment": (VIEW,), "sales.cashregister": EDIT, "sales.cashsession": (VIEW,),
         },
         "extra": [
             "accounting.view_financial_reports", "accounting.close_accountingperiod", "accounting.post_manualjournal",
@@ -370,7 +384,7 @@ ROLES["مدیر کل"] = _merge(
 # گروه‌بندی نقش‌ها در صفحه مدیریت کارکنان
 ROLE_AREAS = [
     ("مدیریت", ["مدیر کل"]),
-    ("داروخانه و انبار", ["مدیر داروخانه", "داروساز مسئول فنی", "انباردار", "کارشناس خرید"]),
+    ("داروخانه و انبار", ["مدیر داروخانه", "داروساز مسئول فنی", "انباردار", "مسئول انبار بخش", "کارشناس خرید"]),
     ("درمانگاه", ["مسئول فنی درمانگاه", "پزشک", "پرستار", "درمانگر توانبخشی", "روانشناس", "منشی پزشک", "پذیرش درمانگاه"]),
     ("آزمایشگاه", ["مدیر آزمایشگاه", "مسئول فنی آزمایشگاه", "کارشناس آزمایشگاه", "نمونه‌گیر آزمایشگاه", "پذیرش آزمایشگاه",
                    "کارشناس بیمه آزمایشگاه", "مشاور آزمایشگاه", "کیوسک نوبت"]),
@@ -413,7 +427,8 @@ ROLE_DESCRIPTIONS = {
     "مدیر کل": "همه بخش‌های مالی، انبار، آزمایشگاه، نوبت‌دهی، کارکنان و گزارش‌های آماری؛ بدون دسترسی به پرونده پزشکی و جواب آزمایش",
     "مدیر داروخانه": "کالا، خرید، انبار، فروش، صندوق، حسابداری و گزارش مالی داروخانه",
     "داروساز مسئول فنی": "تأیید فروش نسخه‌ای، تحویل نسخه درمانگاه، مشاوره دارویی حضوری و آنلاین، وضعیت سری ساخت",
-    "انباردار": "رسید کالا، انتقال و شمارش انبار",
+    "انباردار": "رسید کالا، انتقال، تحویل درخواست بخش‌ها، چاپ برچسب و شمارش انبار",
+    "مسئول انبار بخش": "درخواست کالا از داروخانه و ثبت مصرف داخلی بخش خودش (اتاق پانسمان، کلینیک، پاراکلینیک)",
     "کارشناس خرید": "سفارش و فاکتور خرید، تأمین‌کنندگان",
     "صندوق‌دار": "صندوق فروش داروخانه و صندوق درمانگاه: صورتحساب بدون تخفیف، دریافت وجه، پرداخت استرداد تأییدشده",
     "حسابدار": "دریافت و پرداخت، هزینه‌ها، فاکتور خرید، سند دستی، تطبیق بانک، محاسبه تسویه، گزارش‌های مالی، "

@@ -1,5 +1,5 @@
 {% extends "lab/staff/base.html" %}
-{% load persian %}
+{% load persian cashbox_tags %}
 {% block lab_title %}پذیرش {{ order }}{% endblock %}
 {% block lab_content %}
 <div class="section-head">
@@ -82,6 +82,7 @@
         </p>
         {% if perms.lab.post_labpayment and payment_form %}
           <h3>دریافت / استرداد</h3>
+          {% cashbox_status "lab" %}
           <form method="post" action="{% url 'lab:staff_order_action' order.pk 'payment' %}" class="form">
             {% csrf_token %}<input type="hidden" name="token" value="{{ token }}">
             {% include "includes/form.html" with form=payment_form %}

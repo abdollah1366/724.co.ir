@@ -1,0 +1,40 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}شیفت صندوق من{% endblock %}
+{% block bo_content %}
+<h1>شیفت صندوق من</h1>
+{% if session %}
+<div class="card">
+  <h3>{{ session.register }} — {{ session.register.get_department_display }}</h3>
+  <p>باز از {{ session.opened_at|jalali:"%Y/%m/%d %H:%M" }} با موجودی اولیه {{ session.opening_cash|rial }} ریال.</p>
+  <p><strong>نقد مورد انتظار در صندوق: {{ expected|rial }} ریال</strong></p>
+  {% if pharmacy %}<p><a class="btn" href="{% url 'backoffice:pos' %}">🧾 رفتن به صندوق فروش داروخانه</a></p>{% endif %}
+  <p class="muted">دریافت نقد و کارت {{ session.register.get_department_display }} تا وقتی این شیفت باز است به حساب همین صندوق ثبت می‌شود.</p>
+</div>
+<form method="post" action="{% url 'backoffice:my_cashbox_close' %}" class="form card narrow">{% csrf_token %}
+  <h3>بستن شیفت</h3>
+  <p class="muted">پول نقد صندوق را بشمارید؛ اختلاف با مبلغ مورد انتظار به‌عنوان کسری یا اضافه صندوق ثبت می‌شود.</p>
+  {% include "includes/form.html" with form=close_form %}
+  <button class="btn btn-outline" type="submit">بستن شیفت</button>
+</form>
+{% else %}
+<form method="post" class="form card narrow">{% csrf_token %}
+  <h3>باز کردن شیفت</h3>
+  {% if form.fields.register.queryset.exists %}
+    {% include "includes/form.html" %}
+    <button class="btn" type="submit">باز کردن شیفت</button>
+  {% else %}
+    <p class="muted">صندوقی که شما صندوق‌دار مجاز آن باشید تعریف نشده است. از مدیر سیستم بخواهید در «صندوق‌ها» برای بخش شما صندوق تعریف کند.</p>
+  {% endif %}
+</form>
+{% endif %}
+<h2>شیفت‌های اخیر من</h2>
+<div class="table-wrap card"><table class="table data">
+  <tr><th>صندوق</th><th>باز شدن</th><th>بستن</th><th class="num">مورد انتظار</th><th class="num">شمارش‌شده</th><th class="num">اختلاف</th></tr>
+  {% for s in history %}
+  <tr><td>{{ s.register }}</td><td>{{ s.opened_at|jalali:"%Y/%m/%d %H:%M" }}</td><td>{% if s.closed_at %}{{ s.closed_at|jalali:"%H:%M" }}{% else %}باز{% endif %}</td>
+  <td class="num">{% if s.expected_cash is not None %}{{ s.expected_cash|rial }}{% endif %}</td><td class="num">{% if s.counted_cash is not None %}{{ s.counted_cash|rial }}{% endif %}</td><td class="num">{% if s.difference is not None %}{{ s.difference|rial }}{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="6" class="muted">سابقه‌ای نیست.</td></tr>
+  {% endfor %}
+</table></div>
+{% endblock %}

@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import staff, views
+from . import cashboxes, staff, views, warehouse
 
 app_name = "backoffice"
 
@@ -16,11 +16,20 @@ urlpatterns = [
     path("pos/", views.pos, name="pos"),
     path("pos/add/", views.pos_add, name="pos_add"),
     path("pos/lines/<int:pk>/remove/", views.pos_remove, name="pos_remove"),
+    path("pos/lines/<int:pk>/quantity/", views.pos_quantity, name="pos_quantity"),
     path("pos/checkout/", views.pos_checkout, name="pos_checkout"),
     path("pos/close/", views.pos_close, name="pos_close"),
     path("invoices/<int:pk>/", views.pos_invoice, name="pos_invoice"),
     path("api/products/lookup/", views.api_product_lookup, name="api_lookup"),
     path("api/products/<int:pk>/stock/", views.api_product_stock, name="api_stock"),
+    path("warehouse/", warehouse.workbench, name="warehouse"),
+    path("warehouse/requests/", warehouse.stock_requests, name="stock_requests"),
+    path("warehouse/requests/<int:pk>/<str:action>/", warehouse.stock_request_action, name="stock_request_action"),
+    path("warehouse/labels/", warehouse.labels, name="labels"),
+    path("api/scan/", warehouse.api_scan, name="api_scan"),
+    path("cashboxes/", cashboxes.cashboxes, name="cashboxes"),
+    path("cashbox/", cashboxes.my_cashbox, name="my_cashbox"),
+    path("cashbox/close/", cashboxes.my_cashbox_close, name="my_cashbox_close"),
     path("staff/", staff.staff_list, name="staff"),
     path("staff/new/", staff.staff_edit, name="staff_new"),
     path("staff/<int:pk>/", staff.staff_edit, name="staff_edit"),

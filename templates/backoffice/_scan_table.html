@@ -1,0 +1,10 @@
+<div class="scan-bar">
+  <input type="text" placeholder="بارکد، کد دوبعدی بسته یا برچسب بچ را اسکن کنید و Enter" autocomplete="off" data-scan inputmode="search" autofocus>
+</div>
+<div data-msg role="status" aria-live="polite"></div>
+<input type="hidden" name="items">
+<div class="table-wrap"><table class="table data">
+  <thead><tr><th>کالا</th><th>بچ</th><th>انقضا</th><th class="num">{{ onhand_label|default:"موجودی دفتری" }}</th><th>{{ qty_label|default:"تعداد" }}</th><th></th></tr></thead>
+  <tbody data-rows></tbody>
+</table></div>
+<p class="muted" data-empty>هنوز چیزی اسکن نشده است. اسکن دوباره یک کالا تعداد را بالا می‌برد؛ بارکد جعبه به اندازه ضریب جعبه می‌شمارد.</p>

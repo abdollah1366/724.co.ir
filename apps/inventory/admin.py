@@ -6,7 +6,10 @@ from django.shortcuts import render
 from apps.audit.admin_utils import DocumentAdmin, LockedInlineMixin, ReadOnlyAdmin
 
 from . import services
-from .models import Batch, BatchStatusChange, InventoryDocument, InventoryDocumentLine, Location, StockBalance, StockMove, Warehouse
+from .models import (
+    Batch, BatchStatusChange, InventoryDocument, InventoryDocumentLine, Location, StockBalance, StockMove, StockRequest,
+    StockRequestLine, Warehouse,
+)
 
 
 class LocationInline(admin.TabularInline):
@@ -16,8 +19,24 @@ class LocationInline(admin.TabularInline):
 
 @admin.register(Warehouse)
 class WarehouseAdmin(admin.ModelAdmin):
-    list_display = ("code", "name", "is_sellable", "is_active")
+    list_display = ("code", "name", "kind", "is_sellable", "supplies_from", "cost_center", "is_active")
+    list_filter = ("kind", "is_active")
+    filter_horizontal = ("keepers",)
     inlines = [LocationInline]
+
+
+class StockRequestLineInline(LockedInlineMixin, admin.TabularInline):
+    model = StockRequestLine
+    autocomplete_fields = ("product",)
+    readonly_fields = ("issued_quantity",)
+
+
+@admin.register(StockRequest)
+class StockRequestAdmin(DocumentAdmin):
+    list_display = ("__str__", "date", "requester", "source", "status", "progress", "created_by")
+    list_filter = ("status", "progress", "requester", "source")
+    search_fields = ("number",)
+    inlines = [StockRequestLineInline]
 
 
 @admin.register(Location)

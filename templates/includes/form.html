@@ -1,5 +1,6 @@
 {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors|join:" " }}</div>{% endif %}
-{% for field in form %}
+{% for field in form.hidden_fields %}{{ field }}{% endfor %}
+{% for field in form.visible_fields %}
   <div class="field{% if field.errors %} has-error{% endif %}{% if field.field.widget.input_type == 'checkbox' %} field-check{% endif %}">
     {% if field.field.widget.input_type == 'checkbox' %}
       {{ field }} <label for="{{ field.id_for_label }}">{{ field.label }}</label>

@@ -2,21 +2,43 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from apps.audit.documents import DocumentLine, ImmutableRecord, PostedDocument
+from apps.audit.documents import DocumentError, DocumentLine, ImmutableRecord, PostedDocument
 from apps.shop.models import Product, StorageCondition
 
 
 class Warehouse(models.Model):
+    """انبار یا بخش نگهداری: داروخانه مرکزی، انبار دپو، انبار بخش‌ها (کلینیک، پاراکلینیک، اتاق پانسمان، ...)، قرنطینه."""
+
+    class Kind(models.TextChoices):
+        CENTRAL = "central", "داروخانه مرکزی (فروش)"
+        DEPOT = "depot", "انبار دپو / ذخیره"
+        WARD = "ward", "انبار بخش (کلینیک، پاراکلینیک، اتاق پانسمان، ...)"
+        QUARANTINE = "quarantine", "قرنطینه، مرجوعی و ضایعات"
+
     code = models.CharField("کد انبار", max_length=20, unique=True)
     name = models.CharField("نام انبار", max_length=120)
+    kind = models.CharField("نوع", max_length=12, choices=Kind.choices, default=Kind.CENTRAL)
     is_sellable = models.BooleanField(
         "فروش از این انبار مجاز است", default=True,
         help_text="انبار قرنطینه، مرجوعی و ضایعات را غیرقابل‌فروش تعریف کنید.",
     )
+    supplies_from = models.ForeignKey(
+        "self", on_delete=models.PROTECT, null=True, blank=True, related_name="supplied", verbose_name="تأمین از انبار",
+        help_text="درخواست کالای این بخش پیش‌فرض به این انبار می‌رود (مثلاً اتاق پانسمان ← داروخانه مرکزی).",
+    )
+    cost_center = models.ForeignKey(
+        "accounting.CostCenter", on_delete=models.PROTECT, null=True, blank=True, related_name="+",
+        verbose_name="مرکز هزینه", help_text="مصرف داخلی این بخش به این مرکز هزینه ثبت می‌شود.",
+    )
+    keepers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name="kept_warehouses", verbose_name="مسئولان بخش / انبار",
+        help_text="کاربرانی (مثلاً پرستار اتاق پانسمان) که برای این بخش درخواست کالا و مصرف ثبت می‌کنند. "
+                  "انباردار و مدیر داروخانه بدون نیاز به این فهرست به همه انبارها دسترسی دارند.",
+    )
     is_active = models.BooleanField("فعال", default=True)
 
     class Meta:
-        ordering = ["code"]
+        ordering = ["kind", "code"]
         verbose_name = "انبار"
         verbose_name_plural = "انبارها"
 
@@ -139,6 +161,7 @@ class StockMove(ImmutableRecord):
         WASTE = "waste", "ضایعات / امحا"
         TRANSFER_OUT = "transfer_out", "انتقال (خروج)"
         TRANSFER_IN = "transfer_in", "انتقال (ورود)"
+        CONSUME = "consume", "مصرف داخلی بخش"
 
     created_at = models.DateTimeField("زمان", auto_now_add=True, db_index=True)
     move_type = models.CharField("نوع حرکت", max_length=14, choices=Type.choices)
@@ -181,6 +204,7 @@ class InventoryDocument(PostedDocument):
         ADJUST_OUT = "adjust_out", "کسری انبارگردانی"
         WASTE = "waste", "ضایعات / امحا"
         TRANSFER = "transfer", "انتقال بین انبار / محل"
+        CONSUME = "consume", "مصرف داخلی بخش"
 
     INBOUND = {Kind.OPENING, Kind.ADJUST_IN}
 
@@ -190,12 +214,18 @@ class InventoryDocument(PostedDocument):
         Warehouse, on_delete=models.PROTECT, null=True, blank=True, related_name="+", verbose_name="انبار مقصد"
     )
     reason = models.CharField("علت", max_length=300, blank=True)
+    stock_request = models.ForeignKey(
+        "StockRequest", on_delete=models.PROTECT, null=True, blank=True, related_name="issues", editable=False,
+        verbose_name="درخواست کالا",
+    )
 
     class Meta:
         ordering = ["-date", "-id"]
         verbose_name = "سند انبار"
         verbose_name_plural = "اسناد انبار"
-        permissions = [("post_inventorydocument", "ثبت نهایی سند انبار"), ("reverse_inventorydocument", "برگشت سند انبار")]
+        permissions = [("post_inventorydocument", "ثبت نهایی سند انبار"), ("reverse_inventorydocument", "برگشت سند انبار"),
+                       ("consume_inventorydocument", "ثبت مصرف داخلی بخش"),
+                       ("count_inventorydocument", "انبارگردانی (شمارش و ثبت اختلاف)")]
 
     def validate_for_post(self):
         from . import services
@@ -233,3 +263,63 @@ class InventoryDocumentLine(DocumentLine):
 
     def __str__(self):
         return f"{self.product} × {self.quantity}"
+
+
+class StockRequest(PostedDocument):
+    """درخواست کالا از یک بخش (مثلاً اتاق پانسمان) به انبار تأمین (داروخانه مرکزی یا دپو).
+
+    ثبت نهایی = ارسال درخواست. انباردار با «تحویل» سند انتقال می‌سازد که بچ‌ها را به ترتیب نزدیک‌ترین انقضا برمی‌دارد.
+    """
+
+    NUMBER_PREFIX = "SRQ"
+
+    class Progress(models.TextChoices):
+        OPEN = "open", "در انتظار تحویل"
+        PARTIAL = "partial", "تحویل ناقص"
+        DONE = "done", "تحویل کامل"
+        CLOSED = "closed", "بسته‌شده (بدون تحویل کامل)"
+
+    requester = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="requests", verbose_name="بخش درخواست‌کننده")
+    source = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="incoming_requests", verbose_name="انبار تأمین")
+    progress = models.CharField("وضعیت تحویل", max_length=8, choices=Progress.choices, default=Progress.OPEN, editable=False)
+    reason = models.CharField("توضیح / علت نیاز", max_length=300, blank=True)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+        verbose_name = "درخواست کالا از بخش"
+        verbose_name_plural = "درخواست‌های کالا از بخش‌ها"
+        permissions = [("post_stockrequest", "ارسال درخواست کالا"), ("reverse_stockrequest", "ابطال درخواست کالا"),
+                       ("issue_stockrequest", "تحویل درخواست کالا (انباردار)")]
+
+    def validate_for_post(self):
+        from . import requests
+
+        requests.validate_request(self)
+
+    def perform_post(self, user):
+        pass
+
+    def perform_reverse(self, user):
+        pass
+
+    def validate_for_reverse(self):
+        if self.issues.filter(status="posted").exists():
+            raise DocumentError("برای این درخواست کالا تحویل شده؛ ابتدا سند انتقال را برگشت بزنید.")
+
+
+class StockRequestLine(DocumentLine):
+    document = models.ForeignKey(StockRequest, on_delete=models.CASCADE, related_name="lines", verbose_name="درخواست")
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="+", verbose_name="کالا")
+    quantity = models.PositiveIntegerField("تعداد درخواستی (واحد پایه)")
+    issued_quantity = models.PositiveIntegerField("تعداد تحویل‌شده", default=0, editable=False)
+
+    class Meta:
+        verbose_name = "ردیف درخواست کالا"
+        verbose_name_plural = "ردیف‌های درخواست کالا"
+
+    def __str__(self):
+        return f"{self.product} × {self.quantity}"
+
+    @property
+    def remaining(self):
+        return max(self.quantity - self.issued_quantity, 0)

@@ -29,7 +29,8 @@ class PosSaleTests(TestCase):
         self.assertTrue(invoice.number.startswith("SI-"))
         self.otc.refresh_from_db()
         self.assertEqual(self.otc.stock, 16)
-        self.assertEqual(acc.account_balance(acc.CASH), 600_000)
+        self.assertEqual(acc.account_balance(self.session.register.cash_code), 600_000)
+        self.assertEqual(acc.account_balance(acc.CASH), 0)  # صندوق حساب نقد اختصاصی دارد
         self.assertEqual(acc.account_balance(acc.SALES), -600_000)
         self.assertEqual(acc.account_balance(acc.COGS), 400_000)
         self.assertEqual(acc.account_balance(acc.INVENTORY), 1_600_000)
@@ -115,7 +116,7 @@ class PosSaleTests(TestCase):
         invoice.reverse(self.cashier, "ثبت اشتباه")
         self.otc.refresh_from_db()
         self.assertEqual(self.otc.stock, 20)
-        for code in (acc.CASH, acc.SALES, acc.COGS):
+        for code in (self.session.register.cash_code, acc.SALES, acc.COGS):
             self.assertEqual(acc.account_balance(code), 0)
         self.assertEqual(acc.account_balance(acc.INVENTORY), 2_000_000)
 

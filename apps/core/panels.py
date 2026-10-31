@@ -8,6 +8,11 @@ PANELS = [
         ("داشبورد داروخانه", "backoffice:dashboard", ("inventory.view_stockbalance", "sales.view_salesinvoice", "sales.use_pos")),
         ("صندوق فروش", "backoffice:pos", ("sales.use_pos",)),
         ("موجودی انبار", "backoffice:stock", ("inventory.view_stockbalance",)),
+        ("میز کار انبار (اسکن، انتقال، مصرف، شمارش)", "backoffice:warehouse",
+         ("inventory.post_inventorydocument", "inventory.consume_inventorydocument", "inventory.count_inventorydocument")),
+        ("درخواست کالای بخش‌ها", "backoffice:stock_requests", ("inventory.add_stockrequest", "inventory.issue_stockrequest")),
+        ("چاپ برچسب بارکد", "backoffice:labels", ("inventory.post_inventorydocument", "shop.change_product",
+                                                 "purchasing.post_goodsreceipt")),
         ("هشدارها (کمبود و انقضا)", "backoffice:alerts", ("inventory.view_stockbalance",)),
         ("نسخه‌های درمانگاه", "ehr:pharmacy_queue", ("ehr.dispense_prescription",)),
         ("سود و زیان", "backoffice:pnl", ("accounting.view_financial_reports",)),
@@ -68,6 +73,8 @@ PANELS = [
     ]),
     ("مدیریت مجموعه", [
         ("کارکنان و نقش‌ها", "backoffice:staff", ("auth.view_user", "blog.manage_blog_staff")),
+        ("صندوق‌ها (تعریف و وضعیت)", "backoffice:cashboxes", ("sales.view_cashregister", "sales.change_cashregister")),
+        ("شیفت صندوق من", "backoffice:my_cashbox", ("sales.use_pos", "finance.use_cashier", "lab.post_labpayment")),
         ("گزارش ممیزی (چه کسی چه کرد)", "admin:audit_auditlog_changelist", ("audit.view_auditlog",)),
         ("صفحه اصلی سایت", "core:home", ()),
     ]),
@@ -91,6 +98,9 @@ LINK_ICONS = {
     "backoffice:pos": "🧾",
     "backoffice:stock": "📦",
     "backoffice:alerts": "⏰",
+    "backoffice:warehouse": "🏷️",
+    "backoffice:stock_requests": "📋",
+    "backoffice:labels": "🖨️",
     "ehr:search": "🔍",
     "ehr:my_patients": "👨‍⚕️",
     "ehr:queue_reception": "🎫",
@@ -104,6 +114,8 @@ LINK_ICONS = {
     "finance:invoices": "🧾",
     "blog:manage": "📝",
     "backoffice:staff": "👥",
+    "backoffice:cashboxes": "🏦",
+    "backoffice:my_cashbox": "💵",
 }
 
 # هفت منوی پرکاربرد پیش‌فرض برای «دسترسی سریع»، به ترتیب اهمیت کار روزانه مجموعه.

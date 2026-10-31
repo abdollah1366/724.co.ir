@@ -1,0 +1,50 @@
+{% extends "backoffice/base.html" %}
+{% load persian static %}
+{% block bo_title %}درخواست کالای بخش‌ها{% endblock %}
+{% block bo_content %}
+<h1>درخواست کالا از بخش‌ها</h1>
+<p class="muted">بخش‌ها (کلینیک، پاراکلینیک، اتاق پانسمان، ...) کالای مورد نیاز را از داروخانه مرکزی یا دپو درخواست می‌دهند. انباردار با «تحویل» سند انتقال ثبت می‌کند؛ بچ‌ها خودکار به ترتیب نزدیک‌ترین انقضا انتخاب می‌شوند.</p>
+
+{% if can_issue %}
+<h2>در انتظار تحویل</h2>
+{% for req in incoming %}
+<form method="post" action="{% url 'backoffice:stock_request_action' req.pk 'issue' %}" class="card">{% csrf_token %}
+  <h3>{{ req.number }} — {{ req.requester }} ← {{ req.source }} <span class="badge badge-warn">{{ req.get_progress_display }}</span></h3>
+  <p class="muted">{{ req.date|jalali:"%Y/%m/%d" }} — {{ req.created_by.get_full_name|default:req.created_by.username }}{% if req.reason %} — {{ req.reason }}{% endif %}</p>
+  <table class="table data"><tr><th>کالا</th><th class="num">درخواست</th><th class="num">تحویل‌شده</th><th class="num">موجودی انبار تأمین</th><th>تحویل این بار</th></tr>
+  {% for line in req.lines.all %}<tr><td>{{ line.product.name }}</td><td class="num">{{ line.quantity|fa_digits }}</td><td class="num">{{ line.issued_quantity|fa_digits }}</td>
+  <td class="num">{{ line.product.stock|fa_digits }}</td><td><input type="number" class="qty-input" name="q{{ line.pk }}" min="0" max="{{ line.remaining }}" value="{{ line.remaining }}"></td></tr>{% endfor %}
+  </table>
+  <button class="btn" type="submit">تحویل و ثبت انتقال</button>
+  <button class="btn btn-outline" type="submit" formaction="{% url 'backoffice:stock_request_action' req.pk 'close' %}">بستن بدون تحویل باقی‌مانده</button>
+</form>
+{% empty %}<p class="muted card">درخواست بازی نیست.</p>{% endfor %}
+{% endif %}
+
+{% if can_add and requesters %}
+<h2>درخواست جدید</h2>
+<form method="post" class="card form" data-scan-list data-scan-url="{% url 'backoffice:api_scan' %}">{% csrf_token %}
+  <div class="grid">
+    <div class="field"><label>بخش درخواست‌کننده</label><select name="requester">{% for w in requesters %}<option value="{{ w.pk }}">{{ w.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label>انبار تأمین</label><select name="source"><option value="">پیش‌فرض بخش</option>{% for w in sources %}<option value="{{ w.pk }}">{{ w.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label>توضیح</label><input type="text" name="reason" maxlength="300"></div>
+  </div>
+  {% include "backoffice/_scan_table.html" with onhand_label="" qty_label="تعداد درخواستی" %}
+  <button class="btn" type="submit">ارسال درخواست</button>
+</form>
+{% endif %}
+
+<h2>درخواست‌های بخش‌های من</h2>
+<div class="table-wrap card"><table class="table data">
+  <tr><th>شماره</th><th>بخش</th><th>از</th><th>تاریخ</th><th>اقلام</th><th>وضعیت</th><th></th></tr>
+  {% for req in mine %}<tr><td>{{ req }}</td><td>{{ req.requester }}</td><td>{{ req.source }}</td><td>{{ req.date|jalali:"%Y/%m/%d" }}</td>
+  <td>{% for line in req.lines.all %}{{ line.product.name }} ({{ line.issued_quantity|fa_digits }}/{{ line.quantity|fa_digits }}){% if not forloop.last %}، {% endif %}{% endfor %}</td>
+  <td>{{ req.get_status_display }} — {{ req.get_progress_display }}</td>
+  <td>{% if req.status == "posted" and req.progress == "open" %}<form method="post" action="{% url 'backoffice:stock_request_action' req.pk 'cancel' %}">{% csrf_token %}<button class="link-button">لغو</button></form>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="7" class="muted">درخواستی نیست.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/scanner.js' %}" data-zxing="{% static 'vendor/zxing/zxing-library-0.21.3.min.js' %}"></script>
+<script src="{% static 'js/scanlist.js' %}"></script>
+{% endblock %}
