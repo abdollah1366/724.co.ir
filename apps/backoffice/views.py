@@ -21,7 +21,7 @@ from apps.accounting.models import Account, Party
 from apps.audit.documents import DocStatus
 from apps.core.validators import is_valid_national_code, normalize_digits
 from apps.ehr import services as ehr
-from apps.inventory import alerts
+from apps.inventory import alerts, barcodes
 from apps.inventory import services as inv
 from apps.inventory.models import StockBalance, StockMove, Warehouse
 from apps.purchasing.models import GoodsReceipt
@@ -210,14 +210,9 @@ def _current_invoice(session, user):
 
 
 def find_product(code):
-    code = normalize_digits(code)
-    if not code:
-        return None, 1
-    package = ProductPackage.objects.select_related("product").filter(barcode=code).first()
-    if package:
-        return package.product, package.factor
-    product = Product.objects.filter(Q(sku=code) | Q(slug=code)).first() or Product.objects.filter(name=code).first()
-    return product, 1
+    """بارکد معمولی، کد دوبعدی GS1 بسته دارو، برچسب بچ یا کد کالا → (کالا، ضریب بسته‌بندی)."""
+    scan = barcodes.resolve(code)
+    return scan.product, scan.factor
 
 
 pos_required = permission_required("sales.use_pos", raise_exception=True)
