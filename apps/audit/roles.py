@@ -287,7 +287,7 @@ ROLES.update({
             "finance.payrollline": (VIEW,), "finance.payrollitem": (VIEW,), "finance.employeeloan": (VIEW,),
             "finance.payrollprofile": (VIEW,),
             "core.outboxevent": (VIEW,), "core.featureflag": ("change", VIEW), "audit.auditlog": (VIEW,),
-            "telemed.consultpayment": (VIEW,),
+            "telemed.consultpayment": (VIEW,), "sales.cashregister": EDIT, "sales.cashsession": (VIEW,),
         },
         "extra": [
             "accounting.view_financial_reports", "accounting.close_accountingperiod", "accounting.post_manualjournal",

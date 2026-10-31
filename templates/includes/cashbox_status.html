@@ -1,0 +1,2 @@
+{% if session %}<div class="alert alert-info">💵 شیفت باز: <strong>{{ session.register }}</strong> — دریافت‌های نقد و کارت به حساب همین صندوق ثبت می‌شود. <a href="{% url 'backoffice:my_cashbox' %}">مدیریت شیفت</a></div>
+{% elif required %}<div class="alert alert-warn">برای دریافت وجه {{ label }} ابتدا <a href="{% url 'backoffice:my_cashbox' %}">شیفت صندوق خود را باز کنید</a>.</div>{% endif %}

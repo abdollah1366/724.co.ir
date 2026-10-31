@@ -30,12 +30,17 @@ def _share(amount, part, whole):
 
 # --- صندوق ---
 def open_session(register, user, opening_cash=0):
-    if CashSession.objects.filter(register=register, status=CashSession.Status.OPEN).exists():
-        raise DocumentError("این صندوق یک شیفت باز دارد.")
-    return CashSession.objects.create(register=register, cashier=user, opening_cash=opening_cash)
+    from . import cashbox
+
+    return cashbox.open_session(register, user, opening_cash)
 
 
 def session_expected_cash(session):
+    if session.register.cash_account_id:
+        from . import cashbox
+
+        # صندوق با حساب اختصاصی: هر دریافت و پرداخت نقدِ هر بخش (فروش، صورتحساب درمانگاه، آزمایشگاه) حساب می‌شود.
+        return session.opening_cash + cashbox.ledger_movement(session)
     cash_in = (
         SalesPayment.objects.filter(document__session=session, document__status=DocStatus.POSTED, method=Method.CASH)
         .aggregate(s=Sum("amount"))["s"] or 0
@@ -66,10 +71,18 @@ def close_session(session, counted_cash, user):
             text = f"{'اضافه' if diff > 0 else 'کسری'} صندوق {s.register} شیفت {s.pk}"
             acc.post_entry(
                 ("sales.cashsession", s.pk, f"شیفت {s.pk}"),
-                [(acc.CASH, max(diff, 0), max(-diff, 0), None, text), (acc.CASH_OVER_SHORT, max(-diff, 0), max(diff, 0), None, text)],
+                [(s.register.cash_code, max(diff, 0), max(-diff, 0), None, text), (acc.CASH_OVER_SHORT, max(-diff, 0), max(diff, 0), None, text)],
                 text, timezone.localdate(), user,
             )
     return s
+
+
+def _payment_code(session, method):
+    if session is not None and method == Method.CASH:
+        return session.register.cash_code
+    if session is not None and method == Method.CARD:
+        return session.register.card_code
+    return PAYMENT_ACCOUNT[method]
 
 
 # --- فاکتور فروش ---
@@ -163,6 +176,8 @@ def post_sale(invoice, user):
         session = invoice.session
         if session is None or session.status != CashSession.Status.OPEN:
             raise DocumentError("فروش حضوری فقط در شیفت باز صندوق ممکن است.")
+        if session.register.department != session.register.Department.PHARMACY:
+            raise DocumentError("فروش کالا فقط در صندوق داروخانه ممکن است.")
         if session.register.warehouse_id != invoice.warehouse_id:
             raise DocumentError("انبار فاکتور با انبار صندوق یکی نیست.")
     if invoice.needs_prescription:
@@ -187,7 +202,7 @@ def post_sale(invoice, user):
         cost += line.cost_total
     text = f"{invoice.get_channel_display()} {invoice.number}"
     lines = [
-        (PAYMENT_ACCOUNT[p.method], p.amount, 0, invoice.customer if p.method == Method.CREDIT else None, text)
+        (_payment_code(invoice.session, p.method), p.amount, 0, invoice.customer if p.method == Method.CREDIT else None, text)
         for p in invoice.payments.all()
     ]
     lines += [
@@ -324,7 +339,8 @@ def post_return(ret, user):
     refund_total = net_total + tax_total
     insurer_part = _share(refund_total, invoice.insurance_amount, invoice.total) if invoice.insurance_amount else 0
     customer_part = refund_total - insurer_part
-    refund_account = {SalesReturn.Refund.CASH: acc.CASH, SalesReturn.Refund.CARD: acc.BANK}.get(ret.refund_method, acc.AR_CUSTOMERS)
+    refund_account = (_payment_code(ret.session, ret.refund_method)
+                      if ret.refund_method in (SalesReturn.Refund.CASH, SalesReturn.Refund.CARD) else acc.AR_CUSTOMERS)
     text = f"مرجوعی {ret.number} از فاکتور {invoice.number}"
     acc.post_entry(source, [
         (acc.SALES_RETURNS, net_total, 0, None, text),

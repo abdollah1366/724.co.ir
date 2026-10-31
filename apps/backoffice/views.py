@@ -17,7 +17,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.accounting import services as acc
-from apps.accounting.models import Party
+from apps.accounting.models import Account, Party
 from apps.audit.documents import DocStatus
 from apps.core.validators import is_valid_national_code, normalize_digits
 from apps.ehr import services as ehr
@@ -26,6 +26,7 @@ from apps.inventory import services as inv
 from apps.inventory.models import StockBalance, StockMove, Warehouse
 from apps.purchasing.models import GoodsReceipt
 from apps.sales import services as sales
+from apps.sales import cashbox
 from apps.sales.models import CashRegister, CashSession, SalesInvoice, SalesPayment
 from apps.shop.models import Order, Product, ProductPackage
 
@@ -76,7 +77,8 @@ def dashboard_data(user):
             "net_profit_month": month["net_profit"],
             "inventory_value": acc.account_balance(acc.INVENTORY),
             "inventory_ledger_value": StockMove.objects.aggregate(v=Sum("total_cost"))["v"] or 0,
-            "cash": acc.account_balance(acc.CASH),
+            "cash": sum(acc.account_balance(code) for code in
+                        Account.objects.filter(code__startswith=acc.CASH).values_list("code", flat=True)),
             "bank": acc.account_balance(acc.BANK),
             "receivable": acc.account_balance(acc.AR_CUSTOMERS) + acc.account_balance(acc.AR_INSURERS),
             "payable": -acc.account_balance(acc.AP_SUPPLIERS) - acc.account_balance(acc.AP_OTHER),
@@ -161,8 +163,13 @@ def party_statement(request, pk):
 
 # --- صندوق فروش حضوری ---
 class OpenSessionForm(forms.Form):
-    register = forms.ModelChoiceField(label="صندوق", queryset=CashRegister.objects.filter(is_active=True))
+    register = forms.ModelChoiceField(label="صندوق", queryset=CashRegister.objects.none())
     opening_cash = forms.IntegerField(label="موجودی اولیه نقد (ریال)", min_value=0, initial=0)
+
+    def __init__(self, *args, user=None, department=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        allowed = [r.pk for r in cashbox.registers_for(user, department)] if user else []
+        self.fields["register"].queryset = CashRegister.objects.filter(pk__in=allowed)
 
 
 class CloseSessionForm(forms.Form):
@@ -195,7 +202,7 @@ class CheckoutForm(forms.Form):
 
 
 def _open_session(user):
-    return CashSession.objects.filter(cashier=user, status=CashSession.Status.OPEN).select_related("register").first()
+    return cashbox.user_session(user, cashbox.Department.PHARMACY)
 
 
 def _current_invoice(session, user):
@@ -221,11 +228,13 @@ pos_required = permission_required("sales.use_pos", raise_exception=True)
 def pos(request):
     session = _open_session(request.user)
     if session is None:
-        form = OpenSessionForm(request.POST or None)
+        form = OpenSessionForm(request.POST or None, user=request.user, department=cashbox.Department.PHARMACY)
         if request.method == "POST" and form.is_valid():
             try:
                 sales.open_session(form.cleaned_data["register"], request.user, form.cleaned_data["opening_cash"])
-            except (ValidationError, IntegrityError):
+            except ValidationError as exc:
+                messages.error(request, " ".join(exc.messages))
+            except IntegrityError:
                 messages.error(request, "این صندوق شیفت باز دارد.")
             return redirect("backoffice:pos")
         return render(request, "backoffice/pos_open.html", {"form": form})

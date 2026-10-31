@@ -222,8 +222,24 @@ def validate_receipt(receipt):
             raise DocumentError(f"مبلغ تخصیص به {invoice.number} بیشتر از مانده آن ({invoice.balance_due:,} ریال) است.")
 
 
+def _cashbox_accounts(user, items):
+    """دریافت/پرداخت نقد و کارت درمانگاه به حساب صندوقِ شیفت باز کاربر می‌رود (اگر برای درمانگاه صندوق تعریف شده باشد)."""
+    from apps.sales import cashbox
+
+    needs = [i for i in items if i.method in (TenderMethod.CASH, TenderMethod.CARD) and not i.money_account_id]
+    if not needs:
+        return
+    session = cashbox.require_session(user, cashbox.Department.CLINIC)
+    for item in needs:
+        account = cashbox.money_account(session, item.method)
+        if account is not None:
+            type(item).objects.filter(pk=item.pk).update(money_account=account)
+            item.money_account = account
+
+
 def post_receipt(receipt, user):
     tenders = list(receipt.tenders.select_related("money_account"))
+    _cashbox_accounts(user, tenders)
     allocations = list(receipt.allocations.select_related("invoice"))
     total = sum(t.amount for t in tenders)
     allocated = sum(a.amount for a in allocations)
@@ -348,6 +364,7 @@ def validate_refund(refund):
 
 
 def post_refund(refund, user):
+    _cashbox_accounts(user, [refund])
     counter = acc.AR_PATIENTS if refund.invoice_id else acc.PATIENT_ADVANCES
     money = money_account_code(refund.method, refund.money_account)
     text = f"استرداد {refund.number} به {refund.patient_name}: {refund.reason}"

@@ -154,6 +154,8 @@ class LabPayment(PostedDocument):
     amount = models.PositiveBigIntegerField("مبلغ (ریال)")
     reference_no = models.CharField("شماره پیگیری", max_length=40, blank=True)
     client_token = models.CharField("شناسه یکتای درخواست", max_length=40, unique=True, null=True, blank=True, editable=False)
+    cash_session = models.ForeignKey("sales.CashSession", on_delete=models.PROTECT, null=True, blank=True, editable=False,
+                                     related_name="lab_payments", verbose_name="شیفت صندوق")
 
     class Meta:
         ordering = ["-date", "-id"]

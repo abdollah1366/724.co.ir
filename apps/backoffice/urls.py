@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import staff, views
+from . import cashboxes, staff, views
 
 app_name = "backoffice"
 
@@ -21,6 +21,9 @@ urlpatterns = [
     path("invoices/<int:pk>/", views.pos_invoice, name="pos_invoice"),
     path("api/products/lookup/", views.api_product_lookup, name="api_lookup"),
     path("api/products/<int:pk>/stock/", views.api_product_stock, name="api_stock"),
+    path("cashboxes/", cashboxes.cashboxes, name="cashboxes"),
+    path("cashbox/", cashboxes.my_cashbox, name="my_cashbox"),
+    path("cashbox/close/", cashboxes.my_cashbox_close, name="my_cashbox_close"),
     path("staff/", staff.staff_list, name="staff"),
     path("staff/new/", staff.staff_edit, name="staff_new"),
     path("staff/<int:pk>/", staff.staff_edit, name="staff_edit"),
