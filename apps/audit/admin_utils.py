@@ -10,9 +10,13 @@ from .documents import DocStatus
 
 
 class LockedInlineMixin:
-    """ردیف‌های سند پس از ثبت نهایی فقط‌خواندنی هستند."""
+    """ردیف‌های سند پس از ثبت نهایی فقط‌خواندنی هستند. سند پیش‌نویس یک ردیف خالی آماده دارد."""
 
     extra = 0
+
+    def get_extra(self, request, obj=None, **kwargs):
+        # یک ردیف خالی در سند پیش‌نویس تا کاربر دنبال «افزودن ردیف» نگردد؛ ردیف خالی ذخیره نمی‌شود.
+        return 0 if self._locked(obj) else 1
 
     def _locked(self, obj):
         return obj is not None and obj.status != DocStatus.DRAFT

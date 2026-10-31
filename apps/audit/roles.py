@@ -18,6 +18,7 @@ ROLES = {
             "inventory.inventorydocument": EDIT, "inventory.inventorydocumentline": EDIT,
             "inventory.stockrequest": EDIT, "inventory.stockrequestline": EDIT,
             "purchasing.purchaseorder": EDIT, "purchasing.goodsreceipt": EDIT, "purchasing.purchaseinvoice": EDIT,
+            "purchasing.purchaseorderline": EDIT, "purchasing.goodsreceiptline": EDIT, "purchasing.purchaseinvoiceline": EDIT,
             "sales.salesinvoice": EDIT, "sales.salesreturn": EDIT, "sales.cashsession": EDIT, "sales.cashregister": EDIT,
             "accounting.party": EDIT, "accounting.account": EDIT, "accounting.payment": EDIT, "accounting.expense": EDIT,
             "accounting.journalentry": (VIEW,), "inventory.stockmove": (VIEW,), "inventory.stockbalance": (VIEW,),
@@ -272,6 +273,11 @@ CLINIC_CASHIER = {
 }
 ROLES["صندوق‌دار"]["models"].update(CLINIC_CASHIER["models"])
 ROLES["صندوق‌دار"]["extra"] = ROLES["صندوق‌دار"]["extra"] + CLINIC_CASHIER["extra"]
+
+# ردیف‌های فاکتور فروش و مرجوعی: هر نقشی که این اسناد را می‌سازد باید بتواند ردیفشان را هم وارد کند (پنل مدیریت).
+for _role in ("مدیر داروخانه", "داروساز مسئول فنی", "صندوق‌دار"):
+    ROLES[_role]["models"].update({m: ("add", "change", "delete", VIEW) for m in
+                                   ("sales.salesinvoiceline", "sales.salespayment", "sales.salesreturnline")})
 
 # پذیرش فقط وضعیت پرداخت صورتحساب بیمار را می‌بیند؛ دریافت وجه با نقش صندوق‌دار است.
 for _role in ("پذیرش درمانگاه", "منشی پزشک"):
