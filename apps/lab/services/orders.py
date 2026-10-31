@@ -166,7 +166,16 @@ def validate_payment(payment):
 
 
 def post_payment(payment, user):
+    from apps.sales import cashbox
+
     money = acc.METHOD_ACCOUNT[payment.method]
+    if payment.method in ("cash", "card"):
+        # اگر برای آزمایشگاه صندوق تعریف شده، دریافت فقط در شیفت باز صندوق و به حساب همان صندوق.
+        session = cashbox.require_session(user, cashbox.Department.LAB)
+        if session is not None:
+            money = cashbox.money_code(session, payment.method, money)
+            LabPayment.objects.filter(pk=payment.pk).update(cash_session=session)
+            payment.cash_session = session
     text = f"{payment.get_direction_display()} پذیرش {payment.order.number} {payment.reference_no}".strip()
     if payment.direction == LabPayment.Direction.RECEIVE:
         lines = [(money, payment.amount, 0, None, text), (acc.AR_CUSTOMERS, 0, payment.amount, None, text)]

@@ -1,0 +1,15 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}نتیجه انبارگردانی{% endblock %}
+{% block bo_content %}
+<h1>نتیجه انبارگردانی — {{ warehouse }}</h1>
+<div class="table-wrap card"><table class="table data">
+  <tr><th>کالا</th><th>بچ</th><th class="num">دفتری</th><th class="num">شمارش</th><th class="num">اختلاف</th></tr>
+  {% for product, batch, system, counted, diff in result.rows %}
+  <tr><td>{{ product.name }}</td><td>{{ batch.number|default:"همه بچ‌ها" }}</td><td class="num">{{ system|fa_digits }}</td><td class="num">{{ counted|fa_digits }}</td>
+  <td class="num">{% if diff %}<span class="badge {% if diff < 0 %}status-cancelled{% else %}badge-warn{% endif %}">{{ diff|fa_digits }}</span>{% else %}✓{% endif %}</td></tr>
+  {% endfor %}
+</table></div>
+<p>{% if result.out %}سند کسری: <strong>{{ result.out.number }}</strong>. {% endif %}{% if result.in %}سند اضافه: <strong>{{ result.in.number }}</strong>.{% endif %}</p>
+<p><a class="btn" href="{% url 'backoffice:warehouse' %}?mode=count&warehouse={{ warehouse.pk }}">شمارش بعدی</a></p>
+{% endblock %}

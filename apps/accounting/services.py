@@ -39,6 +39,7 @@ PURCHASE_VARIANCE = "5102"
 INVENTORY_LOSS = "5103"
 COST_ADJUSTMENT = "5104"
 CASH_OVER_SHORT = "6105"
+CONSUMPTION = "6110"  # مصرف داخلی دارو و لوازم در بخش‌ها (اتاق پانسمان، کلینیک، ...)
 
 METHOD_ACCOUNT = {
     PaymentMethod.CASH: CASH,

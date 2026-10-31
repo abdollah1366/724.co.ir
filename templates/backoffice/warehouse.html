@@ -1,0 +1,45 @@
+{% extends "backoffice/base.html" %}
+{% load persian static %}
+{% block bo_title %}میز کار انبار{% endblock %}
+{% block bo_content %}
+<h1>میز کار انبار با اسکن بارکد</h1>
+<nav class="filters card" aria-label="نوع عملیات">
+  {% for key, label in modes %}<a class="btn btn-small{% if key != mode %} btn-outline{% endif %}" href="?mode={{ key }}{% if current %}&warehouse={{ current.pk }}{% endif %}">{{ label }}</a>{% endfor %}
+  <a class="btn btn-small btn-outline" href="{% url 'backoffice:stock_requests' %}">درخواست‌های کالای بخش‌ها</a>
+  <a class="btn btn-small btn-outline" href="{% url 'backoffice:labels' %}">چاپ برچسب بارکد</a>
+</nav>
+{% if not current %}<p class="alert alert-warn">شما مسئول هیچ انبار یا بخشی نیستید.</p>{% else %}
+<form method="post" class="card form" data-scan-list data-scan-url="{% url 'backoffice:api_scan' %}">{% csrf_token %}
+  <input type="hidden" name="mode" value="{{ mode }}">
+  <div class="grid">
+    <div class="field"><label>{% if mode == "transfer" %}از انبار{% elif mode == "consume" %}بخش مصرف‌کننده{% else %}انبار{% endif %}</label>
+      <select name="warehouse">{% for w in warehouses %}<option value="{{ w.pk }}"{% if w == current %} selected{% endif %}>{{ w.name }} ({{ w.get_kind_display }})</option>{% endfor %}</select></div>
+    {% if mode == "transfer" %}
+    <div class="field"><label>به انبار</label>
+      <select name="dest_warehouse">{% for w in all_warehouses %}{% if w != current %}<option value="{{ w.pk }}">{{ w.name }}</option>{% endif %}{% endfor %}</select></div>
+    {% endif %}
+    <div class="field"><label>{% if mode == "waste" %}علت ضایعات (الزامی){% else %}توضیح{% endif %}</label>
+      <input type="text" name="reason" maxlength="300"{% if mode == "waste" %} required{% endif %} placeholder="{% if mode == 'consume' %}مثلاً پانسمان بیماران شیفت صبح{% elif mode == 'count' %}مثلاً شمارش قفسه A{% endif %}"></div>
+  </div>
+  {% if mode == "count" %}
+    <p class="alert alert-info">انبارگردانی: همه اقلام یک قفسه یا بخش را اسکن و تعداد واقعی را وارد کنید. فقط اقلام اسکن‌شده بررسی می‌شوند؛ اختلاف هر ردیف با موجودی دفتری با سند کسری یا اضافه ثبت می‌شود.</p>
+    {% include "backoffice/_scan_table.html" with qty_label="تعداد شمارش‌شده" %}
+    <button class="btn" type="submit">ثبت شمارش و اختلاف‌ها</button>
+  {% else %}
+    {% if mode == "consume" %}<p class="muted">مصرف داخلی (گاز، سرنگ، دارو و لوازم مصرفی بخش) از موجودی همین بخش کم و به هزینه مرکز هزینه بخش ثبت می‌شود. بچ‌ها به ترتیب نزدیک‌ترین انقضا برداشته می‌شوند مگر کد دوبعدی یا برچسب بچ اسکن شود.</p>{% endif %}
+    {% include "backoffice/_scan_table.html" %}
+    <button class="btn" type="submit">ثبت سند</button>
+  {% endif %}
+</form>
+{% endif %}
+<h2>آخرین اسناد انبار</h2>
+<div class="table-wrap card"><table class="table data">
+  <tr><th>شماره</th><th>نوع</th><th>انبار</th><th>مقصد</th><th>زمان</th><th>توضیح</th></tr>
+  {% for d in recent %}<tr><td>{{ d.number }}</td><td>{{ d.get_kind_display }}</td><td>{{ d.warehouse }}</td><td>{{ d.dest_warehouse|default:"" }}</td><td>{{ d.posted_at|jalali:"%Y/%m/%d %H:%M" }}</td><td>{{ d.reason }}</td></tr>
+  {% empty %}<tr><td colspan="6" class="muted">سندی نیست.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/scanner.js' %}" data-zxing="{% static 'vendor/zxing/zxing-library-0.21.3.min.js' %}"></script>
+<script src="{% static 'js/scanlist.js' %}"></script>
+{% endblock %}

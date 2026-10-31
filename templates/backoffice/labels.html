@@ -1,0 +1,39 @@
+{% extends "backoffice/base.html" %}
+{% load persian static %}
+{% block bo_title %}چاپ برچسب بارکد{% endblock %}
+{% block bo_content %}
+<div class="no-print">
+<h1>چاپ برچسب بارکد</h1>
+<p class="muted">برچسب کالا (برای قفسه و صندوق) یا برچسب بچ (برای انبار: با اسکن آن کالا، بچ و انقضا با هم خوانده می‌شود). برای کالایی که بارکد ندارد، بارکد داخلی ۱۳ رقمی ساخته می‌شود.</p>
+<form method="get" class="filters card">
+  <input type="search" name="q" value="{{ q }}" placeholder="نام کالا، کد کالا یا اسکن بارکد" data-scan="submit" autofocus>
+  <label>تعداد برچسب <input type="number" name="copies" value="{{ copies }}" min="1" max="200" class="qty-input"></label>
+  <button class="btn btn-small">جست‌وجو</button>
+</form>
+{% if products %}
+<div class="table-wrap card"><table class="table data">
+  <tr><th>کالا</th><th>بارکد</th><th>برچسب کالا</th><th>برچسب بچ‌های موجود</th></tr>
+  {% for row in products %}<tr><td>{{ row.product.name }}</td>
+  <td>{% if row.barcode %}<code>{{ row.barcode }}</code>{% else %}<form method="post">{% csrf_token %}<input type="hidden" name="product" value="{{ row.product.pk }}"><button class="link-button">ساخت بارکد داخلی</button></form>{% endif %}</td>
+  <td><a href="?q={{ q|urlencode }}&product={{ row.product.pk }}&copies={{ copies }}">چاپ {{ copies|fa_digits }} برچسب</a></td>
+  <td>{% for b in row.batches %}<a href="?q={{ q|urlencode }}&product={{ row.product.pk }}&batch={{ b.pk }}&copies={{ copies }}">{{ b.number }}{% if b.expiry_date %} ({{ b.expiry_date|jalali:"%Y/%m" }}){% endif %}</a>{% if not forloop.last %} · {% endif %}{% empty %}<span class="muted">—</span>{% endfor %}</td></tr>{% endfor %}
+</table></div>
+{% endif %}
+<h3>برچسب رسیدهای اخیر</h3>
+<p>{% for r in recent_receipts %}<a class="btn btn-small btn-outline" href="?receipt={{ r.pk }}">{{ r.number }} — {{ r.supplier }}</a> <a class="small" href="?receipt={{ r.pk }}&per_unit=1">(یک برچسب برای هر عدد)</a> {% empty %}<span class="muted">رسید ثبت‌شده‌ای نیست.</span>{% endfor %}</p>
+{% if labels %}<p><button class="btn" type="button" onclick="window.print()">🖨️ چاپ {{ labels|length|fa_digits }} برچسب</button></p>{% endif %}
+</div>
+{% if labels %}
+<div class="label-sheet">
+  {% for l in labels %}<div class="label">
+    <div class="l-name">{{ l.name }}</div>
+    {{ l.svg }}
+    <div class="l-code">{{ l.code }}</div>
+    <div class="l-meta">{% if l.batch %}بچ {{ l.batch }} {% endif %}{% if l.expiry %}انقضا {{ l.expiry|jalali:"%Y/%m/%d" }} {% endif %}{% if not l.batch and l.price %}{{ l.price|rial }} ریال{% endif %}</div>
+  </div>{% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/scanner.js' %}" data-zxing="{% static 'vendor/zxing/zxing-library-0.21.3.min.js' %}"></script>
+{% endblock %}

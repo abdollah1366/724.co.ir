@@ -1,0 +1,37 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}صندوق‌های مجموعه{% endblock %}
+{% block bo_content %}
+<h1>صندوق‌های مجموعه</h1>
+<p class="muted">برای هر بخش (داروخانه، درمانگاه، آزمایشگاه، کافی‌شاپ یا صندوق مشترک) صندوق تعریف کنید. هر صندوق حساب نقد اختصاصی در دفتر کل دارد؛ اگر برای بخشی صندوق تعریف شود، دریافت نقد و کارت آن بخش فقط در شیفت باز همان صندوق ممکن است.</p>
+{% if can_add %}<p><a class="btn" href="{% url 'admin:sales_cashregister_add' %}">➕ تعریف صندوق جدید</a></p>{% endif %}
+<div class="table-wrap card"><table class="table data">
+  <tr><th>صندوق</th><th>بخش</th><th>انبار فروش</th><th>حساب نقد</th><th>صندوق‌داران مجاز</th><th>شیفت باز</th><th class="num">نقد مورد انتظار</th><th class="num">مانده حساب</th><th>آخرین بستن</th><th></th></tr>
+  {% for row in rows %}{% with r=row.register %}
+  <tr{% if not r.is_active %} class="muted"{% endif %}>
+    <td><strong>{{ r.name }}</strong>{% if not r.is_active %} <span class="badge status-cancelled">غیرفعال</span>{% endif %}</td>
+    <td>{{ r.get_department_display }}</td>
+    <td>{{ r.warehouse|default:"—" }}</td>
+    <td>{% if r.cash_account %}{{ r.cash_account.code|fa_digits }}{% else %}<span class="badge badge-warn">۱۱۰۱ مشترک</span>{% endif %}</td>
+    <td>{% for u in row.cashiers %}{{ u.get_full_name|default:u.username }}{% if not forloop.last %}، {% endif %}{% empty %}<span class="muted">همه صندوق‌داران بخش</span>{% endfor %}</td>
+    <td>{% if row.session %}<span class="badge status-confirmed">{{ row.session.cashier.get_full_name|default:row.session.cashier.username }} از {{ row.session.opened_at|jalali:"%H:%M" }}</span>{% else %}<span class="muted">بسته</span>{% endif %}</td>
+    <td class="num">{% if row.expected is not None %}{{ row.expected|rial }}{% else %}—{% endif %}</td>
+    <td class="num">{{ row.balance|rial }}</td>
+    <td>{% if row.last_closed %}{{ row.last_closed.closed_at|jalali:"%Y/%m/%d %H:%M" }} (اختلاف {{ row.last_closed.difference|rial }}){% else %}—{% endif %}</td>
+    <td>{% if can_edit %}<a href="{% url 'admin:sales_cashregister_change' r.pk %}">ویرایش</a>{% endif %}</td>
+  </tr>{% endwith %}
+  {% empty %}<tr><td colspan="10" class="muted">هنوز صندوقی تعریف نشده است.</td></tr>
+  {% endfor %}
+</table></div>
+<h2>شیفت‌های امروز</h2>
+<div class="table-wrap card"><table class="table data">
+  <tr><th>صندوق</th><th>صندوق‌دار</th><th>باز شدن</th><th>بستن</th><th class="num">مورد انتظار</th><th class="num">شمارش‌شده</th><th class="num">اختلاف</th></tr>
+  {% for s in today %}
+  <tr><td>{{ s.register }}</td><td>{{ s.cashier.get_full_name|default:s.cashier.username }}</td><td>{{ s.opened_at|jalali:"%H:%M" }}</td>
+  <td>{% if s.closed_at %}{{ s.closed_at|jalali:"%H:%M" }}{% else %}<span class="badge status-confirmed">باز</span>{% endif %}</td>
+  <td class="num">{% if s.expected_cash is not None %}{{ s.expected_cash|rial }}{% endif %}</td><td class="num">{% if s.counted_cash is not None %}{{ s.counted_cash|rial }}{% endif %}</td>
+  <td class="num">{% if s.difference is not None %}{{ s.difference|rial }}{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="7" class="muted">امروز شیفتی باز نشده است.</td></tr>
+  {% endfor %}
+</table></div>
+{% endblock %}

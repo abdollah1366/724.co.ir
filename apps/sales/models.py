@@ -10,16 +10,85 @@ from apps.shop.models import Order, Product
 
 
 class CashRegister(models.Model):
+    """صندوق: مدیر سیستم برای هر بخش (داروخانه، درمانگاه، آزمایشگاه، کافی‌شاپ و ...) صندوق تعریف می‌کند.
+
+    هر صندوق حساب نقد اختصاصی خودش را در دفتر کل دارد تا مانده، کسری و اضافه هر صندوق جدا دیده شود.
+    """
+
+    class Department(models.TextChoices):
+        PHARMACY = "pharmacy", "داروخانه و تجهیزات پزشکی"
+        CLINIC = "clinic", "درمانگاه و پزشکان"
+        LAB = "lab", "آزمایشگاه"
+        CAFE = "cafe", "کافی‌شاپ"
+        GENERAL = "general", "صندوق مشترک (درمانگاه، آزمایشگاه و سایر)"
+
     name = models.CharField("نام صندوق", max_length=80, unique=True)
-    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name="+", verbose_name="انبار فروش")
+    department = models.CharField("بخش", max_length=10, choices=Department.choices, default=Department.PHARMACY)
+    warehouse = models.ForeignKey(
+        Warehouse, on_delete=models.PROTECT, null=True, blank=True, related_name="+", verbose_name="انبار فروش",
+        help_text="فقط برای صندوق داروخانه: کالا از این انبار فروخته می‌شود.",
+    )
+    cash_account = models.ForeignKey(
+        "accounting.Account", on_delete=models.PROTECT, null=True, blank=True, related_name="+",
+        verbose_name="حساب نقد صندوق", limit_choices_to={"is_cash": True},
+        help_text="خالی بگذارید تا هنگام ذخیره یک حساب نقد اختصاصی برای این صندوق ساخته شود.",
+    )
+    card_account = models.ForeignKey(
+        "accounting.Account", on_delete=models.PROTECT, null=True, blank=True, related_name="+",
+        verbose_name="حساب بانکی کارتخوان", limit_choices_to={"is_cash": True},
+        help_text="حساب بانکی متصل به دستگاه کارتخوان این صندوق. خالی = حساب بانک پیش‌فرض.",
+    )
+    cashiers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name="cash_registers", verbose_name="صندوق‌داران مجاز",
+        help_text="خالی = همه کارکنانی که مجوز کار با صندوق این بخش را دارند.",
+    )
     is_active = models.BooleanField("فعال", default=True)
 
     class Meta:
+        ordering = ["department", "name"]
         verbose_name = "صندوق"
         verbose_name_plural = "صندوق‌ها"
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if self.department == self.Department.PHARMACY and not self.warehouse_id:
+            raise ValidationError({"warehouse": "صندوق داروخانه باید انبار فروش داشته باشد."})
+        if self.pk:
+            old = CashRegister.objects.filter(pk=self.pk).values("cash_account_id", "department").first()
+            if old and self.sessions.filter(status=CashSession.Status.OPEN).exists() and (
+                old["cash_account_id"] != self.cash_account_id or old["department"] != self.department
+            ):
+                raise ValidationError("این صندوق شیفت باز دارد؛ حساب نقد یا بخش را پس از بستن شیفت تغییر دهید.")
+
+    def save(self, *args, **kwargs):
+        if not self.cash_account_id and not self.pk:
+            from . import cashbox
+
+            self.cash_account = cashbox.create_cash_account(self.name)
+        super().save(*args, **kwargs)
+
+    @property
+    def cash_code(self):
+        from apps.accounting import services as acc
+
+        return self.cash_account.code if self.cash_account_id else acc.CASH
+
+    @property
+    def card_code(self):
+        from apps.accounting import services as acc
+
+        return self.card_account.code if self.card_account_id else acc.BANK
+
+    def allows(self, user):
+        if not self.is_active:
+            return False
+        if user.is_superuser or not self.cashiers.exists():
+            return True
+        return self.cashiers.filter(pk=user.pk).exists()
 
 
 class CashSession(models.Model):

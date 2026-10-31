@@ -1,8 +1,9 @@
 {% extends "finance/base.html" %}
-{% load persian %}
+{% load persian cashbox_tags %}
 {% block fin_title %}صندوق درمانگاه{% endblock %}
 {% block fin_content %}
 <h1>صندوق درمانگاه</h1>
+{% cashbox_status "clinic" %}
 <form method="get" class="filters"><input name="q" value="{{ q }}" placeholder="کد ملی، کد اتباع یا شماره پرونده" autofocus><button class="btn btn-small">جست‌وجو</button></form>
 {% if patient %}
 <div class="card">

@@ -7,7 +7,17 @@ from .models import CashRegister, CashSession, SalesAllocation, SalesInvoice, Sa
 
 @admin.register(CashRegister)
 class CashRegisterAdmin(admin.ModelAdmin):
-    list_display = ("name", "warehouse", "is_active")
+    list_display = ("name", "department", "warehouse", "cash_account", "card_account", "is_active")
+    list_filter = ("department", "is_active")
+    search_fields = ("name",)
+    filter_horizontal = ("cashiers",)
+    fields = ("name", "department", "warehouse", "cash_account", "card_account", "cashiers", "is_active")
+
+    def has_delete_permission(self, request, obj=None):
+        # صندوقی که شیفت داشته حذف نمی‌شود (سابقه مالی)؛ غیرفعال کنید.
+        if obj is not None and obj.sessions.exists():
+            return False
+        return super().has_delete_permission(request, obj)
 
 
 @admin.register(CashSession)

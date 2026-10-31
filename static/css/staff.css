@@ -171,3 +171,29 @@ a.kpi:hover { transform: translateY(-3px); color: var(--text); }
   .sw { margin: 0; }
   body.staff { background: #fff; }
 }
+
+/* اسکن بارکد با دوربین و صفحه‌های اسکنی (صندوق، انبار، برچسب) */
+.scan-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, .78); z-index: 1000; display: grid; place-items: center; padding: 16px; }
+.scan-box { position: relative; background: #000; border-radius: 16px; overflow: hidden; width: min(560px, 100%); }
+.scan-box video { display: block; width: 100%; max-height: 70vh; object-fit: cover; }
+.scan-frame { position: absolute; inset: 22% 12%; border: 3px solid #22c55e; border-radius: 12px; box-shadow: 0 0 0 999px rgba(0,0,0,.25); pointer-events: none; }
+.scan-msg { color: #fff; text-align: center; margin: 0; padding: 10px; background: rgba(0,0,0,.6); }
+.scan-close { position: absolute; top: 10px; left: 10px; background: #fff; }
+.scan-cam { white-space: nowrap; }
+.scan-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.scan-bar input[type=text] { flex: 1; min-width: 220px; font-size: 1.15rem; padding: 12px 14px; border: 2px solid var(--primary, #0d9488); border-radius: 12px; }
+.scan-flash { animation: scan-flash .6s ease; }
+@keyframes scan-flash { from { background: #dcfce7; } to { background: transparent; } }
+.qty-input { width: 72px; text-align: center; }
+.pos-total { font-size: 1.6rem; font-weight: 800; }
+.label-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(50mm, 1fr)); gap: 4mm; }
+.label { border: 1px dashed #cbd5e1; border-radius: 6px; padding: 2mm 3mm; text-align: center; break-inside: avoid; background: #fff; color: #000; }
+.label svg { width: 100%; height: 14mm; }
+.label .l-name { font-weight: 700; font-size: 9pt; line-height: 1.3; }
+.label .l-meta { font-size: 8pt; }
+.label .l-code { font-family: monospace; font-size: 8pt; letter-spacing: 1px; direction: ltr; }
+@media print {
+  body.staff .sb, body.staff .tb, .bo-nav, .no-print, .messages { display: none !important; }
+  body.staff .sw { margin: 0 !important; }
+  .label { border-color: #eee; }
+}

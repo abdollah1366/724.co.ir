@@ -330,6 +330,7 @@ JOURNAL_ACCOUNTS = {
     InventoryDocument.Kind.ADJUST_IN: acc.INVENTORY_GAIN,
     InventoryDocument.Kind.ADJUST_OUT: acc.INVENTORY_LOSS,
     InventoryDocument.Kind.WASTE: acc.INVENTORY_LOSS,
+    InventoryDocument.Kind.CONSUME: acc.CONSUMPTION,
 }
 
 
@@ -357,8 +358,11 @@ def post_inventory_document(doc, user):
     value = source_inventory_value(source)
     if doc.kind in JOURNAL_ACCOUNTS and value:
         counter = JOURNAL_ACCOUNTS[doc.kind]
-        text = f"{doc.get_kind_display()} {doc.number}"
-        acc.post_entry(source, [(acc.INVENTORY, value, 0, None, text), (counter, 0, value, None, text)], text, doc.date, user)
+        text = f"{doc.get_kind_display()} {doc.number} — {doc.warehouse}"
+        # مصرف داخلی به مرکز هزینه همان بخش (مثلاً اتاق پانسمان ← درمانگاه) می‌رود.
+        center = doc.warehouse.cost_center.code if doc.kind == InventoryDocument.Kind.CONSUME and doc.warehouse.cost_center_id else None
+        acc.post_entry(source, [(acc.INVENTORY, value, 0, None, text), (counter, 0, value, None, text)], text, doc.date, user,
+                       cost_center=center)
 
 
 def reverse_inventory_document(doc, user):
