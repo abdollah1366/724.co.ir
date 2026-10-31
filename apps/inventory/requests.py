@@ -14,11 +14,10 @@ from .models import Batch, InventoryDocument, InventoryDocumentLine, Location, S
 
 
 def can_act_for(user, warehouse):
-    """مسئولان بخش؛ اگر مسئولی تعیین نشده، هر کسی که مجوز ثبت سند انبار دارد."""
-    if user.is_superuser:
+    """انباردار و مدیر (مجوز ثبت سند انبار یا تحویل درخواست) برای همه انبارها؛ بقیه فقط برای بخشی که مسئول آن ثبت شده‌اند."""
+    if user.is_superuser or user.has_perm("inventory.post_inventorydocument") or user.has_perm("inventory.issue_stockrequest"):
         return True
-    keepers = warehouse.keepers.all()
-    return keepers.filter(pk=user.pk).exists() if keepers.exists() else True
+    return warehouse.keepers.filter(pk=user.pk).exists()
 
 
 def validate_request(req):
@@ -174,3 +173,56 @@ def build_document(kind, warehouse, items, user, dest_warehouse=None, reason="",
 
 def default_location(warehouse):
     return Location.objects.filter(warehouse=warehouse, is_active=True).order_by("code").first()
+
+
+def count_adjust(warehouse, counted, user, reason=""):
+    """انبارگردانی با اسکن: counted = [(کالا، بچ یا None، تعداد شمارش‌شده)].
+
+    برای هر ردیف، اختلاف با موجودی دفتری همان انبار (و همان بچ اگر اسکن بچ داشته) حساب می‌شود؛
+    کسری با سند «کسری انبارگردانی» و اضافه با سند «اضافه انبارگردانی» به بهای میانگین ثبت می‌شود.
+    خروجی: {"in": سند یا None, "out": سند یا None, "rows": [(کالا، بچ، دفتری، شمارش، اختلاف)]}.
+    """
+    from django.db.models import Sum
+
+    Kind = InventoryDocument.Kind
+    reason = (reason or "انبارگردانی با اسکن")[:300]
+    with transaction.atomic():
+        rows, ins, outs = [], [], []
+        for product, batch, qty in counted:
+            qs = StockBalance.objects.filter(product=product, warehouse=warehouse)
+            if batch is not None:
+                qs = qs.filter(batch=batch)
+            system = qs.aggregate(q=Sum("quantity"))["q"] or 0
+            diff = int(qty) - system
+            rows.append((product, batch, system, int(qty), diff))
+            if diff < 0:
+                plan, short = plan_fefo(product, warehouse, -diff, batch=batch, healthy_only=False)
+                outs += [(product, b, loc, q) for b, loc, q in plan]
+            elif diff > 0:
+                target = batch or _latest_batch(product, warehouse)
+                if target is None:
+                    raise DocumentError(f"برای اضافه «{product.name}» بچ مشخص نیست؛ کد دوبعدی یا برچسب بچ را اسکن کنید.")
+                location = destination_location(warehouse, product)
+                ins.append((product, target, location, diff))
+        result = {"rows": rows, "in": None, "out": None}
+        if outs:
+            doc = InventoryDocument.objects.create(kind=Kind.ADJUST_OUT, warehouse=warehouse, reason=reason, created_by=user)
+            for product, b, loc, q in outs:
+                InventoryDocumentLine.objects.create(document=doc, product=product, batch_number=b.number, expiry_date=b.expiry_date,
+                                                     location=loc, quantity=q)
+            result["out"] = doc.post(user)
+        if ins:
+            doc = InventoryDocument.objects.create(kind=Kind.ADJUST_IN, warehouse=warehouse, reason=reason, created_by=user)
+            for product, b, loc, q in ins:
+                InventoryDocumentLine.objects.create(document=doc, product=product, batch_number=b.number, expiry_date=b.expiry_date,
+                                                     location=loc, quantity=q, unit_cost=int(round(product.avg_cost or 0)))
+            result["in"] = doc.post(user)
+    return result
+
+
+def _latest_batch(product, warehouse):
+    balance = (StockBalance.objects.filter(product=product, warehouse=warehouse).select_related("batch")
+               .order_by("-batch__expiry_date", "-batch_id").first())
+    if balance:
+        return balance.batch
+    return product.batches.order_by("-expiry_date", "-pk").first()

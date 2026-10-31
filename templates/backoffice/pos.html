@@ -1,42 +1,72 @@
 {% extends "backoffice/base.html" %}
-{% load persian %}
+{% load persian static %}
 {% block bo_title %}صندوق فروش{% endblock %}
 {% block bo_content %}
 <h1>صندوق فروش — {{ session.register }}</h1>
-<p class="muted">شیفت از {{ session.opened_at|jalali:"%Y/%m/%d %H:%M" }} — نقد مورد انتظار در صندوق: {{ expected_cash|rial }} ریال</p>
-<div class="pos-grid">
-  <div class="card">
-    <form method="post" action="{% url 'backoffice:pos_add' %}" class="filters">{% csrf_token %}
-      <input type="text" name="code" placeholder="بارکد یا کد کالا را اسکن کنید" autofocus autocomplete="off" required>
-      <input type="number" name="quantity" value="1" min="1" style="width:80px">
-      <button class="btn btn-small" type="submit">افزودن</button>
-    </form>
-    {% if invoice %}
-    <div class="table-wrap"><table class="table data">
-      <tr><th>کالا</th><th class="num">تعداد</th><th class="num">قیمت واحد</th><th class="num">مالیات</th><th class="num">جمع</th><th></th></tr>
-      {% for line in lines %}
-      <tr><td>{{ line.product.name }}{% if line.product.requires_prescription %} <span class="badge badge-warn">نسخه‌ای</span>{% endif %}{% if line.product.is_controlled %} <span class="badge status-cancelled">کنترل‌شده</span>{% endif %}</td>
-      <td class="num">{{ line.quantity|fa_digits }}</td><td class="num">{{ line.unit_price|rial }}</td><td class="num">{{ line.tax|rial }}</td><td class="num">{{ line.line_total|rial }}</td>
-      <td><form method="post" action="{% url 'backoffice:pos_remove' line.pk %}">{% csrf_token %}<button class="link-button" type="submit">حذف</button></form></td></tr>
-      {% endfor %}
-      <tfoot><tr><td colspan="4">مبلغ قابل پرداخت (پیش از تخفیف فاکتور)</td><td class="num">{{ invoice.total|rial }}</td><td></td></tr></tfoot>
-    </table></div>
-    {% else %}<p class="muted">برای شروع فروش، کالا را اسکن کنید.</p>{% endif %}
-  </div>
-  <div>
-    {% if invoice %}
-    <form method="post" action="{% url 'backoffice:pos_checkout' %}" class="form card">{% csrf_token %}
-      <h3>پرداخت</h3>
-      {% if invoice.needs_prescription %}<div class="alert alert-warn">این فاکتور داروی نسخه‌ای دارد: شماره نسخه و نظام پزشکی را وارد کنید. ثبت نهایی فقط با حساب داروساز ممکن است.</div>{% endif %}
-      {% include "includes/form.html" with form=checkout %}
-      <button class="btn" type="submit">ثبت نهایی فاکتور</button>
-    </form>
-    {% endif %}
-    <form method="post" action="{% url 'backoffice:pos_close' %}" class="form card">{% csrf_token %}
-      <h3>بستن شیفت</h3>
-      {% include "includes/form.html" with form=close_form %}
-      <button class="btn btn-outline" type="submit">بستن شیفت</button>
-    </form>
-  </div>
-</div>
+<p class="muted">شیفت از {{ session.opened_at|jalali:"%Y/%m/%d %H:%M" }} — نقد مورد انتظار در صندوق: <span id="pos-expected">{{ expected_cash|rial }}</span> ریال</p>
+<form method="post" action="{% url 'backoffice:pos_add' %}" class="card scan-bar" id="pos-scan">{% csrf_token %}
+  <input type="text" name="code" id="pos-code" placeholder="بارکد را با بارکدخوان بزنید یا 📷 دوربین" autofocus autocomplete="off" required data-scan="submit" inputmode="search">
+  <label class="muted">تعداد <input type="number" name="quantity" value="1" min="1" class="qty-input"></label>
+  <button class="btn" type="submit">افزودن</button>
+</form>
+<div id="pos-msg" role="status" aria-live="polite"></div>
+<div id="pos-body">{% include "backoffice/_pos_body.html" %}</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/scanner.js' %}" data-zxing="{% static 'vendor/zxing/zxing-library-0.21.3.min.js' %}"></script>
+<script>
+// صندوق سریع: هر اسکن بدون بارگذاری صفحه به سبد اضافه می‌شود؛ تعداد و حذف هم همین‌طور. بدون جاوااسکریپت، فرم‌ها عادی کار می‌کنند.
+(function () {
+  var form = document.getElementById("pos-scan"), code = document.getElementById("pos-code");
+  var body = document.getElementById("pos-body"), msg = document.getElementById("pos-msg");
+  function show(text, ok) {
+    msg.innerHTML = text ? '<div class="alert ' + (ok ? "alert-info" : "alert-error") + '"></div>' : "";
+    if (text) msg.firstChild.textContent = text;
+  }
+  function send(url, data) {
+    return fetch(url, { method: "POST", body: data, headers: { "X-Requested-With": "XMLHttpRequest" }, credentials: "same-origin" })
+      .then(function (r) {
+        if (!(r.headers.get("content-type") || "").includes("json")) { location.reload(); return null; }
+        return r.json();
+      })
+      .then(function (res) {
+        if (!res) return;
+        body.innerHTML = res.html;
+        show(res.message, res.ok);
+        Scanner.beep(res.ok);
+        if (res.added) {
+          var row = body.querySelector('[data-product="' + res.added + '"]');
+          if (row) row.classList.add("scan-flash");
+        }
+        code.focus();
+      })
+      .catch(function () { show("ارتباط با سرور برقرار نشد؛ دوباره اسکن کنید.", false); });
+  }
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!code.value.trim()) return;
+    var data = new FormData(form);
+    code.value = "";
+    form.querySelector("[name=quantity]").value = 1;
+    send(form.action, data);
+  });
+  body.addEventListener("submit", function (e) {
+    var f = e.target;
+    if (!f.hasAttribute("data-ajax")) return;
+    e.preventDefault();
+    send(f.action, new FormData(f));
+  });
+  body.addEventListener("change", function (e) {
+    if (e.target.matches("input.qty-input") && e.target.form && e.target.form.hasAttribute("data-ajax")) {
+      send(e.target.form.action, new FormData(e.target.form));
+    }
+  });
+  // بارکدخوان وقتی فوکوس جای دیگری است: اگر نوشتن سریع خارج از فیلدها شروع شد، به فیلد بارکد برود.
+  document.addEventListener("keydown", function (e) {
+    var t = e.target;
+    if (t === code || /INPUT|SELECT|TEXTAREA/.test(t.tagName) || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key.length === 1) code.focus();
+  });
+})();
+</script>
 {% endblock %}

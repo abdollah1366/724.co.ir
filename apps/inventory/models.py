@@ -32,7 +32,8 @@ class Warehouse(models.Model):
     )
     keepers = models.ManyToManyField(
         settings.AUTH_USER_MODEL, blank=True, related_name="kept_warehouses", verbose_name="مسئولان بخش / انبار",
-        help_text="کاربرانی که برای این بخش درخواست کالا و مصرف ثبت می‌کنند. خالی = همه انبارداران.",
+        help_text="کاربرانی (مثلاً پرستار اتاق پانسمان) که برای این بخش درخواست کالا و مصرف ثبت می‌کنند. "
+                  "انباردار و مدیر داروخانه بدون نیاز به این فهرست به همه انبارها دسترسی دارند.",
     )
     is_active = models.BooleanField("فعال", default=True)
 

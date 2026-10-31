@@ -233,15 +233,38 @@ def pos(request):
                 messages.error(request, "این صندوق شیفت باز دارد.")
             return redirect("backoffice:pos")
         return render(request, "backoffice/pos_open.html", {"form": form})
-    invoice = _current_invoice(session, request.user)
+    return render(request, "backoffice/pos.html", _pos_context(session, request.user))
+
+
+def _pos_context(session, user):
+    invoice = _current_invoice(session, user)
     checkout = None
     if invoice:
         checkout = CheckoutForm(initial={"token": invoice.client_token or "", "cash": invoice.total})
-    return render(request, "backoffice/pos.html", {
+    return {
         "session": session, "invoice": invoice, "checkout": checkout,
-        "lines": invoice.lines.select_related("product") if invoice else [],
+        "lines": invoice.lines.select_related("product").order_by("-pk") if invoice else [],
         "expected_cash": sales.session_expected_cash(session), "close_form": CloseSessionForm(),
-    })
+    }
+
+
+def _is_ajax(request):
+    return request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+
+def _pos_reply(request, session, ok=True, message="", added=None):
+    """پاسخ صندوق: برای درخواست fetch بخش سبد و پرداخت را دوباره می‌سازد (بدون بارگذاری صفحه)، وگرنه بازگشت به صفحه."""
+    if _is_ajax(request):
+        from django.template.loader import render_to_string
+
+        context = _pos_context(session, request.user)
+        html = render_to_string("backoffice/_pos_body.html", context, request=request)
+        invoice = context["invoice"]
+        return JsonResponse({"ok": ok, "message": message, "html": html, "added": added,
+                             "total": invoice.total if invoice else 0}, status=200 if ok else 400)
+    if message:
+        (messages.success if ok else messages.error)(request, message)
+    return redirect("backoffice:pos")
 
 
 @staff_member_required
@@ -251,20 +274,22 @@ def pos_add(request):
     session = _open_session(request.user)
     if session is None:
         return redirect("backoffice:pos")
-    product, factor = find_product(request.POST.get("code", ""))
+    scan = barcodes.resolve(request.POST.get("code", ""))
     try:
-        quantity = max(1, int(normalize_digits(request.POST.get("quantity", "1")) or 1)) * factor
+        quantity = max(1, int(normalize_digits(request.POST.get("quantity", "1")) or 1)) * scan.factor
     except ValueError:
-        quantity = factor
-    if product is None:
-        messages.error(request, "کالایی با این بارکد یا کد پیدا نشد.")
-        return redirect("backoffice:pos")
+        quantity = scan.factor
+    if not scan.found:
+        return _pos_reply(request, session, False, "کالایی با این بارکد یا کد پیدا نشد.")
     invoice = _current_invoice(session, request.user) or sales.create_pos_invoice(session, request.user, uuid.uuid4().hex)
     try:
-        sales.add_line(invoice, product, quantity)
+        sales.add_line(invoice, scan.product, quantity)
     except ValidationError as exc:
-        messages.error(request, " ".join(exc.messages))
-    return redirect("backoffice:pos")
+        return _pos_reply(request, session, False, " ".join(exc.messages))
+    note = f"«{scan.product.name}» × {quantity} اضافه شد."
+    if scan.batch and not scan.batch.is_sellable:
+        note += f" هشدار: بچ اسکن‌شده ({scan.batch.number}) {scan.batch.get_status_display()} است؛ از بچ سالم دیگر فروخته می‌شود."
+    return _pos_reply(request, session, True, note, added=scan.product.pk)
 
 
 @staff_member_required
@@ -275,7 +300,32 @@ def pos_remove(request, pk):
     invoice = _current_invoice(session, request.user) if session else None
     if invoice:
         invoice.lines.filter(pk=pk).delete()
-    return redirect("backoffice:pos")
+        sales.compute_taxes(invoice)
+    if session is None:
+        return redirect("backoffice:pos")
+    return _pos_reply(request, session, True, "")
+
+
+@staff_member_required
+@pos_required
+@require_POST
+def pos_quantity(request, pk):
+    session = _open_session(request.user)
+    invoice = _current_invoice(session, request.user) if session else None
+    if invoice is None:
+        return redirect("backoffice:pos")
+    line = get_object_or_404(invoice.lines, pk=pk)
+    try:
+        quantity = int(normalize_digits(request.POST.get("quantity", "")))
+    except ValueError:
+        return _pos_reply(request, session, False, "تعداد معتبر نیست.")
+    if quantity <= 0:
+        line.delete()
+    else:
+        line.quantity = quantity
+        line.save(update_fields=["quantity"])
+    sales.compute_taxes(invoice)
+    return _pos_reply(request, session, True, "")
 
 
 @staff_member_required
@@ -362,10 +412,12 @@ def _product_json(product, factor=1):
 @staff_member_required
 def api_product_lookup(request):
     _require(request.user, *PHARMACY_PERMS, "shop.view_product")
-    product, factor = find_product(request.GET.get("code", ""))
-    if product is None:
+    scan = barcodes.resolve(request.GET.get("code", ""))
+    if not scan.found:
         return JsonResponse({"error": "not_found"}, status=404)
-    return JsonResponse(_product_json(product, factor))
+    data = _product_json(scan.product, scan.factor)
+    data["scan"] = scan.as_dict()
+    return JsonResponse(data)
 
 
 @staff_member_required

@@ -56,7 +56,7 @@ class Migration(migrations.Migration):
             name="keepers",
             field=models.ManyToManyField(
                 blank=True,
-                help_text="کاربرانی که برای این بخش درخواست کالا و مصرف ثبت می\u200cکنند. خالی = همه انبارداران.",
+                help_text="کاربرانی (مثلاً پرستار اتاق پانسمان) که برای این بخش درخواست کالا و مصرف ثبت می\u200cکنند. انباردار و مدیر داروخانه بدون نیاز به این فهرست به همه انبارها دسترسی دارند.",
                 related_name="kept_warehouses",
                 to=settings.AUTH_USER_MODEL,
                 verbose_name="مسئولان بخش / انبار",

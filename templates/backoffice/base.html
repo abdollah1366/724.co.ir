@@ -9,6 +9,10 @@
       <a href="{% url 'backoffice:stock' %}">موجودی</a>
     {% endif %}
     {% if perms.sales.use_pos %}<a href="{% url 'backoffice:pos' %}">صندوق فروش</a>{% endif %}
+    {% if perms.inventory.post_inventorydocument or perms.inventory.consume_inventorydocument or perms.inventory.count_inventorydocument %}<a href="{% url 'backoffice:warehouse' %}">میز کار انبار</a>{% endif %}
+    {% if perms.inventory.add_stockrequest or perms.inventory.issue_stockrequest %}<a href="{% url 'backoffice:stock_requests' %}">درخواست کالای بخش‌ها</a>{% endif %}
+    {% if perms.inventory.post_inventorydocument or perms.shop.change_product %}<a href="{% url 'backoffice:labels' %}">برچسب بارکد</a>{% endif %}
+    {% if perms.sales.change_cashregister %}<a href="{% url 'backoffice:cashboxes' %}">صندوق‌ها</a>{% endif %}
     {% if perms.ehr.dispense_prescription %}<a href="{% url 'ehr:pharmacy_queue' %}">نسخه‌های درمانگاه</a>{% endif %}
     {% if perms.accounting.view_financial_reports %}
       <a href="{% url 'backoffice:pnl' %}">سود و زیان</a>
