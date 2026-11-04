@@ -1,0 +1,72 @@
+{% extends "backoffice/base.html" %}
+{% load static %}
+{% block bo_title %}ورود کالا از شرکت{% endblock %}
+{% block bo_content %}
+<h1>ورود کالا از شرکت پخش</h1>
+<ol class="steps-line muted">
+  <li><strong>۱.</strong> شرکت و شماره فاکتور را بنویسید</li>
+  <li><strong>۲.</strong> هر کالا را اسکن یا با نام پیدا کنید و بچ، انقضا، تعداد و قیمت را کامل کنید</li>
+  <li><strong>۳.</strong> «ثبت ورود کالا» — کالا وارد انبار و {% if can_invoice %}بدهی شرکت در حساب‌ها ثبت{% else %}فاکتور برای حسابداری فرستاده{% endif %} می‌شود</li>
+</ol>
+{% if po %}<p class="alert alert-info">دریافت سفارش خرید <strong>{{ po.number }}</strong> از «{{ po.supplier }}». ردیف‌های باقی‌مانده سفارش در جدول آمده‌اند؛ تعداد واقعی رسیده و بچ و انقضا را وارد کنید و ردیف‌های نرسیده را حذف کنید.</p>{% endif %}
+
+<form method="post" class="card form" id="receive-form" data-lookup-url="{% url 'backoffice:purchase_lookup' %}">{% csrf_token %}
+  {% if po %}<input type="hidden" name="po" value="{{ po.pk }}">{% endif %}
+  <input type="hidden" name="items">
+  <div class="grid">
+    <div class="field"><label for="f-supplier">شرکت پخش / فروشنده</label>
+      <select name="supplier" id="f-supplier"{% if po %} disabled{% endif %}>
+        <option value="">— انتخاب کنید —</option>
+        {% for s in suppliers %}<option value="{{ s.pk }}"{% if current_supplier == s.pk|stringformat:"d" %} selected{% endif %}>{{ s.name }}</option>{% endfor %}
+      </select>
+      {% if po %}<input type="hidden" name="supplier" value="{{ po.supplier_id }}">{% endif %}
+      {% if can_add_supplier and not po %}<details class="small"><summary>شرکت در فهرست نیست؟</summary>
+        <input type="text" name="new_supplier" maxlength="200" placeholder="نام شرکت جدید" value="{{ form.new_supplier|default:'' }}">
+        <input type="text" name="new_supplier_license" maxlength="60" placeholder="شماره مجوز شرکت پخش (اختیاری)" value="{{ form.new_supplier_license|default:'' }}">
+        <input type="text" name="new_supplier_phone" maxlength="20" placeholder="تلفن (اختیاری)" value="{{ form.new_supplier_phone|default:'' }}">
+      </details>{% endif %}
+    </div>
+    <div class="field"><label for="f-doc">شماره فاکتور / حواله شرکت</label>
+      <input type="text" name="doc_no" id="f-doc" maxlength="40" value="{{ form.doc_no|default:'' }}" placeholder="از روی برگه‌ای که با بار آمده"></div>
+    <div class="field"><label for="f-wh">ورود به انبار</label>
+      <select name="warehouse" id="f-wh">{% for w in warehouses %}<option value="{{ w.pk }}"{% if current_wh == w.pk|stringformat:"d" %} selected{% endif %}>{{ w.name }}</option>{% endfor %}</select></div>
+  </div>
+
+  <h2>اقلام</h2>
+  <div class="scan-bar">
+    <input type="text" data-scan data-receive-scan placeholder="بارکد یا کد دوبعدی جعبه را اسکن کنید، یا نام دارو را بنویسید و Enter" autocomplete="off" inputmode="search" autofocus>
+  </div>
+  <div data-msg role="status" aria-live="polite"></div>
+  <ul class="pick-list" data-picks hidden></ul>
+  <div class="table-wrap"><table class="table data receive-table">
+    <thead><tr><th>کالا</th><th>شماره بچ / سریال</th><th>انقضا</th><th>تعداد (عدد)</th><th>قیمت خرید هر عدد (ریال)</th><th class="num">جمع</th><th>محل</th><th>کد اصالت</th><th></th></tr></thead>
+    <tbody data-rows></tbody>
+    <tfoot><tr><td colspan="5">جمع اقلام</td><td class="num" data-total>۰</td><td colspan="3"></td></tr></tfoot>
+  </table></div>
+  <p class="muted small" data-empty>اسکن کد دوبعدی جعبه، کالا و بچ و انقضا را خودش پر می‌کند. اسکن دوباره همان جعبه تعداد را بالا می‌برد؛ بارکد کارتن به اندازه تعداد داخل آن می‌شمارد. انقضا را شمسی یا میلادی بنویسید (۱۴۰۶/۰۵ یا 2027/08).</p>
+
+  {% if can_invoice %}
+  <fieldset class="card">
+    <legend><label><input type="checkbox" name="with_invoice" value="1"{% if with_invoice %} checked{% endif %}> فاکتور شرکت هم‌زمان ثبت شود (بدهی به شرکت)</label></legend>
+    <div class="grid">
+      <div class="field"><label>تخفیف کل فاکتور (ریال)</label><input type="text" inputmode="numeric" name="discount" value="{{ form.discount|default:'0' }}"></div>
+      <div class="field"><label>مالیات بر ارزش افزوده (ریال)</label><input type="text" inputmode="numeric" name="tax" value="{{ form.tax|default:'0' }}"></div>
+      {% if can_pay %}
+      <div class="field"><label>همین الان پرداخت شد؟ مبلغ (ریال)</label><input type="text" inputmode="numeric" name="pay_amount" value="{{ form.pay_amount|default:'' }}" placeholder="خالی = بعداً (نسیه)"></div>
+      <div class="field"><label>روش پرداخت</label><select name="pay_method">{% for v, l in pay_methods %}<option value="{{ v }}"{% if form.pay_method == v or not form.pay_method and v == "bank" %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="field"><label>شماره پیگیری / چک</label><input type="text" name="pay_ref" maxlength="40" value="{{ form.pay_ref|default:'' }}"></div>
+      {% endif %}
+    </div>
+    <p class="muted small">مبلغ فاکتور = جمع اقلام − تخفیف + مالیات. اگر فاکتور هنوز نرسیده، تیک را بردارید؛ رسید در صفحه «خرید و بدهی شرکت‌ها» منتظر فاکتور می‌ماند.</p>
+  </fieldset>
+  {% endif %}
+  <button class="btn" type="submit">ثبت ورود کالا</button>
+  <a class="btn btn-outline" href="{% url 'backoffice:purchases' %}">انصراف</a>
+</form>
+{{ rows_json|json_script:"receive-rows" }}
+{{ locations_json|json_script:"receive-locations" }}
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/scanner.js' %}" data-zxing="{% static 'vendor/zxing/zxing-library-0.21.3.min.js' %}"></script>
+<script src="{% static 'js/receive.js' %}"></script>
+{% endblock %}

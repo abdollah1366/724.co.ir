@@ -7,6 +7,10 @@ PANELS = [
     ("داروخانه و تجهیزات", [
         ("داشبورد داروخانه", "backoffice:dashboard", ("inventory.view_stockbalance", "sales.view_salesinvoice", "sales.use_pos")),
         ("صندوق فروش", "backoffice:pos", ("sales.use_pos",)),
+        ("مرجوعی فروش", "backoffice:returns", ("sales.post_salesreturn",)),
+        ("ورود کالا از شرکت (رسید + فاکتور)", "backoffice:receive", ("purchasing.post_goodsreceipt",)),
+        ("خرید و بدهی شرکت‌ها", "backoffice:purchases", ("purchasing.post_goodsreceipt", "purchasing.post_purchaseinvoice",
+                                                        "purchasing.add_purchaseorder", "accounting.post_payment")),
         ("موجودی انبار", "backoffice:stock", ("inventory.view_stockbalance",)),
         ("میز کار انبار (اسکن، انتقال، مصرف، شمارش)", "backoffice:warehouse",
          ("inventory.post_inventorydocument", "inventory.consume_inventorydocument", "inventory.count_inventorydocument")),
@@ -96,6 +100,9 @@ GROUP_STYLE = {
 LINK_ICONS = {
     "backoffice:dashboard": "📊",
     "backoffice:pos": "🧾",
+    "backoffice:returns": "↩️",
+    "backoffice:receive": "🚚",
+    "backoffice:purchases": "🧮",
     "backoffice:stock": "📦",
     "backoffice:alerts": "⏰",
     "backoffice:warehouse": "🏷️",

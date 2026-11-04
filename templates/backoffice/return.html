@@ -1,0 +1,27 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}مرجوعی فاکتور {{ invoice.number }}{% endblock %}
+{% block bo_content %}
+<h1>مرجوعی از فاکتور {{ invoice.number }}</h1>
+<p class="muted">{{ invoice.date|jalali }} — مبلغ فاکتور {{ invoice.total|rial }} ریال{% if invoice.insurance_amount %} (سهم بیمه {{ invoice.insurance_amount|rial }}){% endif %}</p>
+{% if invoice.status != "posted" %}<p class="alert alert-error">این فاکتور ثبت نهایی نشده یا ابطال شده و مرجوعی ندارد.</p>{% else %}
+<form method="post" class="card form">{% csrf_token %}
+  <div class="table-wrap"><table class="table data">
+    <tr><th>کالا</th><th class="num">فروخته</th><th class="num">قابل برگشت</th><th>تعداد برگشتی</th></tr>
+    {% for line, left in lines %}
+    <tr><td>{{ line.product.name }}</td><td class="num">{{ line.quantity|fa_digits }}</td><td class="num">{{ left|fa_digits }}</td>
+      <td>{% if left %}<input type="number" class="qty-input" min="0" max="{{ left }}" name="q{{ line.pk }}" value="0">{% else %}—{% endif %}</td></tr>
+    {% endfor %}
+  </table></div>
+  <div class="grid">
+    <div class="field"><label>علت مرجوعی (الزامی)</label><input type="text" name="reason" maxlength="300" required value="{{ post.reason|default:'' }}" placeholder="مثلاً تغییر نسخه توسط پزشک"></div>
+    <div class="field"><label>استرداد وجه</label><select name="refund_method">{% for v, l in methods %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+  </div>
+  <label><input type="checkbox" name="restock" value="1"> کالا پلمب، سالم و با شرایط نگهداری درست برگشته و دوباره قابل فروش است</label>
+  <p class="muted small">بدون این تیک، کالا به انبار «قرنطینه» می‌رود و فروخته نمی‌شود (داروی یخچالی یا باز شده را هرگز به قفسه برنگردانید).</p>
+  <button class="btn">ثبت مرجوعی</button>
+  <a class="btn btn-outline" href="{% url 'backoffice:pos_invoice' invoice.pk %}">بازگشت به فاکتور</a>
+</form>
+{% endif %}
+{% if returns %}<h2>مرجوعی‌های قبلی این فاکتور</h2><ul>{% for r in returns %}<li>{{ r.number }} — {{ r.reason }} — {{ r.refund_amount|rial }} ریال</li>{% endfor %}</ul>{% endif %}
+{% endblock %}

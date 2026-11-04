@@ -3,6 +3,7 @@
 import datetime
 
 from django.test import TestCase
+from django.utils import timezone
 
 from apps.accounting import services as acc
 from apps.accounting.models import JournalLine
@@ -136,8 +137,10 @@ class BarcodeTests(TestCase):
         self.assertEqual(barcodes.parse_gs1("6260000000123"), {})
 
     def test_resolve_finds_package_factor_batch_and_expiry(self):
-        receive(self.amox, 10, 30_000, batch="LOT-77", expiry=datetime.date(2027, 1, 31))
-        scan = barcodes.resolve("(01)06260000000123(17)270131(10)LOT-77(21)S1")
+        # تاریخ نسبی: با تاریخ ثابت، آزمون پس از نزدیک شدن انقضا به حداقل عمر قابل پذیرش خراب می‌شد.
+        expiry = datetime.date(timezone.localdate().year + 2, 1, 31)
+        receive(self.amox, 10, 30_000, batch="LOT-77", expiry=expiry)
+        scan = barcodes.resolve(f"(01)06260000000123(17){expiry:%y%m%d}(10)LOT-77(21)S1")
         self.assertEqual((scan.product, scan.factor, scan.batch.number, scan.source), (self.amox, 10, "LOT-77", "gs1"))
         plain = barcodes.resolve("۶۲۶۰۰۰۰۰۰۰۱۲۳")
         self.assertEqual((plain.product, plain.factor), (self.amox, 10))

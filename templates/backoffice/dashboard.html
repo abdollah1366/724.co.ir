@@ -5,6 +5,13 @@
 <h1>داشبورد مدیریتی</h1>
 <p class="muted">{{ today|jalali }} — اعداد به ریال و لحظه‌ای از اسناد ثبت‌شده محاسبه می‌شوند.</p>
 
+{% if todo %}
+<div class="card">
+  <h2>کارهای من</h2>
+  <ul class="todo-list">{% for label, count, url in todo %}<li><a href="{{ url }}"><span>{{ label }}</span>{% if count %}<strong class="alert-count">{{ count|fa_digits }}</strong>{% else %}<span>←</span>{% endif %}</a></li>{% endfor %}</ul>
+</div>
+{% endif %}
+
 {% if finance %}
 <div class="grid stats">
   <div class="card stat"><span class="stat-label">فروش خالص امروز</span><span class="stat-value">{{ finance.sales_today|rial }}</span><span class="muted small">{{ sales_today_count|fa_digits }} فاکتور</span></div>

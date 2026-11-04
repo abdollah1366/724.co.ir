@@ -1,0 +1,62 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}خرید و بدهی شرکت‌ها{% endblock %}
+{% block bo_content %}
+<h1>خرید و بدهی شرکت‌ها</h1>
+<p class="muted">همه کارهای خرید در یک صفحه: بار رسید ← ورود کالا؛ فاکتور رسید ← ثبت فاکتور؛ موعد پرداخت ← پرداخت به شرکت.</p>
+{% if can_receive or can_order %}<div class="filters card">
+  {% if can_receive %}<a class="btn" href="{% url 'backoffice:receive' %}">+ ورود کالا از شرکت (بار رسید)</a>{% endif %}
+  {% if can_order %}<a class="btn btn-outline" href="{% url 'admin:purchasing_purchaseorder_add' %}">سفارش خرید جدید (اختیاری)</a>{% endif %}
+  {% if done and can_receive %}<a class="btn btn-outline" href="{% url 'backoffice:labels' %}?receipt={{ done.pk }}">چاپ برچسب بارکد رسید {{ done.number }}</a>{% endif %}
+</div>{% endif %}
+
+<h2>۱. رسیدهای منتظر فاکتور <span class="muted small">({{ pending|length|fa_digits }})</span></h2>
+<p class="muted small">کالا وارد انبار شده ولی بدهی شرکت هنوز ثبت نشده. شماره فاکتور شرکت را بنویسید و «ثبت فاکتور» بزنید؛ ردیف‌ها و قیمت‌ها از رسید برداشته می‌شوند.</p>
+<div class="table-wrap card"><table class="table data">
+  <tr><th>رسید</th><th>شرکت</th><th>انبار</th><th>تاریخ</th><th class="num">مبلغ رسید</th><th>{% if can_invoice %}ثبت فاکتور{% endif %}</th></tr>
+  {% for r in pending %}
+  <tr><td>{{ r.number }}</td><td>{{ r.supplier }}</td><td>{{ r.warehouse }}</td><td>{{ r.date|jalali }}</td><td class="num">{{ r.total|rial }}</td>
+    <td>{% if can_invoice %}
+      <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="invoice"><input type="hidden" name="receipt" value="{{ r.pk }}">
+        <input type="text" name="supplier_invoice_no" value="{{ r.delivery_note }}" placeholder="شماره فاکتور شرکت" required maxlength="40" size="12">
+        <input type="text" name="discount" inputmode="numeric" placeholder="تخفیف" size="8">
+        <input type="text" name="tax" inputmode="numeric" placeholder="مالیات" size="8">
+        <button class="btn btn-small">ثبت فاکتور</button></form>
+    {% else %}<span class="muted small">با حسابدار یا مدیر داروخانه</span>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="6" class="muted">رسید بدون فاکتوری نیست. 👍</td></tr>{% endfor %}
+</table></div>
+
+{% if can_pay or can_invoice %}
+<h2>۲. بدهی به شرکت‌ها</h2>
+<div class="table-wrap card"><table class="table data">
+  <tr><th>شرکت</th><th class="num">مانده بدهی</th><th>{% if can_pay %}پرداخت{% endif %}</th></tr>
+  {% for b in balances %}
+  <tr><td><a href="{% url 'backoffice:party_statement' b.party.pk %}">{{ b.party }}</a></td><td class="num">{{ b.due|rial }}</td>
+    <td>{% if can_pay and b.due > 0 %}
+      <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="pay"><input type="hidden" name="supplier" value="{{ b.party.pk }}">
+        <input type="text" name="amount" inputmode="numeric" value="{{ b.due }}" size="12" required>
+        <select name="method">{% for v, l in pay_methods %}<option value="{{ v }}"{% if v == "bank" %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+        <input type="text" name="reference_no" placeholder="شماره پیگیری / چک" maxlength="40" size="12">
+        <button class="btn btn-small">ثبت پرداخت</button></form>
+    {% endif %}</td></tr>
+  {% empty %}<tr><td colspan="3" class="muted">به هیچ شرکتی بدهی ثبت‌شده‌ای نیست.</td></tr>{% endfor %}
+</table></div>
+{% endif %}
+
+<h2>۳. سفارش‌های خرید در راه</h2>
+<div class="table-wrap card"><table class="table data">
+  <tr><th>سفارش</th><th>شرکت</th><th>تاریخ تحویل</th><th class="num">مبلغ</th><th></th></tr>
+  {% for o in orders %}
+  <tr><td>{{ o.number }}</td><td>{{ o.supplier }}</td><td>{{ o.expected_date|jalali|default:"—" }}</td><td class="num">{{ o.total|rial }}</td>
+    <td>{% if can_receive %}<a class="btn btn-small btn-outline" href="{% url 'backoffice:receive' %}?po={{ o.pk }}">بار رسید ← ورود کالا</a>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">سفارش باز نیست. (ثبت سفارش اختیاری است؛ می‌توانید مستقیم «ورود کالا» بزنید.)</td></tr>{% endfor %}
+</table></div>
+
+<h2>آخرین ورودها</h2>
+<div class="table-wrap card"><table class="table data">
+  <tr><th>رسید</th><th>شرکت</th><th>فاکتور/حواله</th><th>انبار</th><th>زمان</th><th class="num">مبلغ</th><th></th></tr>
+  {% for r in recent %}<tr><td>{{ r.number }}</td><td>{{ r.supplier }}</td><td dir="ltr">{{ r.delivery_note }}</td><td>{{ r.warehouse }}</td><td>{{ r.posted_at|jalali:"%Y/%m/%d %H:%M" }}</td><td class="num">{{ r.total|rial }}</td>
+    <td>{% if can_receive %}<a href="{% url 'backoffice:labels' %}?receipt={{ r.pk }}">برچسب</a>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="7" class="muted">—</td></tr>{% endfor %}
+</table></div>
+{% endblock %}
