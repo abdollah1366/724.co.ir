@@ -16,8 +16,9 @@ from apps.accounting.models import Account, Expense, Party, Payment, PaymentMeth
 from apps.inventory import alerts
 from apps.inventory import services as inv
 from apps.inventory.models import Batch, Location, StockMove, Warehouse
-from apps.purchasing.models import GoodsReceipt, GoodsReceiptLine, PurchaseInvoice, PurchaseOrder, PurchaseOrderLine
-from apps.purchasing.services import fill_invoice_from_receipt, supplier_payable
+from apps.purchasing import quick
+from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine
+from apps.purchasing.services import supplier_payable
 from apps.sales import services as sales
 from apps.sales.models import CashRegister, SalesInvoice, SalesPayment, SalesReturn, SalesReturnLine
 from apps.shop.models import Order, Product, ProductKind, ProductPackage, StorageCondition, Unit
@@ -88,15 +89,11 @@ def run(password=None, today=None):
 
     # ۲. سفارش خرید (تأیید مدیر)
     po = PurchaseOrder.objects.create(supplier=supplier, created_by=manager)
-    po_lines = {
-        p.pk: PurchaseOrderLine.objects.create(document=po, product=p, quantity=q, unit_price=c)
-        for p, q, c in ((otc, 100, 100_000), (rx, 30, 200_000), (insulin, 10, 1_500_000), (device, 2, 20_000_000))
-    }
+    for p, q, c in ((otc, 100, 100_000), (rx, 30, 200_000), (insulin, 10, 1_500_000), (device, 2, 20_000_000)):
+        PurchaseOrderLine.objects.create(document=po, product=p, quantity=q, unit_price=c)
     po.post(manager)
 
-    # ۳. رسید انبار (انباردار) با بچ، انقضا، محل و کد اصالت
-    receipt = GoodsReceipt.objects.create(supplier=supplier, purchase_order=po, warehouse=main, delivery_note="DEMO-H-1",
-                                          created_by=storekeeper)
+    # ۳. ورود بار با همان فرم «ورود کالا از شرکت» (انباردار): بچ، انقضا، محل و کد اصالت؛ ردیف سفارش خودکار وصل می‌شود
     rows = [
         (otc, "A1", today + days(400), shelf, 60, 100_000),
         (otc, "A2", today + days(200), shelf, 40, 110_000),
@@ -105,21 +102,16 @@ def run(password=None, today=None):
         (device, "SN1001", None, shelf, 1, 20_000_000),
         (device, "SN1002", None, shelf, 1, 20_000_000),
     ]
-    for p, batch, expiry, location, qty, cost in rows:
-        GoodsReceiptLine.objects.create(
-            document=receipt, po_line=po_lines[p.pk], product=p, batch_number=batch, expiry_date=expiry, location=location,
-            quantity=qty, unit_cost=cost, authenticity_code=f"UID-{batch}", authenticity_verified=True,
-        )
-    receipt.post(storekeeper)
+    receipt, _, _ = quick.quick_receive(
+        supplier=supplier, warehouse=main, purchase_order=po, delivery_note="DEMO-F-7788", user=storekeeper,
+        rows=[{"product": p, "batch_number": batch, "expiry_date": expiry, "location": location, "quantity": qty,
+               "unit_cost": cost, "authenticity_code": f"UID-{batch}", "authenticity_verified": True}
+              for p, batch, expiry, location, qty, cost in rows],
+    )
 
-    # ۴. فاکتور خرید با ۴۰۰ هزار ریال تخفیف (حسابدار) و ۵. پرداخت بخشی از بدهی
-    invoice = PurchaseInvoice.objects.create(supplier=supplier, receipt=receipt, supplier_invoice_no="DEMO-F-7788",
-                                             discount=400_000, created_by=accountant)
-    fill_invoice_from_receipt(invoice)
-    invoice.post(accountant)
-    payment = Payment.objects.create(direction=Payment.Direction.PAY, party=supplier, method=PaymentMethod.BANK,
-                                     amount=50_000_000, reference_no="DEMO-TRX-1", created_by=accountant)
-    payment.post(accountant)
+    # ۴. فاکتور خرید با ۴۰۰ هزار ریال تخفیف (حسابدار، از «خرید و بدهی شرکت‌ها») و ۵. پرداخت بخشی از بدهی
+    invoice = quick.invoice_receipt(receipt, accountant, "DEMO-F-7788", discount=400_000)
+    payment = quick.pay_supplier(supplier, accountant, PaymentMethod.BANK, 50_000_000, "DEMO-TRX-1")
 
     # ۶. صندوق
     register = CashRegister.objects.create(name="صندوق نمونه", warehouse=main)

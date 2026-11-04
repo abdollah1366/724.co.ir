@@ -197,3 +197,18 @@ a.kpi:hover { transform: translateY(-3px); color: var(--text); }
   body.staff .sw { margin: 0 !important; }
   .label { border-color: #eee; }
 }
+
+/* گروه‌بندی زیرمنوی پیشخوان (فروش، خرید، انبار، مالی) و صفحه ورود کالا */
+.bo-nav-group { align-self: center; font-size: .75rem; color: var(--muted, #64748b); padding: 0 6px 0 2px; margin-inline-start: 6px; border-inline-start: 1px solid var(--border, #e2e8f0); }
+.bo-nav-group:first-of-type { margin-inline-start: 0; }
+.steps-line { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; padding: 0; margin: 0 0 14px; }
+.pick-list { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; }
+.receive-table input[type=text] { min-width: 0; }
+.inline-form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.todo-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.todo-list a { display: flex; justify-content: space-between; gap: 12px; }
+#receive-form .receive-table input[data-f=batch] { width: 8.5rem; min-width: 8.5rem; }
+#receive-form .receive-table input[data-f=expiry] { width: 7.5rem; min-width: 7.5rem; }
+#receive-form .receive-table input[data-f=quantity] { width: 5rem; min-width: 5rem; }
+#receive-form .receive-table input[data-f=unit_cost] { width: 8.5rem; min-width: 8.5rem; }
+#receive-form .receive-table input[data-f=auth_code] { width: 10rem; min-width: 10rem; }

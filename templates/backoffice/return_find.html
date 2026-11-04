@@ -1,0 +1,17 @@
+{% extends "backoffice/base.html" %}
+{% load persian %}
+{% block bo_title %}مرجوعی فروش{% endblock %}
+{% block bo_content %}
+<h1>مرجوعی فروش</h1>
+<form method="get" class="card filters">
+  <input type="search" name="number" value="{{ number }}" placeholder="شماره فاکتور (کامل یا چند رقم آخر، مثلاً ۰۰۰۱۲)" autofocus>
+  <button class="btn">پیدا کردن فاکتور</button>
+</form>
+<h2>آخرین فروش‌ها</h2>
+<div class="table-wrap card"><table class="table data">
+  <tr><th>فاکتور</th><th>زمان</th><th class="num">مبلغ</th><th></th></tr>
+  {% for inv in recent %}<tr><td>{{ inv.number }}</td><td>{{ inv.posted_at|jalali:"%Y/%m/%d %H:%M" }}</td><td class="num">{{ inv.total|rial }}</td>
+    <td><a class="btn btn-small btn-outline" href="{% url 'backoffice:sales_return' inv.pk %}">مرجوعی</a></td></tr>
+  {% empty %}<tr><td colspan="4" class="muted">—</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

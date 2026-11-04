@@ -23,5 +23,6 @@
   <p class="muted small">مبالغ به ریال. ثبت‌کننده: {{ invoice.posted_by|default:"—" }}</p>
   <button class="btn no-print" onclick="window.print()">چاپ</button>
   {% if perms.sales.use_pos %}<a class="btn btn-outline no-print" href="{% url 'backoffice:pos' %}">بازگشت به صندوق</a>{% endif %}
+  {% if perms.sales.post_salesreturn and invoice.status == "posted" %}<a class="btn btn-outline no-print" href="{% url 'backoffice:sales_return' invoice.pk %}">مرجوعی از این فاکتور</a>{% endif %}
 </div>
 {% endblock %}

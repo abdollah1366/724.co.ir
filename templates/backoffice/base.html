@@ -4,21 +4,31 @@
 <section class="container section">
   <nav class="bo-nav" aria-label="پیشخوان">
     <a href="{% url 'backoffice:dashboard' %}">داشبورد</a>
-    {% if perms.inventory.view_stockbalance %}
-      <a href="{% url 'backoffice:alerts' %}">هشدارها</a>
-      <a href="{% url 'backoffice:stock' %}">موجودی</a>
-    {% endif %}
+    {% if perms.sales.use_pos or perms.sales.post_salesreturn or perms.ehr.dispense_prescription %}<span class="bo-nav-group">فروش</span>{% endif %}
     {% if perms.sales.use_pos %}<a href="{% url 'backoffice:pos' %}">صندوق فروش</a>{% endif %}
-    {% if perms.inventory.post_inventorydocument or perms.inventory.consume_inventorydocument or perms.inventory.count_inventorydocument %}<a href="{% url 'backoffice:warehouse' %}">میز کار انبار</a>{% endif %}
-    {% if perms.inventory.add_stockrequest or perms.inventory.issue_stockrequest %}<a href="{% url 'backoffice:stock_requests' %}">درخواست کالای بخش‌ها</a>{% endif %}
-    {% if perms.inventory.post_inventorydocument or perms.shop.change_product %}<a href="{% url 'backoffice:labels' %}">برچسب بارکد</a>{% endif %}
-    {% if perms.sales.change_cashregister %}<a href="{% url 'backoffice:cashboxes' %}">صندوق‌ها</a>{% endif %}
+    {% if perms.sales.post_salesreturn %}<a href="{% url 'backoffice:returns' %}">مرجوعی</a>{% endif %}
     {% if perms.ehr.dispense_prescription %}<a href="{% url 'ehr:pharmacy_queue' %}">نسخه‌های درمانگاه</a>{% endif %}
+    {% if perms.purchasing.post_goodsreceipt or perms.purchasing.post_purchaseinvoice or perms.purchasing.add_purchaseorder or perms.accounting.post_payment %}
+      <span class="bo-nav-group">خرید</span>
+      {% if perms.purchasing.post_goodsreceipt %}<a href="{% url 'backoffice:receive' %}">ورود کالا از شرکت</a>{% endif %}
+      <a href="{% url 'backoffice:purchases' %}">خرید و بدهی شرکت‌ها</a>
+    {% endif %}
+    {% if perms.inventory.view_stockbalance or perms.inventory.post_inventorydocument or perms.inventory.consume_inventorydocument or perms.inventory.add_stockrequest %}<span class="bo-nav-group">انبار</span>{% endif %}
+    {% if perms.inventory.view_stockbalance %}
+      <a href="{% url 'backoffice:stock' %}">موجودی</a>
+      <a href="{% url 'backoffice:alerts' %}">هشدارها</a>
+    {% endif %}
+    {% if perms.inventory.add_stockrequest or perms.inventory.issue_stockrequest %}<a href="{% url 'backoffice:stock_requests' %}">درخواست کالای بخش‌ها</a>{% endif %}
+    {% if perms.inventory.post_inventorydocument or perms.inventory.consume_inventorydocument or perms.inventory.count_inventorydocument %}<a href="{% url 'backoffice:warehouse' %}">انتقال، مصرف و شمارش</a>{% endif %}
+    {% if perms.inventory.post_inventorydocument or perms.shop.change_product %}<a href="{% url 'backoffice:labels' %}">برچسب بارکد</a>{% endif %}
+    {% if perms.sales.change_cashregister or perms.accounting.view_financial_reports %}<span class="bo-nav-group">مالی</span>{% endif %}
+    {% if perms.sales.change_cashregister %}<a href="{% url 'backoffice:cashboxes' %}">صندوق‌ها</a>{% endif %}
     {% if perms.accounting.view_financial_reports %}
       <a href="{% url 'backoffice:pnl' %}">سود و زیان</a>
       <a href="{% url 'backoffice:trial_balance' %}">تراز آزمایشی</a>
       <a href="{% url 'backoffice:parties' %}">بدهی و طلب</a>
     {% endif %}
+    {% if perms.auth.view_user or perms.blog.manage_blog_staff or perms.blog.view_post or perms.ehr.view_management_report or perms.ehr.view_all_records %}<span class="bo-nav-group">سایر</span>{% endif %}
     {% if perms.auth.view_user or perms.blog.manage_blog_staff %}<a href="{% url 'backoffice:staff' %}">کارکنان و نقش‌ها</a>{% endif %}
     {% if perms.blog.view_post %}<a href="{% url 'blog:manage' %}">وبلاگ</a>{% endif %}
     {% if perms.ehr.view_management_report or perms.ehr.view_all_records %}<a href="{% url 'ehr:report' %}">گزارش درمانگاه</a>{% endif %}

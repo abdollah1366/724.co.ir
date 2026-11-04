@@ -86,11 +86,41 @@ def dashboard_data(user):
     return data
 
 
+def todo_items(user):
+    """کارهای مانده همین کاربر بر اساس نقشش؛ هر مورد به صفحه‌ای می‌رود که کار همان‌جا انجام می‌شود."""
+    from django.urls import reverse
+
+    from apps.inventory.models import StockRequest
+    from apps.purchasing import quick
+
+    def can(perm):
+        return user.is_superuser or user.has_perm(perm)
+
+    items = []
+    if can("purchasing.post_goodsreceipt"):
+        items.append(("ورود بار تازه شرکت پخش", None, reverse("backoffice:receive")))
+        orders = quick.open_orders().count()
+        if orders:
+            items.append(("سفارش خرید در راه (منتظر رسیدن بار)", orders, reverse("backoffice:purchases")))
+    if can("inventory.issue_stockrequest"):
+        waiting = StockRequest.objects.filter(status=DocStatus.POSTED, progress__in=["open", "partial"]).count()
+        if waiting:
+            items.append(("درخواست کالای بخش‌ها منتظر تحویل", waiting, reverse("backoffice:stock_requests")))
+    if can("purchasing.post_purchaseinvoice"):
+        pending = quick.receipts_without_invoice().count()
+        if pending:
+            items.append(("رسید انبار منتظر ثبت فاکتور شرکت", pending, reverse("backoffice:purchases")))
+    if can("sales.use_pos") and not _open_session(user):
+        items.append(("شیفت صندوق باز نیست؛ برای فروش شیفت را باز کنید", None, reverse("backoffice:pos")))
+    return items
+
+
 @staff_member_required
 def dashboard(request):
     if not is_pharmacy_staff(request.user):
-        return render(request, "backoffice/home.html")
+        return render(request, "backoffice/home.html", {"todo": todo_items(request.user)})
     context = dashboard_data(request.user)
+    context["todo"] = todo_items(request.user)
     context["recent_sales"] = SalesInvoice.objects.filter(status=DocStatus.POSTED).order_by("-posted_at")[:8]
     context["recent_receipts"] = GoodsReceipt.objects.filter(status=DocStatus.POSTED).select_related("supplier").order_by("-posted_at")[:5]
     context["top_products"] = (
