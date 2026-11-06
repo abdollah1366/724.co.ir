@@ -10,6 +10,7 @@ from apps.clinic.models import Department
 
 from . import stats
 from .forms import ContactForm
+from .limits import public_form_blocked
 from .models import ContactMessage
 
 
@@ -43,7 +44,7 @@ def privacy(request):
 
 def contact(request):
     form = ContactForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
+    if request.method == "POST" and form.is_valid() and not public_form_blocked(request, "contact"):
         form.save()
         messages.success(request, "پیام شما ثبت شد. به‌زودی با شما تماس می‌گیریم.")
         return redirect("core:contact")

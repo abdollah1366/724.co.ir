@@ -61,6 +61,12 @@ class BookingForm(forms.Form):
             cleaned["date"] = self._parse_date(cleaned["date"])
         if cleaned.get("time"):
             cleaned["time"] = datetime.time.fromisoformat(cleaned["time"])
+        code = cleaned.get("national_code")
+        if code and cleaned.get("date") and self.doctor.appointments.active().filter(
+                date=cleaned["date"], national_code=code).exists():
+            # یک نفر برای یک پزشک در یک روز فقط یک نوبت اینترنتی؛ جلوی گرفتن همه ساعت‌ها با یک کد ملی را می‌گیرد.
+            raise forms.ValidationError("برای این کد ملی در همین روز نزد همین پزشک نوبت ثبت شده است. "
+                                        "برای تغییر ساعت، نوبت قبلی را لغو کنید.")
         return cleaned
 
     def save(self, user=None):

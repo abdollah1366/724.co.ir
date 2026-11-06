@@ -154,7 +154,8 @@ def stock_report(request):
 
 @staff_member_required
 def kardex(request, pk):
-    _require(request.user, STOCK_PERM)
+    # کاردکس بهای خرید و میانگین موزون را نشان می‌دهد؛ فقط انبار مرکزی، مدیر و مالی (نه مسئول انبار بخش).
+    _require(request.user, "inventory.post_inventorydocument", FINANCE_PERM)
     product = get_object_or_404(Product, pk=pk)
     moves = StockMove.objects.filter(product=product).select_related("warehouse", "batch", "user").order_by("id")
     return render(request, "backoffice/kardex.html", {"product": product, "moves": moves,
@@ -271,6 +272,8 @@ def _pos_context(session, user):
     checkout = None
     if invoice:
         checkout = CheckoutForm(initial={"token": invoice.client_token or "", "cash": invoice.total})
+        if not user.has_perm("sales.give_discount"):
+            checkout.fields["discount"].widget = forms.HiddenInput()
     return {
         "session": session, "invoice": invoice, "checkout": checkout,
         "lines": invoice.lines.select_related("product").order_by("-pk") if invoice else [],
@@ -374,6 +377,9 @@ def pos_checkout(request):
     if existing.status != DocStatus.DRAFT:
         return redirect("backoffice:pos_invoice", pk=existing.pk)
     invoice = existing
+    if data["discount"] and not request.user.has_perm("sales.give_discount"):
+        messages.error(request, "شما مجوز تخفیف ندارید؛ تخفیف را داروساز یا مدیر داروخانه ثبت کند.")
+        return redirect("backoffice:pos")
     try:
         with transaction.atomic():
             invoice.discount = data["discount"] or 0

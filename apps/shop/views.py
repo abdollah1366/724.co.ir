@@ -5,6 +5,8 @@ from django.db.models import F, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from apps.core.limits import public_form_blocked
+
 from .cart import Cart
 from .forms import CheckoutForm, PharmacyQuestionForm
 from .models import Category, Order, OrderItem, Product, ProductKind
@@ -157,7 +159,7 @@ def consult(request):
         if product:
             initial["question"] = f"درباره «{product.name}»: "
     form = PharmacyQuestionForm(request.POST or None, initial=initial)
-    if request.method == "POST" and form.is_valid():
+    if request.method == "POST" and form.is_valid() and not public_form_blocked(request, "pharmacy-question"):
         question = form.save(commit=False)
         question.product = product
         if request.user.is_authenticated:

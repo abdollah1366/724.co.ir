@@ -29,7 +29,7 @@ ROLES = {
             "inventory.post_inventorydocument", "inventory.reverse_inventorydocument",
             "purchasing.post_purchaseorder", "purchasing.reverse_purchaseorder", "purchasing.post_goodsreceipt",
             "purchasing.reverse_goodsreceipt", "purchasing.post_purchaseinvoice", "purchasing.reverse_purchaseinvoice",
-            "sales.post_salesinvoice", "sales.reverse_salesinvoice", "sales.post_salesreturn", "sales.use_pos",
+            "sales.post_salesinvoice", "sales.reverse_salesinvoice", "sales.post_salesreturn", "sales.use_pos", "sales.give_discount",
             "accounting.post_payment", "accounting.reverse_payment", "accounting.post_expense", "accounting.reverse_expense",
             "accounting.view_financial_reports", "inventory.change_batch_status",
             "inventory.post_stockrequest", "inventory.reverse_stockrequest", "inventory.issue_stockrequest",
@@ -47,7 +47,7 @@ ROLES = {
             "ehr.genericdrug": EDIT,
         },
         "extra": [
-            "sales.approve_prescription", "sales.post_salesinvoice", "sales.post_salesreturn", "sales.use_pos",
+            "sales.approve_prescription", "sales.post_salesinvoice", "sales.post_salesreturn", "sales.use_pos", "sales.give_discount",
             "inventory.change_batch_status", "inventory.post_inventorydocument", "ehr.dispense_prescription",
             "telemed.answer_pharmacy",
         ],

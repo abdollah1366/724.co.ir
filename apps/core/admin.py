@@ -1,4 +1,7 @@
 from django.contrib import admin
+from django.contrib.admin.forms import AdminAuthenticationForm
+
+from apps.accounts.throttle import LockMessageMixin
 
 from .models import ContactMessage, DailyVisit, SmsMessage
 
@@ -44,3 +47,10 @@ class DailyVisitAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+class _AdminLoginForm(LockMessageMixin, AdminAuthenticationForm):
+    """ورود پنل مدیریت با پیام روشن هنگام قفل موقت."""
+
+
+admin.site.login_form = _AdminLoginForm

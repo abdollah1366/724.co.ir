@@ -49,10 +49,12 @@ def sales_return(request, pk):
                 method = request.POST.get("refund_method")
                 if method not in SalesReturn.Refund.values:
                     raise ValidationError("روش استرداد را انتخاب کنید.")
+                # پول نقد یا کارتخوان فقط از صندوقی برمی‌گردد که شیفتش باز است (تا حساب صندوق درست بماند).
+                session = (cashbox.require_session(user, cashbox.Department.PHARMACY)
+                           if method != SalesReturn.Refund.CREDIT else cashbox.user_session(user, cashbox.Department.PHARMACY))
                 ret = SalesReturn.objects.create(
                     invoice=invoice, reason=request.POST.get("reason", "").strip()[:300], refund_method=method,
-                    restock=bool(request.POST.get("restock")), created_by=user,
-                    session=cashbox.user_session(user, cashbox.Department.PHARMACY),
+                    restock=bool(request.POST.get("restock")), created_by=user, session=session,
                 )
                 for line, _left in lines:
                     raw = normalize_digits(request.POST.get(f"q{line.pk}", "")).strip()

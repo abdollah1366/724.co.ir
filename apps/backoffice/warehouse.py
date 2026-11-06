@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST
 
+from apps.accounting.models import Party
 from apps.audit.documents import DocStatus
 from apps.core import barcode as code128
 from apps.inventory import barcodes, requests
@@ -24,6 +25,7 @@ MODES = [
     ("transfer", "انتقال بین انبارها / بخش‌ها", "inventory.post_inventorydocument"),
     ("consume", "مصرف داخلی بخش", "inventory.consume_inventorydocument"),
     ("waste", "ضایعات / امحا", "inventory.post_inventorydocument"),
+    ("sup_return", "برگشت کالا به شرکت", "inventory.post_inventorydocument"),
     ("count", "انبارگردانی (شمارش)", "inventory.count_inventorydocument"),
 ]
 WAREHOUSE_PERMS = ("inventory.view_stockbalance", "inventory.post_inventorydocument", "inventory.consume_inventorydocument",
@@ -107,11 +109,13 @@ def workbench(request):
                 messages.success(request, f"شمارش {len(result['rows'])} ردیف ثبت شد؛ {len(changed)} ردیف اختلاف داشت"
                                           + (f" (سند {'، '.join(docs)})." if docs else "."))
                 return render(request, "backoffice/warehouse_count_result.html", {"warehouse": warehouse, "result": result})
-            dest = None
+            dest = supplier = None
             if mode == "transfer":
                 dest = get_object_or_404(Warehouse, pk=request.POST.get("dest_warehouse"), is_active=True)
+            if mode == "sup_return":
+                supplier = Party.objects.filter(pk=request.POST.get("supplier") or 0, kind=Party.Kind.SUPPLIER).first()
             doc = requests.build_document(mode, warehouse, [i for i in items if i["quantity"] > 0], user,
-                                          dest_warehouse=dest, reason=reason)
+                                          dest_warehouse=dest, reason=reason, supplier=supplier)
         except ValidationError as exc:
             messages.error(request, " ".join(exc.messages))
             return redirect(f"{request.path}?mode={mode}&warehouse={warehouse.pk}")
@@ -125,6 +129,7 @@ def workbench(request):
     return render(request, "backoffice/warehouse.html", {
         "modes": modes, "mode": mode, "warehouses": warehouses, "current": current, "all_warehouses": all_active,
         "recent": recent.order_by("-posted_at")[:10],
+        "suppliers": Party.objects.filter(kind=Party.Kind.SUPPLIER, is_active=True).order_by("name"),
     })
 
 

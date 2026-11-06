@@ -13,6 +13,7 @@
 <form method="post" class="card form" id="receive-form" data-lookup-url="{% url 'backoffice:purchase_lookup' %}">{% csrf_token %}
   {% if po %}<input type="hidden" name="po" value="{{ po.pk }}">{% endif %}
   <input type="hidden" name="items">
+  <input type="hidden" name="token" value="{{ token }}">
   <div class="grid">
     <div class="field"><label for="f-supplier">شرکت پخش / فروشنده</label>
       <select name="supplier" id="f-supplier"{% if po %} disabled{% endif %}>

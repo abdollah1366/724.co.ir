@@ -6,6 +6,7 @@
 """
 
 import os
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -86,6 +87,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "apps.audit.context.AuditContextMiddleware",
     "apps.accounts.middleware.ForcePasswordChangeMiddleware",
+    "apps.accounts.middleware.StaffIdleTimeoutMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "apps.core.middleware.SiteStatsMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -161,6 +163,8 @@ else:
     }
 
 AUTHENTICATION_BACKENDS = [
+    # اول: قفل موقت پس از تلاش‌های ناموفق زیاد (apps/accounts/throttle.py)
+    "apps.accounts.throttle.ThrottleBackend",
     "django.contrib.auth.backends.ModelBackend",
     # کارمند با کد ملی (کد شناسایی) هم وارد می‌شود
     "apps.accounts.backends.NationalCodeBackend",
@@ -225,8 +229,19 @@ SITE_ADDRESS = os.environ.get("SITE_ADDRESS", "")
 APPOINTMENT_BOOKING_DAYS_AHEAD = 30
 # منشی و پذیرش برای نوبت حضوری تا چند روز آینده نوبت می‌دهند.
 APPOINTMENT_STAFF_DAYS_AHEAD = 90
+# قفل ورود پس از تلاش ناموفق زیاد (apps/accounts/throttle.py)
+LOGIN_FAILURE_LIMIT = int(os.environ.get("LOGIN_FAILURE_LIMIT", "8"))
+LOGIN_IP_FAILURE_LIMIT = int(os.environ.get("LOGIN_IP_FAILURE_LIMIT", "30"))
+LOGIN_LOCK_MINUTES = int(os.environ.get("LOGIN_LOCK_MINUTES", "15"))
+# کارکنان (دسترسی به پرونده بیماران) پس از این مدت بی‌کاری خودکار خارج می‌شوند.
+STAFF_IDLE_MINUTES = int(os.environ.get("STAFF_IDLE_MINUTES", "120"))
+# فرم‌های عمومی بدون ورود (نوبت، تماس، عضویت، سؤال دارویی): حداکثر ارسال موفق از هر IP در ساعت
+PUBLIC_FORM_LIMIT_PER_HOUR = int(os.environ.get("PUBLIC_FORM_LIMIT_PER_HOUR", "10"))
 # سقف تلاش پیگیری نوبت با کد پیگیری از هر IP در ساعت (جلوی حدس زدن کد را می‌گیرد).
 TRACKING_LIMIT_PER_HOUR = int(os.environ.get("TRACKING_LIMIT_PER_HOUR", "20"))
+if len(sys.argv) > 1 and sys.argv[1] == "test":
+    # در آزمون‌ها همه درخواست‌ها از یک IP می‌آیند؛ آزمون‌های خود این سقف‌ها با override_settings کم می‌کنند.
+    LOGIN_IP_FAILURE_LIMIT = LOGIN_FAILURE_LIMIT = PUBLIC_FORM_LIMIT_PER_HOUR = 10_000
 
 # ورود کاربران
 LOGIN_URL = "accounts:login"

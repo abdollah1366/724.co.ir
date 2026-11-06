@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from apps.appointments.models import Appointment
+from apps.core.limits import public_form_blocked
 
 from . import club as club_rules
 from .forms import SignupForm
@@ -57,7 +58,7 @@ def signup(request):
         return redirect("accounts:dashboard")
     initial = {"referral_code": request.GET.get("ref", "")}
     form = SignupForm(request.POST or None, initial=initial)
-    if request.method == "POST" and form.is_valid():
+    if request.method == "POST" and form.is_valid() and not public_form_blocked(request, "signup"):
         user = form.save()
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")
         messages.success(request, "عضویت شما در باشگاه مشتریان ۷۲۴ انجام شد. خوش آمدید!")

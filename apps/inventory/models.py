@@ -162,6 +162,7 @@ class StockMove(ImmutableRecord):
         TRANSFER_OUT = "transfer_out", "انتقال (خروج)"
         TRANSFER_IN = "transfer_in", "انتقال (ورود)"
         CONSUME = "consume", "مصرف داخلی بخش"
+        SUPPLIER_RETURN = "sup_return", "برگشت به شرکت (تأمین‌کننده)"
 
     created_at = models.DateTimeField("زمان", auto_now_add=True, db_index=True)
     move_type = models.CharField("نوع حرکت", max_length=14, choices=Type.choices)
@@ -205,6 +206,7 @@ class InventoryDocument(PostedDocument):
         WASTE = "waste", "ضایعات / امحا"
         TRANSFER = "transfer", "انتقال بین انبار / محل"
         CONSUME = "consume", "مصرف داخلی بخش"
+        SUPPLIER_RETURN = "sup_return", "برگشت به شرکت (تأمین‌کننده)"
 
     INBOUND = {Kind.OPENING, Kind.ADJUST_IN}
 
@@ -214,6 +216,10 @@ class InventoryDocument(PostedDocument):
         Warehouse, on_delete=models.PROTECT, null=True, blank=True, related_name="+", verbose_name="انبار مقصد"
     )
     reason = models.CharField("علت", max_length=300, blank=True)
+    supplier = models.ForeignKey(
+        "accounting.Party", on_delete=models.PROTECT, null=True, blank=True, related_name="+", verbose_name="تأمین‌کننده",
+        help_text="فقط برای برگشت کالا به شرکت (منقضی، فراخوان، آسیب‌دیده یا اضافه ارسال).",
+    )
     stock_request = models.ForeignKey(
         "StockRequest", on_delete=models.PROTECT, null=True, blank=True, related_name="issues", editable=False,
         verbose_name="درخواست کالا",

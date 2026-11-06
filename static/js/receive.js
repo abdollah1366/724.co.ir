@@ -150,6 +150,7 @@
     if (!rows.length) { e.preventDefault(); say("هنوز کالایی اضافه نشده است.", false); return; }
     var missing = rows.filter(function (r) { return r.info.auth && !(r.auth_code && r.auth_ok); })[0];
     if (missing) { e.preventDefault(); say("برای «" + missing.info.name + "» کد اصالت را وارد و تیک تأیید اصالت را بزنید.", false); return; }
+    form.querySelectorAll("button[type=submit]").forEach(function (b) { b.disabled = true; b.textContent = "در حال ثبت…"; });
     form.querySelector("[name=items]").value = JSON.stringify(rows.map(function (r) {
       return { product: r.product, batch: r.batch || "", expiry: r.expiry || "", quantity: num(r.quantity), unit_cost: num(r.unit_cost),
                location: r.location || null, auth_code: r.auth_code || "", auth_ok: !!(r.info.auth && r.auth_ok) };

@@ -166,6 +166,7 @@ class SalesInvoice(PostedDocument):
             ("reverse_salesinvoice", "ابطال فاکتور فروش"),
             ("approve_prescription", "تأیید نسخه و فروش داروی نسخه‌ای (داروساز)"),
             ("use_pos", "کار با صندوق فروش"),
+            ("give_discount", "تخفیف دادن در صندوق فروش"),
         ]
 
     def validate_for_post(self):

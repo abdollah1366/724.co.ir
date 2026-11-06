@@ -6,6 +6,7 @@ from django.db import transaction
 from apps.core.validators import normalize_digits, validate_mobile, validate_national_code
 
 from .models import Profile
+from .throttle import LockMessageMixin
 
 
 class SignupForm(forms.Form):
@@ -84,7 +85,7 @@ class SignupForm(forms.Form):
         return user
 
 
-class LoginForm(AuthenticationForm):
+class LoginForm(LockMessageMixin, AuthenticationForm):
     username = forms.CharField(label="شماره موبایل یا کد ملی", max_length=150)
 
     def clean_username(self):
