@@ -339,6 +339,17 @@ def post_return(ret, user):
     refund_total = net_total + tax_total
     insurer_part = _share(refund_total, invoice.insurance_amount, invoice.total) if invoice.insurance_amount else 0
     customer_part = refund_total - insurer_part
+    if ret.refund_method in (SalesReturn.Refund.CASH, SalesReturn.Refund.CARD):
+        # پول نقد/کارت بیشتر از آنچه مشتری واقعاً نقد/کارتی داده برنمی‌گردد (فروش نسیه یا بیمه‌ای).
+        paid = sum(p.amount for p in invoice.payments.all() if p.method in (Method.CASH, Method.CARD))
+        refunded = (SalesReturn.objects.filter(invoice=invoice, status=DocStatus.POSTED,
+                                               refund_method__in=[SalesReturn.Refund.CASH, SalesReturn.Refund.CARD])
+                    .exclude(pk=ret.pk).aggregate(s=Sum("refund_amount"))["s"] or 0)
+        if refunded + customer_part > paid:
+            raise DocumentError(
+                f"مشتری برای این فاکتور فقط {paid - refunded:,} ریال نقد/کارت پرداخت کرده و بقیه نسیه بوده است؛ "
+                "روش استرداد را «بستانکار کردن حساب مشتری» بگذارید."
+            )
     refund_account = (_payment_code(ret.session, ret.refund_method)
                       if ret.refund_method in (SalesReturn.Refund.CASH, SalesReturn.Refund.CARD) else acc.AR_CUSTOMERS)
     text = f"مرجوعی {ret.number} از فاکتور {invoice.number}"

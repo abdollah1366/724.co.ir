@@ -6,6 +6,7 @@ from django.views.decorators.http import require_POST
 
 from apps.audit.context import client_ip
 from apps.clinic.models import Doctor
+from apps.core.limits import public_form_blocked
 from apps.lab.services.portal import rate_limited
 
 from .forms import BookingForm, TrackingForm
@@ -39,6 +40,8 @@ def book(request, slug):
     doctor = get_object_or_404(Doctor.objects.active(), slug=slug, accepts_online_booking=True)
     if request.method == "POST":
         form = BookingForm(request.POST, doctor=doctor)
+        if form.is_valid() and public_form_blocked(request, "booking"):
+            return render(request, "appointments/book.html", {"doctor": doctor, "form": form})
         if form.is_valid():
             try:
                 with transaction.atomic():

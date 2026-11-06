@@ -138,21 +138,24 @@ def close_request(req, user):
     return req
 
 
-def build_document(kind, warehouse, items, user, dest_warehouse=None, reason="", post=True):
+def build_document(kind, warehouse, items, user, dest_warehouse=None, reason="", post=True, supplier=None):
     """سند انبار از ردیف‌های اسکن‌شده. items: [{"product", "quantity", "batch"(اختیاری), "location"(اختیاری)}].
 
     برای خروج (انتقال، مصرف، ضایعات) اگر بچ مشخص نباشد بچ‌ها FEFO انتخاب و ردیف‌ها شکسته می‌شوند.
     """
     Kind = InventoryDocument.Kind
-    if kind not in (Kind.TRANSFER, Kind.CONSUME, Kind.WASTE):
+    if kind not in (Kind.TRANSFER, Kind.CONSUME, Kind.WASTE, Kind.SUPPLIER_RETURN):
         raise DocumentError("نوع سند پشتیبانی نمی‌شود.")
     if kind == Kind.TRANSFER and (dest_warehouse is None or dest_warehouse == warehouse):
         raise DocumentError("انبار مقصد را درست انتخاب کنید.")
     if kind == Kind.WASTE and not reason.strip():
         raise DocumentError("علت ضایعات را بنویسید.")
+    if kind == Kind.SUPPLIER_RETURN and supplier is None:
+        raise DocumentError("شرکت (تأمین‌کننده) را انتخاب کنید.")
     with transaction.atomic():
         doc = InventoryDocument.objects.create(kind=kind, warehouse=warehouse, dest_warehouse=dest_warehouse if kind == Kind.TRANSFER else None,
-                                               reason=reason[:300], created_by=user)
+                                               reason=reason[:300], created_by=user,
+                                               supplier=supplier if kind == Kind.SUPPLIER_RETURN else None)
         for item in items:
             product, qty = item["product"], int(item["quantity"])
             batch = item.get("batch")

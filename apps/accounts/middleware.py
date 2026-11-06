@@ -21,3 +21,27 @@ class ForcePasswordChangeMiddleware:
     @staticmethod
     def _must_change(request, user):
         return StaffAccount.objects.filter(user=user, must_change_password=True).exists()
+
+
+class StaffIdleTimeoutMiddleware:
+    """نشست کارکنان پس از STAFF_IDLE_MINUTES بی‌کاری منقضی می‌شود (رایانه پذیرش یا داروخانه که باز رها شده).
+
+    مهلت با هر درخواست تمدید می‌شود؛ برای کم کردن نوشتن در پایگاه داده، حداکثر هر یک دقیقه یک بار.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        import time
+
+        from django.conf import settings
+
+        user = getattr(request, "user", None)
+        minutes = getattr(settings, "STAFF_IDLE_MINUTES", 0)
+        if minutes and user is not None and user.is_authenticated and user.is_staff:
+            now = int(time.time())
+            if now - request.session.get("_staff_seen", 0) > 60:
+                request.session["_staff_seen"] = now
+                request.session.set_expiry(minutes * 60)
+        return self.get_response(request)

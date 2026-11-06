@@ -14,18 +14,23 @@
   <div class="grid">
     <div class="field"><label>{% if mode == "transfer" %}از انبار{% elif mode == "consume" %}بخش مصرف‌کننده{% else %}انبار{% endif %}</label>
       <select name="warehouse">{% for w in warehouses %}<option value="{{ w.pk }}"{% if w == current %} selected{% endif %}>{{ w.name }} ({{ w.get_kind_display }})</option>{% endfor %}</select></div>
+    {% if mode == "sup_return" %}
+    <div class="field"><label>شرکت (تأمین‌کننده)</label>
+      <select name="supplier" required><option value="">— انتخاب کنید —</option>{% for s in suppliers %}<option value="{{ s.pk }}">{{ s.name }}</option>{% endfor %}</select></div>
+    {% endif %}
     {% if mode == "transfer" %}
     <div class="field"><label>به انبار</label>
       <select name="dest_warehouse">{% for w in all_warehouses %}{% if w != current %}<option value="{{ w.pk }}">{{ w.name }}</option>{% endif %}{% endfor %}</select></div>
     {% endif %}
-    <div class="field"><label>{% if mode == "waste" %}علت ضایعات (الزامی){% else %}توضیح{% endif %}</label>
-      <input type="text" name="reason" maxlength="300"{% if mode == "waste" %} required{% endif %} placeholder="{% if mode == 'consume' %}مثلاً پانسمان بیماران شیفت صبح{% elif mode == 'count' %}مثلاً شمارش قفسه A{% endif %}"></div>
+    <div class="field"><label>{% if mode == "waste" %}علت ضایعات (الزامی){% elif mode == "sup_return" %}علت برگشت (الزامی){% else %}توضیح{% endif %}</label>
+      <input type="text" name="reason" maxlength="300"{% if mode == "waste" or mode == "sup_return" %} required{% endif %} placeholder="{% if mode == 'consume' %}مثلاً پانسمان بیماران شیفت صبح{% elif mode == 'count' %}مثلاً شمارش قفسه A{% endif %}"></div>
   </div>
   {% if mode == "count" %}
     <p class="alert alert-info">انبارگردانی: همه اقلام یک قفسه یا بخش را اسکن و تعداد واقعی را وارد کنید. فقط اقلام اسکن‌شده بررسی می‌شوند؛ اختلاف هر ردیف با موجودی دفتری با سند کسری یا اضافه ثبت می‌شود.</p>
     {% include "backoffice/_scan_table.html" with qty_label="تعداد شمارش‌شده" %}
     <button class="btn" type="submit">ثبت شمارش و اختلاف‌ها</button>
   {% else %}
+    {% if mode == "sup_return" %}<p class="muted">کالای منقضی، فراخوان‌شده، آسیب‌دیده یا اضافه ارسال را که شرکت پس می‌گیرد اسکن کنید (معمولاً از انبار «قرنطینه»). کالا به بهای دفتری از انبار خارج و از بدهی شما به همان شرکت کم می‌شود؛ برگ برگشت را از شرکت بگیرید.</p>{% endif %}
     {% if mode == "consume" %}<p class="muted">مصرف داخلی (گاز، سرنگ، دارو و لوازم مصرفی بخش) از موجودی همین بخش کم و به هزینه مرکز هزینه بخش ثبت می‌شود. بچ‌ها به ترتیب نزدیک‌ترین انقضا برداشته می‌شوند مگر کد دوبعدی یا برچسب بچ اسکن شود.</p>{% endif %}
     {% include "backoffice/_scan_table.html" %}
     <button class="btn" type="submit">ثبت سند</button>

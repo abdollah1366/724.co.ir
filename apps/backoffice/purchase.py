@@ -4,6 +4,7 @@
 """
 
 import json
+import uuid
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
@@ -28,6 +29,7 @@ INVOICE_PERM = "purchasing.post_purchaseinvoice"
 PAY_PERM = "accounting.post_payment"
 ORDER_PERM = "purchasing.add_purchaseorder"
 HUB_PERMS = (RECEIVE_PERM, INVOICE_PERM, PAY_PERM, ORDER_PERM)
+RECEIVED_KEY = "receive_tokens"
 
 
 def _require(user, *perms):
@@ -37,9 +39,12 @@ def _require(user, *perms):
 
 def _int(value, default=0):
     try:
-        return int(normalize_digits(str(value or "")).replace(",", "").replace("٬", "").strip() or default)
+        number = int(normalize_digits(str(value or "")).replace(",", "").replace("٬", "").strip() or default)
     except ValueError:
         raise ValidationError(f"عدد «{value}» معتبر نیست.")
+    if number < 0:
+        raise ValidationError(f"عدد منفی «{value}» پذیرفته نیست.")
+    return number
 
 
 def product_info(product, scan=None):
@@ -142,6 +147,12 @@ def receive(request):
                                      "info": product_info(line.product)})
     if request.method == "POST":
         initial_rows = _restore(request.POST.get("items"))
+        token = request.POST.get("token", "")
+        done = request.session.get(RECEIVED_KEY, {})
+        if token and token in done:
+            # دوبار زدن دکمه یا بارگذاری دوباره صفحه: رسید دوباره ساخته نمی‌شود.
+            messages.info(request, "این فرم قبلاً ثبت شده است.")
+            return redirect(f"{reverse('backoffice:purchases')}?done={done[token]}")
         try:
             with transaction.atomic():  # شرکت تازه هم فقط با ثبت موفق رسید ساخته می‌شود
                 warehouse = get_object_or_404(warehouses, pk=request.POST.get("warehouse"))
@@ -178,6 +189,10 @@ def receive(request):
             if paid:
                 text += f" پرداخت {paid.number} ثبت شد."
             messages.success(request, text)
+            if token:
+                done = dict(list(done.items())[-20:])
+                done[token] = receipt.pk
+                request.session[RECEIVED_KEY] = done
             return redirect(f"{reverse('backoffice:purchases')}?done={receipt.pk}")
     default_wh = next((w for w in warehouses if w.code == "MAIN"), warehouses.first())
     locations = [{"id": loc.pk, "wh": loc.warehouse_id, "cond": loc.storage_condition, "name": loc.name}
@@ -189,6 +204,7 @@ def receive(request):
         "can_invoice": can_invoice, "can_pay": can_pay, "can_add_supplier": can_add_supplier,
         "pay_methods": PaymentMethod.choices, "rows_json": initial_rows, "locations_json": locations,
         "with_invoice": (form.get("with_invoice") if request.method == "POST" else True),
+        "token": form.get("token") or uuid.uuid4().hex,
     })
 
 

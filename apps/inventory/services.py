@@ -305,6 +305,13 @@ def validate_inventory_document(doc):
     kind = doc.kind
     if kind == InventoryDocument.Kind.TRANSFER and not doc.dest_warehouse_id:
         raise StockError("انبار مقصد را مشخص کنید.")
+    if kind == InventoryDocument.Kind.SUPPLIER_RETURN:
+        from apps.accounting.models import Party
+
+        if doc.supplier is None or doc.supplier.kind != Party.Kind.SUPPLIER:
+            raise StockError("شرکت (تأمین‌کننده) برگشت کالا را انتخاب کنید.")
+        if not doc.reason.strip():
+            raise StockError("علت برگشت به شرکت را بنویسید (مثلاً منقضی، فراخوان، آسیب‌دیده).")
     for line in lines:
         if line.quantity <= 0:
             raise StockError("تعداد باید مثبت باشد.")
@@ -356,7 +363,12 @@ def post_inventory_document(doc, user):
             stock_out(product=product, warehouse=doc.warehouse, quantity=line.quantity, batch=batch,
                       location=line.location, move_type=doc.kind, source=source, user=user)
     value = source_inventory_value(source)
-    if doc.kind in JOURNAL_ACCOUNTS and value:
+    if doc.kind == Kind.SUPPLIER_RETURN and value:
+        # کالا به بهای دفتری از انبار خارج و از بدهی ما به همان شرکت کم می‌شود (طلب از شرکت تا صدور برگ برگشت).
+        text = f"{doc.get_kind_display()} {doc.number} — {doc.supplier}"
+        acc.post_entry(source, [(acc.AP_SUPPLIERS, -value, 0, doc.supplier, text), (acc.INVENTORY, 0, -value, None, text)],
+                       text, doc.date, user)
+    elif doc.kind in JOURNAL_ACCOUNTS and value:
         counter = JOURNAL_ACCOUNTS[doc.kind]
         text = f"{doc.get_kind_display()} {doc.number} — {doc.warehouse}"
         # مصرف داخلی به مرکز هزینه همان بخش (مثلاً اتاق پانسمان ← درمانگاه) می‌رود.
